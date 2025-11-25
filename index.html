@@ -51,7 +51,9 @@
   function goToLogin() {
     // Avoid infinite loops if you're already on login.html
     if (window.location.pathname !== './pages/login.html') {
-      setTimeout(function(){window.location.href = './pages/login.html';}, 600);
+      setTimeout(function(){
+        alert("hello world");
+        //window.location.href = './pages/login.html';}, 600);
     }
   }
     /*
