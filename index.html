@@ -26,7 +26,7 @@
 
   <style>
     body {
-      margin:0; padding:0; height:100dvh; background:black;
+      margin:0; padding:0; height:100dvh; background:#1e3c72;
       display:flex; align-items:center; justify-content:center; flex-direction:column;
       color:white; font-family:-apple-system, sans-serif;
     }
@@ -52,8 +52,7 @@
     // Avoid infinite loops if you're already on login.html
     if (window.location.pathname !== './pages/login.html') {
       setTimeout(function(){
-        alert("Hello world!");
-        //window.location.href = './pages/login.html';
+        window.location.href = './pages/login.html';
       }, 600);
     }
   }
