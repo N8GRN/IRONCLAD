@@ -1,0 +1,31 @@
+{
+  "name": "IRONCLAD CRM",
+  "short_name": "Estimator",
+  "description": "Roofing Estimator",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "img/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "img/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "apple-touch-icon": "img/icons/apple-touch-icon.png",
+  "splash_screens": [
+    {
+      "src": "img/splash/splash-2048x2732.png",
+      "sizes": "2048x2732",
+      "type": "image/png"
+    }
+  ]
+}

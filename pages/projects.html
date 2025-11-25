@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        href="../img/splash/splash-2048x2732.png">
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        href="../img/splash/splash-1668x2388.png">
+    <link rel="apple-touch-startup-image"
+        media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"
+        href="../img/splash/splash-1536x2048.png">
+
+    <link rel="manifest" href=".././manifest.json">
+    <link rel="apple-touch-icon" href="../img/icons/apple-touch-icon.png">
+    <link rel="stylesheet" href="../css/styles.css">
+    <title>About | IRONCLAD CRM</title>
+</head>
+
+<body>
+    <header>
+        <img src="../img/icons/logo.png">
+        <h2>My Projects</h2>
+    </header>
+
+    
+    <main>
+        <p>This is a list of my projects.</p>
+        <table>
+            <tbody>
+                <tr>
+                    <th>Customer</th>
+                    <th>Type</th>
+                    <th>Project Owner</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td>Nate Green</td>
+                    <td>Roof</td>
+                    <td>Jon Wright</td>
+                    <td>
+                        <select class="projectStatus">
+
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Nancy Green</td>
+                    <td>Roof + Siding</td>
+                    <td>Jon Wright</td>
+                    <td>
+                        <select class="projectStatus">
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>John Doe</td>
+                    <td>Roof</td>
+                    <td>Jon Wright</td>
+                    <td>
+                        <select class="projectStatus">
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Bob Smith</td>
+                    <td>Roof</td>
+                    <td>Matt Green</td>
+                    <td>
+                        <select class="projectStatus">
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Bugs Bunny</td>
+                    <td>Roof + Siding + Gutters</td>
+                    <td>Jon Wright</td>
+                    <td>
+                        <select class="projectStatus">
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Fred Flinstone</td>
+                    <td>Roof</td>
+                    <td>Jon Wright</td>
+                    <td>
+                        <select class="projectStatus">
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+    <footer>
+        <div class="button-space">
+            <button onclick="location.href='home.html'">Home</button>
+        </div>
+    </footer>
+
+    <script src="../js/app.js"></script>
+    <script>
+        function projectStatus() {
+            fetch('../data/project_status.json')
+                .then(response => response.json())
+                .then(options => {
+                    var selects = document.querySelectorAll('.projectStatus');
+                    selects.forEach(select => {
+                        options.forEach(text => {
+                            const opt = document.createElement('option');
+                            opt.value = text;       // or opt.value = text.toLowerCase() if you want different values
+                            opt.textContent = text;
+                            select.appendChild(opt);
+                        });
+                    })
+                });
+        }
+
+        projectStatus();
+    </script>
+</body>
+
+</html>

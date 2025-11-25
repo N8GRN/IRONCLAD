@@ -1,0 +1,457 @@
+:root {
+    --btn1: rgb(0, 120, 212);
+    --btn2: rgb(245, 250, 251);
+    --btn3: rgb(3, 60, 119);
+    --color1: rgb(18, 28, 77);
+    --color2: rgb(165, 13, 10);
+    --logo: url(/slate/designer/project/img/logo.png);
+    --link: #0000EE;
+    --visited: #551A8B;
+}
+
+
+html {
+    background: white;
+    overflow:hidden;
+    display:block;
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+}
+
+body { 
+    font-family: -apple-system, sans-serif; 
+    background:#fff; 
+    max-height:100dvh;
+    display:block;
+    position:absolute;
+    top:0;
+    right: 0;
+    bottom: 0;
+    left:0;
+    margin: 0 auto;
+    overflow:hidden;
+    padding-top:none;
+    padding: min(2rem, 8%);
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    color:black;
+    text-align:center;
+    margin:auto;
+    width:-webkit-fill-available;
+    white-space: nowrap;
+    /*height: auto;*/
+    /*min-height: 20dvh;
+    max-height: 60dvh;
+    display:flex;
+    flex-wrap: wrap;
+    flex-direction: column;*/
+}
+
+header * {
+    /*flex: 1 1;*/
+    text-align: center;
+    vertical-align: middle;
+    margin: auto;
+    padding-bottom: 1rem;
+}
+
+header img {
+    border: none;
+    max-height: 20dvh;
+    max-width: 30dvh;
+    height: auto;
+    width:auto;
+    
+}
+
+h2 {
+    text-align: center;
+    font-size: 2.5em;
+    font-weight: 300;
+    /*margin: 1em;*/
+    white-space: nowrap;
+}
+
+main {
+    width:-webkit-fill-available;
+    margin:0 auto; 
+    overflow-x:auto; 
+    overflow-y:auto;
+    flex-grow: 1;
+    display:flex;
+    flex-direction: column;
+    /*justify-content: center;*/
+    scrollbar-width: none;
+}
+
+main::before {
+    content:"";
+    display:block;
+    position:absolute;
+    width:100%;
+    height:0;
+    top:auto;
+    background:linear-gradient(180deg, white, transparent);
+    backdrop-filter: blur(1px);
+    transition:all .3s;
+    margin: -1px 0 0 0;
+    z-index: 2;
+}
+
+main::after {
+    content:"";
+    display:block;
+    position:absolute;
+    width:100%;
+    height:0;
+    top:auto;
+    background:transparent;
+    backdrop-filter: blur(2px);
+    z-index: 1;
+}
+
+main.scrolled::before {
+    height:1.5%/*1.5rem;*/
+}
+
+main.scrolled::after {
+    height:1%/*1rem;*/
+}
+
+footer {
+    display:block;
+    position:relative;
+    bottom:0;
+    left:0;
+    right:0;
+}
+
+
+/* header { background:#000; color:white; padding:2rem; text-align:center; } */
+
+nav { background:#333; padding:1rem; text-align:center; }
+nav a { color:white; margin:0 1rem; text-decoration:none; font-weight:bold; }
+nav a.active, nav a:hover { color:var(--btn1); }
+.gallery .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:1rem; }
+img { max-width:100%; border-radius:8px; }
+
+/* ----------------------------------------------------------------------- */
+
+div.bottom-nav {
+    display:inline-flex;
+    justify-content: space-evenly;
+    /*position:absolute;
+    top: auto;
+    bottom:20px;
+    left:0;
+    right:0;*/
+    width: -webkit-fill-available;
+    height:auto;
+    padding: 1.5rem;
+}
+
+div.bottom-nav > button {
+    min-width: 30dvw;
+}
+
+/*----------------  TEMPORARY -----------------------*/
+table {
+    width: -webkit-fill-available;
+    border-collapse: collapse;
+    background: #fff;
+    border: none;
+    border-radius: 1rem;
+    margin: 0 auto;
+    /*padding: 1em;*/
+    padding: 0;
+    font-size:1.2em;
+    overflow:hidden;
+}
+
+table tr:not(th):hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: black;
+}
+
+table tr.active-row:not(th) {
+    background: var(--btn1);
+    color: white;
+}
+
+table.col21 * td {
+    width: 50%;
+}
+
+table.col25 tr td:first-of-type {
+    width: 25%;
+    background: rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#special-notes * td{
+    min-height: 60px !important;
+}
+
+th {
+    background: var(--color2);
+    color: white;
+}
+
+td, th {
+    border: none;
+    border-bottom: 1px solid black;
+    line-height: 1.8em;
+    margin: 150px 100px;
+    padding: none;
+    padding: .2em 1em;
+    white-space: nowrap;
+}
+
+td input, textarea {
+    font-size: inherit;
+    background: inherit !important;
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    outline:none;
+    overflow: auto;
+    field-sizing: content; 
+}
+
+textarea {
+    min-height: 6rem;
+    field-sizing: content; 
+}
+
+td input:focus-within, td input:active, textarea:focus {
+    color:white !important;
+}
+
+select {
+    width: 100%;           /* Take full width of the cell */
+    height: 100%;          /* Take full height of the cell */
+    padding: 8px;          /* Comfortable inner padding */
+    font-size: inherit;
+    color:inherit;
+    border: none;          /* Remove default border (optional) */
+    border-radius: 0px;    
+    box-sizing: border-box; /* Important: include padding in width/height */
+    background-color: transparent;
+    outline:none;
+}
+
+/*select:hover {
+    border: none !important;
+    color: inherit;
+    outline: none;
+    background: var(--btn1);
+}*/
+
+select:focus-visible {
+    border: none !important;
+    color: inherit;
+    outline: none;
+    background: var(--btn1);
+}
+
+select:active {
+    color: inherit;
+    background: transparent;
+}
+
+div.active-user {
+    display:block;
+    position:absolute;
+    top:50px;
+    right:50px;
+}
+
+span#username {
+    color:blue;
+}
+
+.middle-container {
+    border: none;
+}
+
+.center-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 100vh;
+}
+
+.full {
+    display:block;
+    /*height: 60px;*/
+    width: 60%;
+    min-width: 330px;
+    margin: auto auto;
+    line-height: 1em;
+}
+
+.button-space {
+    display: flex;
+    flex-direction: column;
+    min-height: clamp(50px, 25dvh, 100%);
+}
+
+button, .button {
+    display:inline-block;
+    background-color: var(--btn3);
+    color:white;
+    padding:1rem 2rem; 
+    text-decoration:none; 
+    font-size: 1.6rem;
+    border-radius: 999px;
+    transition:all .2s;
+    border: 2px solid var(--btn3);
+    line-height: 1.6rem;
+    text-align: center;
+    min-width: clamp(50px, 70dvw, 80%);
+    width: -webkit-fit-content;
+    margin: 0 auto;
+    white-space: nowrap;
+    /*box-shadow: 0px 4px 6px rgba(0,0,0,0.15);*/
+
+    /*opacity: 1;
+	animation-name: fadeInOpacity;
+	animation-iteration-count: 1;
+	animation-timing-function: ease-in-out;
+	animation-duration: .5s;*/
+}
+
+
+button:hover, .button:hover {
+    background-color: white;
+    color:var(--btn3) !important;;
+    border-radius: 999px;
+}
+
+.active button {
+    background-color: white;
+    color: var(--btn3);
+
+}
+
+.fillWht {
+    background: white !important;
+}
+
+.slideUp {
+    -webkit-animation: slideUp 3s;
+    display:block;
+    position:absolute;
+}
+
+
+/* Toggle Switch - iPad-friendly */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 2rem auto;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-size: 1.2rem;
+  position:sticky;
+  width:-webkit-fill-available;
+}
+
+.toggle-label {
+  font-weight: 600;
+}
+
+.status {
+  margin-left: 1rem;
+  font-weight: bold;
+  min-width: 50px;
+  text-align: right;
+}
+
+/* The switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 64px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--btn3);
+}
+
+input:checked + .slider:before {
+  transform: translateX(30px);
+}
+
+.slider.round { border-radius: 34px; }
+.slider.round:before { border-radius: 50%; }
+
+
+.fade-in {
+	opacity: 1;
+	animation-name: fadeInOpacity;
+	animation-iteration-count: 1;
+	animation-timing-function: ease-in;
+	animation-duration: .5s;
+}
+
+/* Animations */
+@keyframes slideUp {
+    from {
+        top: 100% !important;
+        opacity: 0;
+    } 
+    to{
+        top:0px;
+        opacity: 1;
+    } 
+}
+
+@keyframes fadeInOpacity {
+	0% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 1;
+	}
+}
