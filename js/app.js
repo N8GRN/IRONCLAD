@@ -12,7 +12,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/IRONCLAD/sw.js')
       .then(reg => {
         console.log('Service Worker registered successfully:', reg.scope);
-        goToLogin(); // Proceed after registration
+        //goToLogin(); // Proceed after registration
       })
       .catch(err => {
         console.error('Service Worker registration failed:', err);

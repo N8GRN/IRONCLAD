@@ -1,4 +1,4 @@
-const APP_VERSION = 'v2025.2.10'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.2.11'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const PRECACHE_URLS = [
