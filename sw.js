@@ -1,4 +1,4 @@
-const APP_VERSION = 'v2025.2.4';                    // ← bump this on every deploy
+const APP_VERSION = 'v2025.2.5';                    // ← bump this on every deploy
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -28,8 +28,9 @@ const PRECACHE_URLS = [
 
   // Images & icons
   '/IRONCLAD/img/logo.png',
+  '/IRONCLAD/img/icon.png',
   '/IRONCLAD/img/background.png',
-  '/IRONCLAD/img/icons/icon-logo.png',
+  '/IRONCLAD/img/icons/logo.png',
   '/IRONCLAD/img/icons/apple-touch-icon.png',
   '/IRONCLAD/img/icons/icon-192x192.png',
   '/IRONCLAD/img/icons/icon-512x512.png',
