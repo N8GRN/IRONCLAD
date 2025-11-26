@@ -24,7 +24,7 @@ html {
 body { 
     font-family: -apple-system, sans-serif; 
     background:#fff; 
-    max-height:100dvh;
+    height:100dvh;
     display:block;
     position:absolute;
     top:0;
