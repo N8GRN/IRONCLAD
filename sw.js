@@ -3,86 +3,114 @@ const APP_VERSION = 'v2025.2.1';   // ← change this any time you update
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const urlsToCache = [
-  '/',
-  './index.html',
-  './manifest.json',
-  './favicon.png',
+  '/IRONCLAD/',
+  '/IRONCLAD/index.html',
+  '/IRONCLAD/manifest.json',
+  '/IRONCLAD/favicon.png',
 
   // JavaScript
-  './js/app.js',
-  './sw.js',
+  '/IRONCLAD/js/app.js',
+  '/IRONCLAD/sw.js',
 
   // Styles
-  './css/styles.css',
+  '/IRONCLAD/css/styles.css',
 
   // All pages
-  './pages/application.html',
-  './pages/home.html',
-  './pages/login.html',
-  './pages/newProject.html',
-  './pages/page1.html',
-  './pages/page2.html',
-  './pages/page3.html',
-  './pages/page4.html',
-  './pages/page5.html',
-  './pages/projects.html',
+  '/IRONCLAD/pages/application.html',
+  '/IRONCLAD/pages/home.html',
+  '/IRONCLAD/pages/login.html',
+  '/IRONCLAD/pages/newProject.html',
+  '/IRONCLAD/pages/page1.html',
+  '/IRONCLAD/pages/page2.html',
+  '/IRONCLAD/pages/page3.html',
+  '/IRONCLAD/pages/page4.html',
+  '/IRONCLAD/pages/page5.html',
+  '/IRONCLAD/pages/projects.html',
 
   // Images & icons (add every single one you use)
-  './img/logo.png',
-  './img/background.png',
-  './img/icons/icon-logo.png',
-  './img/icons/apple-touch-icon.png',
-  './img/icons/icon-192x192.png',
-  './img/icons/icon-512x512.png',
+  '/IRONCLAD/img/logo.png',
+  '/IRONCLAD/img/background.png',
+  '/IRONCLAD/img/icons/icon-logo.png',
+  '/IRONCLAD/img/icons/apple-touch-icon.png',
+  '/IRONCLAD/img/icons/icon-192x192.png',
+  '/IRONCLAD/img/icons/icon-512x512.png',
 
   // Data & JSON
-  './data/project_status.json',
-  './data/shingle_options.json',
+  '/IRONCLAD/data/project_status.json',
+  '/IRONCLAD/data/shingle_options.json',
 
   // Splash screens
-  './img/splash/splash-2048x2732.png',
-  './img/splash/splash-1668x2388.png',
-  './img/splash/splash-1536x2048.png'
+  '/IRONCLAD/img/splash/splash-2048x2732.png',
+  '/IRONCLAD/img/splash/splash-1668x2388.png',
+  '/IRONCLAD/img/splash/splash-1536x2048.png'
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(urlsToCache).catch(err => {
-        console.error('Cache addAll failed:', err);
-      });
-    })
+// Install: Cache essentials
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Caching files');
+        return cache.addAll(urlsToCache);  // Fails install if any 404—test paths!
+      })
+      .catch(err => console.error('Install failed:', err))
   );
+  // Skip waiting to activate immediately
   self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(
-      keys.map(key => {
-        if (key !== CACHE_NAME) {
-          return caches.delete(key);
-        }
-      })
-    )).then(() => self.clients.claim())
+// Activate: Clean old caches
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
+  // Take control of pages immediately
+  self.clients.claim();
 });
 
-self.addEventListener('fetch', e => {
-  const request = e.request;
-
-  // Navigation requests (page loads) – always try network first, fall back to cache
-  if (request.mode === 'navigate') {
-    e.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
-    );
+// Fetch: Cache-first for offline
+self.addEventListener('fetch', event => {
+  // Ignore non-GET or non-same-origin
+  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
-  // Everything else – cache-first
-  e.respondWith(
-    caches.match(request).then(response => {
-      return response || fetch(request);
-    })
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Return cached version or fetch from network
+        if (response) {
+          return response;
+        }
+        return fetch(event.request).then(networkResponse => {
+          // Cache successful network responses (for future offline)
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        }).catch(() => {
+          // Offline fallback: For HTML pages, serve cached index.html
+          if (event.request.destination === 'document') {
+            return caches.match('/IRONCLAD/') || new Response('Offline: App requires internet to load initially.', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
+          }
+          // For other resources, return a simple fallback
+          return new Response('Offline: Resource unavailable.', { status: 503 });
+        });
+      })
   );
 });

@@ -8,6 +8,8 @@
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "orientation": "portrait-primary",
+  "lang": "en-US",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/IRONCLAD/img/icons/icon-192x192.png",
