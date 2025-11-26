@@ -11,7 +11,7 @@
 
 
 html {
-    background: white;
+    background: #1e3c72;;
 }
 
 body { 
@@ -24,8 +24,9 @@ body {
     bottom: 0;
     left:0;
     margin: 0 auto;
-    padding: min(2rem, 8%);
     */
+    padding: min(2rem, 8%);
+    
     overflow:hidden;
 
     margin:0; 
