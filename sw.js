@@ -1,46 +1,46 @@
 
-const APP_VERSION = 'v2025.1.64';   // ← change this any time you update
+const APP_VERSION = 'v2025.1.65';   // ← change this any time you update
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const urlsToCache = [
   '/',
-  '/index.html',
-  '/manifest.json',
-  '/server.js',
-  '/favicon.png',
+  './index.html',
+  './manifest.json',
+  './server.js',
+  './favicon.png',
 
   // JavaScript
-  '/js/app.js',
+  './js/app.js',
 
   // Styles
-  '/css/styles.css',
+  './css/styles.css',
 
   // All pages
-  '/pages/home.html',
-  '/pages/login.html',
-  '/pages/newProject.html',
-  '/pages/page1.html',
-  '/pages/page2.html',
-  '/pages/page3.html',
-  '/pages/page4.html',
-  '/pages/page5.html',
-  '/pages/projects.html',
+  './pages/home.html',
+  './pages/login.html',
+  './pages/newProject.html',
+  './pages/page1.html',
+  './pages/page2.html',
+  './pages/page3.html',
+  './pages/page4.html',
+  './pages/page5.html',
+  './pages/projects.html',
 
   // Images & icons (add every single one you use)
-  '/img/logo.png',
-  '/img/background.png',
-  '/img/icons/apple-touch-icon.png',
-  '/img/icons/icon-192x192.png',
-  '/img/icons/icon-512x512.png',
+  './img/logo.png',
+  './img/background.png',
+  './img/icons/apple-touch-icon.png',
+  './img/icons/icon-192x192.png',
+  './img/icons/icon-512x512.png',
 
   // Data & JSON
-  '/img/data/project_status.json',
-  '/img/data/shingle_options.json',
+  './img/data/project_status.json',
+  './img/data/shingle_options.json',
 
   // Splash screens
-  '/img/splash/splash-2048x2732.png',
-  '/img/splash/splash-1668x2388.png',
-  '/img/splash/splash-1536x2048.png'
+  './img/splash/splash-2048x2732.png',
+  './img/splash/splash-1668x2388.png',
+  './img/splash/splash-1536x2048.png'
 ];
 
 self.addEventListener('install', e => {
