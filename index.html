@@ -39,36 +39,34 @@
   <h2>Loading…</h2>
 
   <script>
-    // Register Service Worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(() => {
-      goToLogin();                     // runs right after registration succeeds
+    // Explicit absolute path + explicit scope = 100% reliable on GitHub Pages
+    navigator.serviceWorker.register('/IRONCLAD/sw.js', {
+      scope: '/IRONCLAD/'               // ← critical for installed PWA
+    })
+    .then(registration => {
+      console.log('Service Worker registered with scope:', registration.scope);
+      goToLogin();
+    })
+    .catch(error => {
+      console.error('Service Worker registration failed:', error);
+      goToLogin();                    // still redirect even if SW fails
     });
   } else {
     goToLogin();
   }
 
   function goToLogin() {
-    // Avoid infinite loops if you're already on login.html
-    if (window.location.pathname !== './pages/login.html') {
-      setTimeout(function(){
-        window.location.href = './pages/login.html';
+    // Use absolute path instead of relative – safer when app is launched from home screen
+    const loginPath = '/IRONCLAD/pages/login.html';
+    
+    if (window.location.pathname !== loginPath && 
+        !window.location.pathname.endsWith('/IRONCLAD/')) {  // also catch root launch
+      setTimeout(() => {
+        window.location.href = loginPath;
       }, 600);
     }
   }
-    /*
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.update();
-        setTimeout(() => {
-          goToLogin();
-        }, 600);
-      }).catch(() => {
-        goToLogin();
-      });
-    } else {
-      goToLogin();
-    }*/
-  </script>
+</script>
 </body>
 </html>
