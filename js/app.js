@@ -9,7 +9,7 @@ window.onload = function () {
 // Service Worker Registration (PWA core)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('../sw.js')
+    navigator.serviceWorker.register('/IRONCLAD/sw.js')
       .then(reg => {
         console.log('Service Worker registered successfully:', reg.scope);
         goToLogin(); // Proceed after registration
@@ -30,7 +30,7 @@ function goToLogin() {
 
   if (!isLoginPage) {
     setTimeout(() => {
-      window.location.href = './pages/login.html'; // Absolute path = reliable on iOS/Android
+      window.location.href = '/IRONCLAD/pages/login.html'; // Absolute path = reliable on iOS/Android
     }, 600);
   }
 }
