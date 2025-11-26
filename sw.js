@@ -1,47 +1,47 @@
-const APP_VERSION = 'v2025.2.2';                    // ← bump this on every deploy
+const APP_VERSION = 'v2025.2.3';                    // ← bump this on every deploy
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const PRECACHE_URLS = [
-  '/IRONCLAD/',
-  '/IRONCLAD/index.html',
-  '/IRONCLAD/manifest.json',
-  '/IRONCLAD/favicon.png',
+  './IRONCLAD/',
+  './IRONCLAD/index.html',
+  './IRONCLAD/manifest.json',
+  './IRONCLAD/favicon.png',
 
   // JavaScript
-  '/IRONCLAD/js/app.js',
-  '/IRONCLAD/sw.js',
+  './IRONCLAD/js/app.js',
+  './IRONCLAD/sw.js',
 
   // Styles
-  '/IRONCLAD/css/styles.css',
+  './IRONCLAD/css/styles.css',
 
   // Pages
-  '/IRONCLAD/pages/application.html',
-  '/IRONCLAD/pages/home.html',
-  '/IRONCLAD/pages/login.html',
-  '/IRONCLAD/pages/newProject.html',
-  '/IRONCLAD/pages/page1.html',
-  '/IRONCLAD/pages/page2.html',
-  '/IRONCLAD/pages/page3.html',
-  '/IRONCLAD/pages/page4.html',
-  '/IRONCLAD/pages/page5.html',
-  '/IRONCLAD/pages/projects.html',
+  './IRONCLAD/pages/application.html',
+  './IRONCLAD/pages/home.html',
+  './IRONCLAD/pages/login.html',
+  './IRONCLAD/pages/newProject.html',
+  './IRONCLAD/pages/page1.html',
+  './IRONCLAD/pages/page2.html',
+  './IRONCLAD/pages/page3.html',
+  './IRONCLAD/pages/page4.html',
+  './IRONCLAD/pages/page5.html',
+  './IRONCLAD/pages/projects.html',
 
   // Images & icons
-  '/IRONCLAD/img/logo.png',
-  '/IRONCLAD/img/background.png',
-  '/IRONCLAD/img/icons/icon-logo.png',
-  '/IRONCLAD/img/icons/apple-touch-icon.png',
-  '/IRONCLAD/img/icons/icon-192x192.png',
-  '/IRONCLAD/img/icons/icon-512x512.png',
+  './IRONCLAD/img/logo.png',
+  './IRONCLAD/img/background.png',
+  './IRONCLAD/img/icons/icon-logo.png',
+  './IRONCLAD/img/icons/apple-touch-icon.png',
+  './IRONCLAD/img/icons/icon-192x192.png',
+  './IRONCLAD/img/icons/icon-512x512.png',
 
   // Data
-  '/IRONCLAD/data/project_status.json',
-  '/IRONCLAD/data/shingle_options.json',
+  './IRONCLAD/data/project_status.json',
+  './IRONCLAD/data/shingle_options.json',
 
   // Splash screens
-  '/IRONCLAD/img/splash/splash-2048x2732.png',
-  '/IRONCLAD/img/splash/splash-1668x2388.png',
-  '/IRONCLAD/img/splash/splash-1536x2048.png'
+  './IRONCLAD/img/splash/splash-2048x2732.png',
+  './IRONCLAD/img/splash/splash-1668x2388.png',
+  './IRONCLAD/img/splash/splash-1536x2048.png'
 ];
 
 // INSTALL – Precache critical assets
