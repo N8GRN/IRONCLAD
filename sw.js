@@ -1,4 +1,4 @@
-const APP_VERSION = 'v2025.2.24'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.2.25'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 const PAGES = '';  // Previously "pages/"
