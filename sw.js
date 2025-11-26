@@ -1,5 +1,5 @@
 
-const APP_VERSION = 'v2025.1.76';   // ← change this any time you update
+const APP_VERSION = 'v2025.2.1';   // ← change this any time you update
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const urlsToCache = [
