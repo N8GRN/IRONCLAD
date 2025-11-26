@@ -18,7 +18,7 @@
   <link rel="icon" type="image/png" href="./favicon.png">
   <link rel="shortcut icon" href="./favicon.png">
 
-  <link rel="manifest" href="./manifest.json">
+  <link rel="manifest" href="../manifest.json">
   <link rel="apple-touch-icon" href="./img/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="./css/styles.css">
 
@@ -41,8 +41,8 @@
   <script>
   if ('serviceWorker' in navigator) {
     // Explicit absolute path + explicit scope = 100% reliable on GitHub Pages
-    navigator.serviceWorker.register('/IRONCLAD/sw.js', {
-      scope: '/IRONCLAD/'               // ← critical for installed PWA
+    navigator.serviceWorker.register('/sw.js', {
+      scope: '/'               // ← critical for installed PWA
     })
     .then(registration => {
       console.log('Service Worker registered with scope:', registration.scope);
@@ -58,7 +58,7 @@
 
   function goToLogin() {
     // Use absolute path instead of relative – safer when app is launched from home screen
-    const loginPath = '/IRONCLAD/pages/login.html';
+    const loginPath = '/pages/login.html';
     
     if (window.location.pathname !== loginPath && 
         !window.location.pathname.endsWith('/IRONCLAD/')) {  // also catch root launch
