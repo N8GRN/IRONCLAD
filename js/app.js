@@ -3,6 +3,7 @@
 // ===============================================
 //const REPO = "/IRONCLAD/"; // ← Declared in sw.js
 const REPO_ = "/IRONCLAD/";
+const PAGES_ = "/"; // "/pages";
 
 window.onload = function () {
     drawUser();
@@ -89,7 +90,7 @@ function drawUser() {
   const a = document.createElement("a");
 
   a.id = "username";
-  a.href = "pages/login.html";
+  a.href = PAGES_ + "login.html";
   a.textContent = getActiveUser();
 
   div.classList.add("active-user");
