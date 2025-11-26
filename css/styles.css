@@ -91,6 +91,7 @@ h2 {
 main {
     width:-webkit-fill-available;
     margin:0 auto; 
+    padding: 0 2em;
     overflow-x:auto; 
     overflow-y:auto;
     flex-grow: 1;
