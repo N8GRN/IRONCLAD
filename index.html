@@ -39,9 +39,10 @@
   <h2>Loading…</h2>
 
   <script>
+    const REPO = "/IRONCLAD/";
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('/IRONCLAD/sw.js')
           .then(reg => {
             console.log('Service Worker registered with scope:', reg.scope);
           })
@@ -54,8 +55,8 @@
     // Redirect to login if not already there
     if (!location.pathname.includes('login.html')) {
       setTimeout(() => {
-        location.href = '/pages/login.html';
-      }, 600);
+        location.href = '/IRONCLAD/pages/login.html';
+      }, 6000);
     }
 </script>
 </body>
