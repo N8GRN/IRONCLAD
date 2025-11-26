@@ -45,7 +45,7 @@ main.addEventListener('scroll', function() {
     }
 });
 
-var drawUser = function () {
+function drawUser() {
 
     // <a href="page1.html">About</a>
     var div = this.document.createElement("div");
@@ -60,7 +60,7 @@ var drawUser = function () {
     a.innerText = getActiveUser();
 }
 
-var getActiveUser = function () {
+function getActiveUser() {
     var activeUser;
     activeUser = localStorage.getItem('userName') || "None";
     return activeUser;

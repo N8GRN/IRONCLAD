@@ -1,4 +1,4 @@
-const APP_VERSION = 'v2025.2.6';                    // ← bump this on every deploy
+const APP_VERSION = 'v2025.2.7';                    // ← bump this on every deploy
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -17,7 +17,7 @@ const PRECACHE_URLS = [
   // Pages
   '/IRONCLAD/pages/application.html',
   '/IRONCLAD/pages/home.html',
-  './pages/login.html',
+  '/IRONCLAD/pages/login.html',
   '/IRONCLAD/pages/newProject.html',
   '/IRONCLAD/pages/page1.html',
   '/IRONCLAD/pages/page2.html',
