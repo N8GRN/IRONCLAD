@@ -6,31 +6,37 @@ window.onload = function () {
     drawUser();
 };
 
-// Service Worker Registration (PWA core)
+// Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/IRONCLAD/sw.js')
+    navigator.serviceWorker.register('/sw.js')
       .then(reg => {
-        console.log('Service Worker registered successfully:', reg.scope);
-        //goToLogin(); // Proceed after registration
+        console.log('Service Worker registered:', reg.scope);
+        maybeRedirectToLogin();  // ← Only redirect from landing page
       })
       .catch(err => {
-        console.error('Service Worker registration failed:', err);
-        goToLogin(); // Still redirect even if SW fails
+        console.error('SW registration failed:', err);
+        maybeRedirectToLogin();
       });
   });
 } else {
-  goToLogin();
+  maybeRedirectToLogin();
 }
 
-// Reliable login redirect (works when launched from home screen)
-function goToLogin() {
-  const currentPath = window.location.pathname.toLowerCase();
-  const isLoginPage = currentPath.includes('login.html') || currentPath.endsWith('login.html');
+// Only redirect to login if currently on the root landing page (index.html or /IRONCLAD/)
+function maybeRedirectToLogin() {
+  const path = window.location.pathname.toLowerCase();
 
-  if (!isLoginPage) {
+  // These are the landing page URLs on your GitHub Pages site
+  const isOnLandingPage =
+    path === '/' ||
+    path === '/ironclad/' ||
+    path === '/ironclad/index.html' ||
+    path.endsWith('/index.html');
+
+  if (isOnLandingPage) {
     setTimeout(() => {
-      window.location.href = '/IRONCLAD/pages/login.html'; // Absolute path = reliable on iOS/Android
+      window.location.href = '/pages/login.html';
     }, 600);
   }
 }
@@ -39,36 +45,30 @@ function goToLogin() {
 // UI & Interaction Logic
 // ===============================================
 
-const isTableEl = function (el) {
-  return !!el.closest("table");
-};
+const isTableEl = el => !!el.closest("table");
 
-// Remove focus + row highlighting on body click
 document.body.addEventListener('click', function (event) {
   const inputElements = ['input', 'textarea', 'select', 'button'];
   const el = event.target;
   const tag = el.tagName.toLowerCase();
 
-  // Blur active input if clicking outside form controls
   if (document.activeElement && inputElements.indexOf(tag) === -1) {
     document.activeElement.blur();
   }
 
-  // Clear all active rows
   document.querySelectorAll('tr.active-row').forEach(row => {
     row.classList.remove('active-row');
   });
 
-  // Highlight clicked row if inside a table
   if (isTableEl(el)) {
     el.closest('tr')?.classList.add('active-row');
   }
 });
 
-// Scroll shadow effect on <main>
+// Scroll shadow on <main>
 const main = document.querySelector("main");
 if (main) {
-  main.addEventListener('scroll', function () {
+  main.addEventListener('scroll', () => {
     main.classList.toggle('scrolled', main.scrollTop > 0);
   });
 }
@@ -78,11 +78,11 @@ if (main) {
 // ===============================================
 
 function drawUser() {
-  let div = document.createElement("div");
-  let a = document.createElement("a");
+  const div = document.createElement("div");
+  const a = document.createElement("a");
 
   a.id = "username";
-  a.href = "pages/login.html"; // Relative but consistent
+  a.href = "pages/login.html";
   a.textContent = getActiveUser();
 
   div.classList.add("active-user");
@@ -95,7 +95,7 @@ function getActiveUser() {
 }
 
 // ===============================================
-// Offline/Online Status (Optional UX Enhancement)
+// Offline/Online Indicators (optional)
 // ===============================================
 
 window.addEventListener('online', () => {
@@ -106,36 +106,28 @@ window.addEventListener('online', () => {
 window.addEventListener('offline', () => {
   console.log('Working offline');
   document.body.classList.add('offline-mode');
-  // Optional: show toast/banner
 });
 
 // ===============================================
-// Local Development Server I/O (keep for dev, remove or guard in production)
+// Dev-only file read/write (blocked in production)
 // ===============================================
 
-// Only enable read/write when running on localhost or your dev IP
-const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '192.168.0.18';
+const isDev = ['localhost', '127.0.0.1', '192.168.0.18'].includes(location.hostname);
 
 const read = (file = 'story.txt') => {
-  if (!isDev) return console.warn('read() blocked in production');
+  if (!isDev) return console.warn('read() blocked outside dev');
   const xhr = new XMLHttpRequest();
   xhr.open('GET', `http://192.168.0.18:8000/data/${encodeURIComponent(file)}`, true);
-  xhr.onload = () => {
-    if (xhr.status === 200) console.log('Read:', file, '→', xhr.responseText);
-    else console.error('Read failed:', xhr.status);
-  };
+  xhr.onload = () => console.log(xhr.status === 200 ? 'Read success' : 'Read failed:', xhr.status);
   xhr.onerror = () => console.error('Network error reading', file);
   xhr.send();
 };
 
 const write = (file = 'story.txt', text = '') => {
-  if (!isDev) return console.warn('write() blocked in production');
+  if (!isDev) return console.warn('write() blocked outside dev');
   const xhr = new XMLHttpRequest();
   xhr.open('POST', `http://192.168.0.18:8000/data/${encodeURIComponent(file)}`, true);
-  xhr.onload = () => {
-    if (xhr.status === 200) console.log('Saved to', file);
-    else console.error('Write failed:', xhr.status);
-  };
+  xhr.onload = () => console.log(xhr.status === 200 ? 'Write success' : 'Write failed:', xhr.status);
   xhr.onerror = () => console.error('Network error writing', file);
   xhr.send(text);
 };
