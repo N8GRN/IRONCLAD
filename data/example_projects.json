@@ -1,0 +1,32 @@
+[
+  {
+    "id": "123-456",
+    "customer": "John Smith",
+    "application": "roof",
+    "owner": "Jon Wright",
+    "status": "Lead",
+    "structures": "1",
+    "stories": "1",
+    "squares": "30"
+  },
+  {
+    "id": "456-789",
+    "customer": "Nate Green",
+    "application": "roof+siding",
+    "owner": "Jon Wright",
+    "status": "Scheduled",
+    "structures": "1",
+    "stories": "1",
+    "squares": "42"
+  },
+  {
+    "id": "789-123",
+    "customer": "Bugs Bunny",
+    "application": "roof+gutters",
+    "owner": "Matt Green",
+    "status": "Sold",
+    "structures": "1",
+    "stories": "2",
+    "squares": "46"
+  }
+]

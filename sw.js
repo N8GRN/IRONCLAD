@@ -1,18 +1,17 @@
-const APP_VERSION = 'v2025.2.7';                    // ← bump this on every deploy
+const APP_VERSION = 'v2025.2.8'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const PRECACHE_URLS = [
   '/IRONCLAD/',
   '/IRONCLAD/index.html',
+  '/IRONCLAD/offline.html',        // ← Create this file!
   '/IRONCLAD/manifest.json',
   '/IRONCLAD/favicon.png',
 
-  // JavaScript
+  // Core JS/CSS
   '/IRONCLAD/js/app.js',
-  '/IRONCLAD/sw.js',
-
-  // Styles
   '/IRONCLAD/css/styles.css',
+  '/IRONCLAD/sw.js',
 
   // Pages
   '/IRONCLAD/pages/application.html',
@@ -26,7 +25,7 @@ const PRECACHE_URLS = [
   '/IRONCLAD/pages/page5.html',
   '/IRONCLAD/pages/projects.html',
 
-  // Images & icons
+  // Images
   '/IRONCLAD/img/logo.png',
   '/IRONCLAD/img/icon.png',
   '/IRONCLAD/img/background.png',
@@ -35,7 +34,7 @@ const PRECACHE_URLS = [
   '/IRONCLAD/img/icons/icon-192x192.png',
   '/IRONCLAD/img/icons/icon-512x512.png',
 
-  // Data
+  // Data (static)
   '/IRONCLAD/data/project_status.json',
   '/IRONCLAD/data/shingle_options.json',
 
@@ -45,115 +44,120 @@ const PRECACHE_URLS = [
   '/IRONCLAD/img/splash/splash-1536x2048.png'
 ];
 
-// INSTALL – Precache critical assets
+// INSTALL
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log(`[SW ${APP_VERSION}] Precaching ${PRECACHE_URLS.length} files`);
-        // addAll() fails entirely if *any* file 404s → use sequential add() instead
-        return Promise.all(
-          PRECACHE_URLS.map(url => {
-            return cache.add(url).catch(err => {
-              console.error(`[SW] Failed to cache ${url}:`, err);
-              // Don't reject the whole install – just skip the bad file
-            });
-          })
+        console.log(`[SW ${APP_VERSION}] Precaching ${PRECACHE_URLS.length} assets`);
+        return Promise.allSettled(
+          PRECACHE_URLS.map(url => cache.add(url).catch(err => {
+            console.warn(`[SW] Failed to cache: ${url}`, err);
+          }))
         );
       })
       .then(() => self.skipWaiting())
   );
 });
 
-// ACTIVATE – Remove old caches + take control immediately
+// ACTIVATE – Clean old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME && key.startsWith('ironclad-crm-')) {
-            console.log(`[SW] Deleting old cache: ${key}`);
-            return caches.delete(key);
-          }
-        })
-      );
-    })
-    .then(() => {
-      console.log(`[SW ${APP_VERSION}] Now active and controlling clients`);
-      return self.clients.claim();
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.map(key => {
+        if (key !== CACHE_NAME && key.startsWith('ironclad-crm-')) {
+          console.log(`[SW] Deleting old cache: ${key}`);
+          return caches.delete(key);
+        }
+      })
+    ))
+    .then(() => self.clients.claim())
   );
 });
 
-// FETCH – Smart strategies
+// FETCH
 self.addEventListener('fetch', event => {
-  const request = event.request;
-  const url = new URL(request.url);
+  const req = event.request;
+  const url = new URL(req.url);
 
-  // Ignore cross-origin requests (Google Fonts, analytics, etc.)
-  if (url.origin !== self.location.origin) return;
+  // Ignore cross-origin and non-http
+  if (url.origin !== location.origin || !req.url.startsWith('http')) return;
+  if (req.method !== 'GET') return fetch(req); // Let POSTs etc. go through
 
-  // Ignore chrome-extension:// and other non-HTTP requests
-  if (!request.url.startsWith('http')) return;
-
-  // 1. Navigation requests (HTML page loads) → Network-first + offline fallback
-  if (request.mode === 'navigate' || request.destination === 'document') {
+  // Navigation → Network-first + fallback
+  if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          // If network succeeds, optionally cache the fresh HTML
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
+      fetch(req)
+        .then(res => {
+          if (res && res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(req, clone));
           }
-          return response;
+          return res;
         })
-        .catch(() => {
-          // Offline → serve cached index.html (or any fallback page)
-          return caches.match('/IRONCLAD/index.html', { cacheName: CACHE_NAME })
-            || caches.match('/IRONCLAD/');
-        })
+        .catch(() => caches.match('/IRONCLAD/offline.html') || caches.match('/IRONCLAD/index.html'))
     );
     return;
   }
 
-  // 2. Everything else (JS, CSS, images, JSON) → Stale-while-revalidate
+  // Data JSON files → Stale-while-revalidate (1-hour freshness)
+  if (url.pathname.startsWith('/IRONCLAD/data/') && url.pathname.endsWith('.json')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(req).then(cached => {
+          const fetchPromise = fetch(req).then(netRes => {
+            if (netRes && netRes.ok) {
+              const clone = netRes.clone();
+              clone.headers.set('sw-cached-at', Date.now());
+              cache.put(req, clone);
+            }
+            return netRes;
+          });
+
+          if (cached) {
+            const age = Date.now() - (parseInt(cached.headers.get('sw-cached-at')) || 0);
+            if (age < 3_600_000) { // 1 hour
+              event.waitUntil(fetchPromise);
+              return cached;
+            }
+          }
+          return fetchPromise.catch(() => cached || new Response('{"error":"offline"}', {
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        });
+      })
+    );
+    return;
+  }
+
+  // Everything else → Stale-while-revalidate
   event.respondWith(
-    caches.match(request)
-      .then(cachedResponse => {
-        // Return cache immediately (fast!)
-        if (cachedResponse) {
-          // Fire-and-forget update in background
+    caches.match(req)
+      .then(cached => {
+        if (cached) {
           event.waitUntil(
-            fetch(request)
-              .then(networkResponse => {
-                if (networkResponse && networkResponse.status === 200) {
-                  return caches.open(CACHE_NAME).then(cache => {
-                    cache.put(request, networkResponse.clone());
-                  });
-                }
-              })
-              .catch(() => { /* ignore network failure during background update */ })
+            fetch(req)
+              .then(fresh => fresh && fresh.ok && caches.open(CACHE_NAME).then(c => c.put(req, fresh.clone())))
+              .catch(() => {})
           );
-          return cachedResponse;
+          return cached;
         }
 
-        // No cache → go to network and cache result
-        return fetch(request)
-          .then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
+        return fetch(req)
+          .then(res => {
+            if (res && res.ok && res.type === 'basic') {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then(c => c.put(req, clone));
             }
-            return networkResponse;
+            return res;
           })
-          .catch(err => {
-            console.error(`[SW] Offline and no cache for: ${request.url}`, err);
-            // Optional: return a fallback image or offline page here
-            return new Response('Offline – resource unavailable', {
-              status: 503,
-              statusText: 'Service Unavailable'
-            });
+          .catch(() => {
+            if (req.destination === 'image') {
+              return new Response(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), {
+                headers: { 'Content-Type': 'image/png' }
+              });
+            }
+            return caches.match('/IRONCLAD/offline.html');
           });
       })
   );
