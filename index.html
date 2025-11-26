@@ -58,7 +58,7 @@
 
   function goToLogin() {
     // Use absolute path instead of relative – safer when app is launched from home screen
-    const loginPath = '/pages/login.html';
+    const loginPath = './pages/login.html';
     
     if (window.location.pathname !== loginPath /*&& !window.location.pathname.endsWith('/IRONCLAD/')*/) {  // also catch root launch
       setTimeout(() => {
