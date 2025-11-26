@@ -27,11 +27,17 @@ body {
     padding: min(2rem, 8%);
     */
     overflow:hidden;
-    
 
-    margin:0; padding:0; height:100dvh; background:#1e3c72;
-    display:flex; align-items:center; justify-content:center; flex-direction:column;
-    color:white; font-family:-apple-system, sans-serif;
+    margin:0; 
+    padding:0; 
+    height:100dvh; 
+    background:white; /*#1e3c72;*/
+    display:flex; 
+    align-items:center; 
+    justify-content:center; 
+    flex-direction:column;
+    color:white; 
+    font-family:-apple-system, sans-serif;
 }
 
 header {
