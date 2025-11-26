@@ -39,33 +39,24 @@
   <h2>Loading…</h2>
 
   <script>
-  if ('serviceWorker' in navigator) {
-    // Explicit absolute path + explicit scope = 100% reliable on GitHub Pages
-    navigator.serviceWorker.register('/sw.js', {
-      scope: '/'               // ← critical for installed PWA
-    })
-    .then(registration => {
-      console.log('Service Worker registered with scope:', registration.scope);
-      goToLogin();
-    })
-    .catch(error => {
-      console.error('Service Worker registration failed:', error);
-      goToLogin();                    // still redirect even if SW fails
-    });
-  } else {
-    goToLogin();
-  }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => {
+            console.log('Service Worker registered with scope:', reg.scope);
+          })
+          .catch(err => {
+            console.error('Service Worker registration failed:', err);
+          });
+      });
+    }
 
-  function goToLogin() {
-    // Use absolute path instead of relative – safer when app is launched from home screen
-    const loginPath = './pages/login.html';
-    
-    if (window.location.pathname !== loginPath /*&& !window.location.pathname.endsWith('/IRONCLAD/')*/) {  // also catch root launch
+    // Redirect to login if not already there
+    if (!location.pathname.includes('login.html')) {
       setTimeout(() => {
-        window.location.href = loginPath;
+        location.href = '/pages/login.html';
       }, 600);
     }
-  }
 </script>
 </body>
 </html>
