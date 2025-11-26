@@ -1,6 +1,7 @@
 // ===============================================
 // IRONCLAD CRM PWA - Main Application Logic
 // ===============================================
+const REPO = "/IRONCLAD";
 
 window.onload = function () {
     drawUser();
@@ -9,7 +10,7 @@ window.onload = function () {
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register(REPO + '/sw.js')
       .then(reg => {
         console.log('Service Worker registered:', reg.scope);
         maybeRedirectToLogin();  // ← Only redirect from landing page
@@ -30,13 +31,13 @@ function maybeRedirectToLogin() {
   // These are the landing page URLs on your GitHub Pages site
   const isOnLandingPage =
     path === '/' ||
-    path === '/ironclad/' ||
-    path === '/ironclad/index.html' ||
+    path === REPO ||
+    path === REPO & '/index.html' ||
     path.endsWith('/index.html');
 
   if (isOnLandingPage) {
     setTimeout(() => {
-      window.location.href = '/pages/login.html';
+      window.location.href = REPO & '/pages/login.html';
     }, 600);
   }
 }

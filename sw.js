@@ -1,47 +1,48 @@
-const APP_VERSION = 'v2025.2.14'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.2.15'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
+const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
 const PRECACHE_URLS = [
-  '/IRONCLAD/',
-  '/IRONCLAD/index.html',
-  '/IRONCLAD/offline.html',        // ← Create this file!
-  '/IRONCLAD/manifest.json',
-  '/IRONCLAD/favicon.png',
+  REPO,
+  REPO + 'index.html',
+  REPO + 'offline.html',        // ← Create this file!
+  REPO + 'manifest.json',
+  REPO + 'favicon.png',
 
   // Core JS/CSS
-  '/IRONCLAD/js/app.js',
-  '/IRONCLAD/css/styles.css',
-  '/IRONCLAD/sw.js',
+  REPO + 'js/app.js',
+  REPO + 'css/styles.css',
+  REPO + 'sw.js',
 
   // Pages
-  '/IRONCLAD/pages/application.html',
-  '/IRONCLAD/pages/home.html',
-  '/IRONCLAD/pages/login.html',
-  '/IRONCLAD/pages/newProject.html',
-  '/IRONCLAD/pages/page1.html',
-  '/IRONCLAD/pages/page2.html',
-  '/IRONCLAD/pages/page3.html',
-  '/IRONCLAD/pages/page4.html',
-  '/IRONCLAD/pages/page5.html',
-  '/IRONCLAD/pages/projects.html',
+  REPO + 'pages/application.html',
+  REPO + 'pages/home.html',
+  REPO + 'pages/login.html',
+  REPO + 'pages/newProject.html',
+  REPO + 'pages/page1.html',
+  REPO + 'pages/page2.html',
+  REPO + 'pages/page3.html',
+  REPO + 'pages/page4.html',
+  REPO + 'pages/page5.html',
+  REPO + 'pages/projects.html',
 
   // Images
-  '/IRONCLAD/img/logo.png',
-  '/IRONCLAD/img/icon.png',
-  '/IRONCLAD/img/background.png',
-  '/IRONCLAD/img/icons/logo.png',
-  '/IRONCLAD/img/icons/apple-touch-icon.png',
-  '/IRONCLAD/img/icons/icon-192x192.png',
-  '/IRONCLAD/img/icons/icon-512x512.png',
+  REPO + 'img/logo.png',
+  REPO + 'img/icon.png',
+  REPO + 'img/background.png',
+  REPO + 'img/icons/logo.png',
+  REPO + 'img/icons/apple-touch-icon.png',
+  REPO + 'img/icons/icon-192x192.png',
+  REPO + 'img/icons/icon-512x512.png',
 
   // Data (static)
-  '/IRONCLAD/data/project_status.json',
-  '/IRONCLAD/data/shingle_options.json',
+  REPO + 'data/project_status.json',
+  REPO + 'data/shingle_options.json',
 
   // Splash screens
-  '/IRONCLAD/img/splash/splash-2048x2732.png',
-  '/IRONCLAD/img/splash/splash-1668x2388.png',
-  '/IRONCLAD/img/splash/splash-1536x2048.png'
+  REPO + 'img/splash/splash-2048x2732.png',
+  REPO + 'img/splash/splash-1668x2388.png',
+  REPO + 'img/splash/splash-1536x2048.png'
 ];
 
 // INSTALL
@@ -95,13 +96,13 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        .catch(() => caches.match('/IRONCLAD/offline.html') || caches.match('/IRONCLAD/index.html'))
+        .catch(() => caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html'))
     );
     return;
   }
 
   // Data JSON files → Stale-while-revalidate (1-hour freshness)
-  if (url.pathname.startsWith('/IRONCLAD/data/') && url.pathname.endsWith('.json')) {
+  if (url.pathname.startsWith(REPO + 'data/') && url.pathname.endsWith('.json')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
         return cache.match(req).then(cached => {
@@ -157,7 +158,7 @@ self.addEventListener('fetch', event => {
                 headers: { 'Content-Type': 'image/png' }
               });
             }
-            return caches.match('/IRONCLAD/offline.html');
+            return caches.match(REPO + 'offline.html');
           });
       })
   );
