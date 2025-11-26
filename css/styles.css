@@ -37,7 +37,7 @@ body {
     align-items:center; 
     justify-content:center; 
     flex-direction:column;
-    color:white; 
+    color:unset; 
     font-family:-apple-system, sans-serif;
 }
 
@@ -70,6 +70,14 @@ header img {
     height: auto;
     width:auto;
     
+}
+
+footer {
+    display:block;
+    position:relative;
+    width:-webkit-fill-available;
+    margin:auto;
+    padding: 2em;
 }
 
 h2 {
@@ -124,14 +132,6 @@ main.scrolled::before {
 
 main.scrolled::after {
     height:1%/*1rem;*/
-}
-
-footer {
-    display:block;
-    position:relative;
-    bottom:0;
-    left:0;
-    right:0;
 }
 
 
