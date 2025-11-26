@@ -2,6 +2,7 @@
 // IRONCLAD CRM PWA - Main Application Logic
 // ===============================================
 //const REPO = "/IRONCLAD/"; // ← Declared in sw.js
+var REPO = "/IRONCLAD/"; // ← Declared in sw.js
 
 window.onload = function () {
     drawUser();
