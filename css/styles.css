@@ -12,17 +12,11 @@
 
 html {
     background: white;
-    overflow:hidden;
-    display:block;
-    position:absolute;
-    height:100dvh;
-    width:100dvw;
 }
 
 body { 
-    font-family: -apple-system, sans-serif; 
-    background:#fff; 
-    height:100dvh;
+
+    /*
     display:block;
     position:absolute;
     top:0;
@@ -30,10 +24,14 @@ body {
     bottom: 0;
     left:0;
     margin: 0 auto;
-    overflow:hidden;
     padding: min(2rem, 8%);
-    display: flex;
-    flex-direction: column;
+    */
+    overflow:hidden;
+    
+
+    margin:0; padding:0; height:100dvh; background:#1e3c72;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    color:white; font-family:-apple-system, sans-serif;
 }
 
 header {
