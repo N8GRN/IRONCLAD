@@ -1,4 +1,4 @@
-const APP_VERSION = 'v2025.2.15'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.2.16'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -96,7 +96,8 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        .catch(() => caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html'))
+        //.catch(() => caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html'))
+        .catch(() => notifyOffline())
     );
     return;
   }

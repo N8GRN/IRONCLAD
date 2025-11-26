@@ -109,6 +109,41 @@ window.addEventListener('offline', () => {
   document.body.classList.add('offline-mode');
 });
 
+function userMessage(title, message, callback){
+  var div = document.createElement("div");
+  var titleEl = document.createElement("h3")
+  var content = document.createElement("div");
+  var btn = document.createElement("button");
+
+  div.id ="user-message";
+
+  content.innerText = message//.replace(/\n/g, "<br>");
+  content.innerHTML = message.replace(/\n/g, "<br>")
+  titleEl.innerText = title;
+  btn.innerText = "Ok";
+
+
+  div.appendChild(titleEl);
+  div.appendChild(content);
+  div.appendChild(btn);
+  document.body.appendChild(div);
+
+  btn.onclick = function(){callback()}
+
+  // Style
+  div.style.cssText="display:block;position:absolute;background:rgba(0, 0, 0, 0.7);top:25%;left:20%;width:60%;color:white;padding:1rem;border-radius:1.5rem;"
+  btn.style.cssText="background:gray;border:white;width:auto;float:right;padding:0.5rem;min-width:120px;font-size:1.2rem;";
+}
+
+function closeUserMessage(){
+  var div = document.getElementById("user-message");
+  if (div) {div.parentNode.removeChild(div)};
+}
+
+function notifyOffline() {
+  userMessage("Offline Mode", "You’re currently offline. Most features will work from cache, but you’ll need an internet connection to sync changes.\n\nReconnect when possible.", closeUserMessage)
+}
+
 // ===============================================
 // Dev-only file read/write (blocked in production)
 // ===============================================
