@@ -1,5 +1,5 @@
 
-const APP_VERSION = 'v2025.1.66';   // ← change this any time you update
+const APP_VERSION = 'v2025.1.67';   // ← change this any time you update
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 
 const urlsToCache = [
@@ -30,13 +30,14 @@ const urlsToCache = [
   // Images & icons (add every single one you use)
   './img/logo.png',
   './img/background.png',
+  './img/icons/icon-logo.png',
   './img/icons/apple-touch-icon.png',
   './img/icons/icon-192x192.png',
   './img/icons/icon-512x512.png',
 
   // Data & JSON
-  './img/data/project_status.json',
-  './img/data/shingle_options.json',
+  './data/project_status.json',
+  './data/shingle_options.json',
 
   // Splash screens
   './img/splash/splash-2048x2732.png',
