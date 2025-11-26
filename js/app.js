@@ -1,7 +1,7 @@
 // ===============================================
 // IRONCLAD CRM PWA - Main Application Logic
 // ===============================================
-const REPO = "/IRONCLAD";
+const REPO = "/IRONCLAD/";
 
 window.onload = function () {
     drawUser();
@@ -10,7 +10,7 @@ window.onload = function () {
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(REPO + '/sw.js')
+    navigator.serviceWorker.register(REPO + 'sw.js')
       .then(reg => {
         console.log('Service Worker registered:', reg.scope);
         maybeRedirectToLogin();  // ← Only redirect from landing page
@@ -32,12 +32,12 @@ function maybeRedirectToLogin() {
   const isOnLandingPage =
     path === '/' ||
     path === REPO ||
-    path === REPO & '/index.html' ||
+    path === REPO + 'index.html' ||
     path.endsWith('/index.html');
 
   if (isOnLandingPage) {
     setTimeout(() => {
-      window.location.href = REPO & '/pages/login.html';
+      window.location.href = REPO + 'login.html';
     }, 600);
   }
 }
@@ -72,6 +72,11 @@ if (main) {
   main.addEventListener('scroll', () => {
     main.classList.toggle('scrolled', main.scrollTop > 0);
   });
+}
+
+function goToPage(pageName) {
+  if(!pageName.endsWith(".html")){pageName = pageName + ".html"};
+  location.href = REPO + pageName;
 }
 
 // ===============================================
@@ -141,7 +146,7 @@ function closeUserMessage(){
 }
 
 function notifyOffline() {
-  userMessage("Offline Mode", "You’re currently offline. Most features will work from cache, but you’ll need an internet connection to sync changes.\n\nReconnect when possible.", closeUserMessage)
+  userMessage("Offline Mode", "You’re currently offline. Most features will work, but you’ll need an internet connection to sync changes.\n\nReconnect when possible.", closeUserMessage)
 }
 
 // ===============================================

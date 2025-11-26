@@ -1,11 +1,13 @@
 const APP_VERSION = 'v2025.2.17'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
+const PAGES = '';  // Previously "pages/"
 
 const PRECACHE_URLS = [
+  // Core 
   REPO,
   REPO + 'index.html',
-  REPO + 'offline.html',        // ← Create this file!
+  REPO + 'offline.html',
   REPO + 'manifest.json',
   REPO + 'favicon.png',
 
@@ -15,16 +17,16 @@ const PRECACHE_URLS = [
   REPO + 'sw.js',
 
   // Pages
-  REPO + 'pages/application.html',
-  REPO + 'pages/home.html',
-  REPO + 'pages/login.html',
-  REPO + 'pages/newProject.html',
-  REPO + 'pages/page1.html',
-  REPO + 'pages/page2.html',
-  REPO + 'pages/page3.html',
-  REPO + 'pages/page4.html',
-  REPO + 'pages/page5.html',
-  REPO + 'pages/projects.html',
+  REPO + PAGES + 'application.html',
+  REPO + PAGES + 'home.html',
+  REPO + PAGES + 'login.html',
+  REPO + PAGES + 'newProject.html',
+  REPO + PAGES + 'page1.html',
+  REPO + PAGES + 'page2.html',
+  REPO + PAGES + 'page3.html',
+  REPO + PAGES + 'page4.html',
+  REPO + PAGES + 'page5.html',
+  REPO + PAGES + 'projects.html',
 
   // Images
   REPO + 'img/logo.png',
@@ -96,8 +98,7 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        //.catch(() => caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html'))
-        .catch(() => notifyOffline())
+        .catch(() => caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html'))
     );
     return;
   }
