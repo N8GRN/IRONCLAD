@@ -15,19 +15,8 @@ html {
 }
 
 body { 
-    /*
-    display:block;
-    position:absolute;
-    top:0;
-    right: 0;
-    bottom: 0;
-    left:0;
-    margin: 0 auto;
-    */
     padding: min(2rem, 8%);
-    
     overflow:hidden;
-
     margin:0; 
     padding:0; 
     height:100dvh; 
@@ -43,45 +32,20 @@ body {
 
 body.tron-mode {
     position: relative;
-    background: #fff; /* or your app's background */
+    background: #fff;
+    padding: 0;
+    margin: 6px;
+    height: calc(100dvh - 12px);
 }
 
 body.tron-mode::before {
     content: "";
+    scale: 3;
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: -1; /* ← FIXED: Behind content so it doesn't cover your UI */
-    
-    /* Electric cyan Tron glow – now fills the border strip */
-    background: conic-gradient(
-        from 0deg,
-        transparent 0deg,
-        #00faff 15deg,
-        #00d0ff 30deg,
-        transparent 60deg
-    );
-    
-    /* FIXED: Use border for the "frame" strip instead of padding */
-    border: 6px solid transparent; /* ← Creates the 6px glow strip */
-    padding: 0; /* ← No padding needed now */
-    background-clip: border-box; /* ← Paint background including border */
-    background-origin: border-box;
-    
-    /* FIXED: Correct mask syntax for hollow border effect (show only border strip) */
-    mask: 
-        linear-gradient(to bottom, white 0%, white 100%) content-box,  /* ← Keep content area */
-        linear-gradient(to bottom, white 0%, white 100%) border-box;   /* ← Keep full area */
-    mask-composite: exclude; /* ← Exclude overlap (content) → only border visible */
-    
-    /* Strong neon glow */
-    box-shadow: 
-        0 0 20px #00faff,
-        0 0 40px #00faff,
-        0 0 80px #00faff,
-        inset 0 0 40px rgba(0, 250, 255, 0.4);
-    
-    border-radius: 12px;                             /* Optional rounded corners */
+    z-index: -1;
+    background: conic-gradient(white, red, red, whote, red, red, white);
     animation: tron-spin 6s linear infinite;
 }
 
@@ -90,12 +54,6 @@ body.tron-mode::after {
     content: "";
     position: fixed;
     inset: 0;
-    pointer-events: none;
-    z-index: -1; /* ← FIXED: Also behind content */
-    border: 1px solid rgba(0, 250, 255, 0.3);
-    border-radius: 12px;
-    box-shadow: inset 0 0 30px rgba(0, 250, 255, 0.2);
-    animation: pulse 4s ease-in-out infinite alternate;
 }
 
 /* FIXED: Remove unused @keyframes spin (duplicate of tron-spin) */
