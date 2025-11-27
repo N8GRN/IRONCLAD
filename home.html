@@ -84,10 +84,12 @@
                 localStorage.setItem('featureEnabled', 'true');
                 status.textContent = 'On';
                 message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
+                document.body.classList.toggle("tron-mode", true);
             } else {
                 localStorage.setItem('featureEnabled', 'false');
                 status.textContent = 'Off';
                 message.innerHTML = 'The experimental feature is currently <strong>disabled</strong>.';
+                document.body.classList.toggle("tron-mode", false);
             }
         });
     </script>
