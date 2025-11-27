@@ -43,7 +43,7 @@ body {
 
 body.tron-mode {
     position: relative;
-    background: #000; /* or your app's background */
+    background: #fff; /* or your app's background */
 }
 
 body.tron-mode::before {
@@ -51,9 +51,9 @@ body.tron-mode::before {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 99999;
+    z-index: -1; /* ← FIXED: Behind content so it doesn't cover your UI */
     
-    /* Electric cyan Tron glow */
+    /* Electric cyan Tron glow – now fills the border strip */
     background: conic-gradient(
         from 0deg,
         transparent 0deg,
@@ -62,15 +62,17 @@ body.tron-mode::before {
         transparent 60deg
     );
     
-    /* Creates the sharp border + mask out the center */
-    padding: 6px;                                    /* Controls border thickness */
-    background-clip: content-box, border-box;
+    /* FIXED: Use border for the "frame" strip instead of padding */
+    border: 6px solid transparent; /* ← Creates the 6px glow strip */
+    padding: 0; /* ← No padding needed now */
+    background-clip: border-box; /* ← Paint background including border */
     background-origin: border-box;
     
+    /* FIXED: Correct mask syntax for hollow border effect (show only border strip) */
     mask: 
-        linear-gradient(#fff 0 0) padding-box, 
-        linear-gradient(#fff 0 0) border-box;
-    mask-composite: exclude;
+        linear-gradient(to bottom, white 0%, white 100%) content-box,  /* ← Keep content area */
+        linear-gradient(to bottom, white 0%, white 100%) border-box;   /* ← Keep full area */
+    mask-composite: exclude; /* ← Exclude overlap (content) → only border visible */
     
     /* Strong neon glow */
     box-shadow: 
@@ -89,24 +91,14 @@ body.tron-mode::after {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 99998;
+    z-index: -1; /* ← FIXED: Also behind content */
     border: 1px solid rgba(0, 250, 255, 0.3);
     border-radius: 12px;
     box-shadow: inset 0 0 30px rgba(0, 250, 255, 0.2);
     animation: pulse 4s ease-in-out infinite alternate;
 }
 
-/* Keyframes for rotation */
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* Smooth continuous rotation */
+/* FIXED: Remove unused @keyframes spin (duplicate of tron-spin) */
 @keyframes tron-spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
