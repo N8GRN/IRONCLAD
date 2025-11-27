@@ -41,6 +41,10 @@ body {
     font-family:-apple-system, sans-serif;
 }
 
+body.offline-mode {
+    border-top: 20px solid red;
+}
+
 header {
     color:black;
     text-align:center;
