@@ -41,36 +41,59 @@ body {
     font-family:-apple-system, sans-serif;
 }
 
-body.sweep::before {
+body.tron-mode {
+    position: relative;
+    background: #000; /* or your app's background */
+}
+
+body.tron-mode::before {
     content: "";
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 99999;
-    box-sizing: border-box;
-    border: 8px solid transparent;
-    border-radius: 0px;
     
-    /* Multiple box-shadows to create glowing border effect */
+    /* Electric cyan Tron glow */
+    background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        #00faff 15deg,
+        #00d0ff 30deg,
+        transparent 60deg
+    );
+    
+    /* Creates the sharp border + mask out the center */
+    padding: 6px;                                    /* Controls border thickness */
+    background-clip: content-box, border-box;
+    background-origin: border-box;
+    
+    mask: 
+        linear-gradient(#fff 0 0) padding-box, 
+        linear-gradient(#fff 0 0) border-box;
+    mask-composite: exclude;
+    
+    /* Strong neon glow */
     box-shadow: 
         0 0 20px #00faff,
         0 0 40px #00faff,
         0 0 80px #00faff,
-        inset 0 0 20px #00faff;
+        inset 0 0 40px rgba(0, 250, 255, 0.4);
     
-    /* Animated conic gradient border */
-    background: conic-gradient(from 0deg, 
-        transparent 0deg, 
-        #00faff 30deg, 
-        transparent 60deg
-    ) border-box;
-    
-    mask: 
-        linear-gradient(#fff 0 0) padding-box, 
-        linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    
-    animation: spin 4s linear infinite;
+    border-radius: 12px;                             /* Optional rounded corners */
+    animation: tron-spin 6s linear infinite;
+}
+
+/* Optional: subtle pulse to make it feel alive */
+body.tron-mode::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99998;
+    border: 1px solid rgba(0, 250, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: inset 0 0 30px rgba(0, 250, 255, 0.2);
+    animation: pulse 4s ease-in-out infinite alternate;
 }
 
 /* Keyframes for rotation */
@@ -81,6 +104,17 @@ body.sweep::before {
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Smooth continuous rotation */
+@keyframes tron-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    from { opacity: 0.6; }
+    to   { opacity: 1; }
 }
 
 body.offline-mode {
