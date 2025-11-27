@@ -2,7 +2,7 @@
 // IRONCLAD CRM PWA - Main Application Logic
 // ===============================================
 //const REPO = "/IRONCLAD/"; // ← Declared in sw.js
-const REPO_ = "/IRONCLAD/";
+const REPO_ = "/IRONCLAD";
 const PAGES_ = "/"; // "/pages";
 
 window.onload = function () {
@@ -12,7 +12,7 @@ window.onload = function () {
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(REPO_ + 'sw.js')
+    navigator.serviceWorker.register(REPO_ + '/sw.js')
       .then(reg => {
         console.log('Service Worker registered:', reg.scope);
         maybeRedirectToLogin();  // ← Only redirect from landing page
@@ -34,12 +34,12 @@ function maybeRedirectToLogin() {
   const isOnLandingPage =
     path === '/' ||
     path === REPO_ ||
-    path === REPO_ + 'index.html' ||
+    path === REPO_ + '/index.html' ||
     path.endsWith('/index.html');
 
   if (isOnLandingPage) {
     setTimeout(() => {
-      window.location.href = REPO_ + 'login.html';
+      window.location.href = REPO_ + '/login.html';
     }, 600);
   }
 }
@@ -78,7 +78,7 @@ if (main) {
 
 function goToPage(pageName) {
   if(!pageName.endsWith(".html")){pageName = pageName + ".html"};
-  location.href = REPO_ + pageName;
+  location.href = REPO_ + PAGES_ + pageName;
 }
 
 // ===============================================
@@ -90,7 +90,7 @@ function drawUser() {
   const a = document.createElement("a");
 
   a.id = "username";
-  a.href = PAGES_ + "login.html";
+  a.href = REPO_ + PAGES_ + "login.html";
   a.textContent = getActiveUser();
 
   div.classList.add("active-user");
