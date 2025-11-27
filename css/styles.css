@@ -34,8 +34,8 @@ body.tron-mode {
     position: relative;
     background: #fff;
     padding: 0;
-    margin: 6px;
-    height: calc(100dvh - 12px);
+    margin-top: 6px;
+    height: calc(100dvh - 6px);
 }
 
 body.tron-mode::before {
@@ -45,7 +45,7 @@ body.tron-mode::before {
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: conic-gradient(white, red, red, white, red, red, white);
+    background: conic-gradient(red, white, white, red, white, white, red);
     animation: tron-spin 6s linear infinite;
 }
 
