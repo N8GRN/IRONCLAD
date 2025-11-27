@@ -98,7 +98,7 @@ self.addEventListener('fetch', event => {
           }
           return res;
         })
-        .catch(() => caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html'))
+        .catch(() => alert("offline")/*caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html')*/)
     );
     return;
   }
