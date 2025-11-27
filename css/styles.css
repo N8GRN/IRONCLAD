@@ -41,6 +41,48 @@ body {
     font-family:-apple-system, sans-serif;
 }
 
+body.sweep::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99999;
+    box-sizing: border-box;
+    border: 8px solid transparent;
+    border-radius: 0px;
+    
+    /* Multiple box-shadows to create glowing border effect */
+    box-shadow: 
+        0 0 20px #00faff,
+        0 0 40px #00faff,
+        0 0 80px #00faff,
+        inset 0 0 20px #00faff;
+    
+    /* Animated conic gradient border */
+    background: conic-gradient(from 0deg, 
+        transparent 0deg, 
+        #00faff 30deg, 
+        transparent 60deg
+    ) border-box;
+    
+    mask: 
+        linear-gradient(#fff 0 0) padding-box, 
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    
+    animation: spin 4s linear infinite;
+}
+
+/* Keyframes for rotation */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 body.offline-mode {
     border-top: 20px solid red;
 }

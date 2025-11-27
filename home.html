@@ -78,10 +78,12 @@
         // Listen for changes
         toggle.addEventListener('change', function () {
             if (this.checked) {
+                document.body.classList.toggle("tron-mode", true)
                 localStorage.setItem('featureEnabled', 'true');
                 status.textContent = 'On';
                 message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
             } else {
+                document.body.classList.toggle("tron-mode", false)
                 localStorage.setItem('featureEnabled', 'false');
                 status.textContent = 'Off';
                 message.innerHTML = 'The experimental feature is currently <strong>disabled</strong>.';
