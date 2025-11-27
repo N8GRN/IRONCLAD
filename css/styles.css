@@ -45,7 +45,7 @@ body.tron-mode::before {
     inset: 0;
     pointer-events: none;
     z-index: -1;
-    background: conic-gradient(white, red, red, whote, red, red, white);
+    background: conic-gradient(white, red, red, white, red, red, white);
     animation: tron-spin 6s linear infinite;
 }
 
