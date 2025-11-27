@@ -40,10 +40,10 @@ body.tron-mode {
 
 body.tron-mode::before {
     content: "";
-    scale: 3;
+    pointer-events: none;
+    scale: 5;
     position: fixed;
     inset: 0;
-    pointer-events: none;
     z-index: -1;
     background: conic-gradient(white, red, red, white, red, red, white);
     animation: tron-spin 6s linear infinite;
@@ -52,6 +52,7 @@ body.tron-mode::before {
 /* Optional: subtle pulse to make it feel alive */
 body.tron-mode::after {
     content: "";
+    pointer-events: none;
     position: fixed;
     inset: 0;
 }
