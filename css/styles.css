@@ -60,6 +60,7 @@ header * {
     text-align: center;
     vertical-align: middle;
     margin: auto;
+    padding-bottom: 0 !important;
     padding: min(2em, 5%);
 }
 
