@@ -15,7 +15,6 @@ html {
 }
 
 body { 
-
     /*
     display:block;
     position:absolute;
@@ -32,7 +31,8 @@ body {
     margin:0; 
     padding:0; 
     height:100dvh; 
-    background:white; /*#1e3c72;*/
+    background:#1e3c72;
+    /*background:white;*/
     display:flex; 
     align-items:center; 
     justify-content:center; 
