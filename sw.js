@@ -1,7 +1,7 @@
 const APP_VERSION = 'v2025.2.46'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD'; // ← REPOSITORY NAME
-const PAGES = '/';  // Previously "pages/"
+const PAGES = '/pages';  // Previously "pages/"
 
 // ===================================================================
 // PRECACHE LIST – using REPO + PAGES where needed
@@ -20,16 +20,16 @@ const PRECACHE_URLS = [
   REPO + '/sw.js',
 
   // Pages (using PAGES constant – safe even if you change it later)
-  REPO + PAGES + 'application.html',
-  REPO + PAGES + 'home.html',
-  REPO + PAGES + 'login.html',
-  REPO + PAGES + 'newProject.html',
-  REPO + PAGES + 'page1.html',
-  REPO + PAGES + 'page2.html',
-  REPO + PAGES + 'page3.html',
-  REPO + PAGES + 'page4.html',
-  REPO + PAGES + 'page5.html',
-  REPO + PAGES + 'projects.html',
+  REPO + PAGES + '/application.html',
+  REPO + PAGES + '/home.html',
+  REPO + PAGES + '/login.html',
+  REPO + PAGES + '/newProject.html',
+  REPO + PAGES + '/page1.html',
+  REPO + PAGES + '/page2.html',
+  REPO + PAGES + '/page3.html',
+  REPO + PAGES + '/page4.html',
+  REPO + PAGES + '/page5.html',
+  REPO + PAGES + '/projects.html',
 
   // Images & icons
   REPO + '/img/logo.png',
