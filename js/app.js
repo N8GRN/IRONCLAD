@@ -3,7 +3,7 @@
 // ===============================================
 //const REPO = "/IRONCLAD/"; // ← Declared in sw.js
 const REPO_ = "/IRONCLAD";
-const PAGES_ = "/"; // "/pages";
+const PAGES_ = "/pages"; // "/pages";
 
 window.onload = function () {
     drawUser();
@@ -77,8 +77,15 @@ if (main) {
 }
 
 function goToPage(pageName) {
-  if(!pageName.endsWith(".html")){pageName = pageName + ".html"};
-  location.href = REPO_ + PAGES_ + pageName;
+  if(!pageName.endsWith(".html")){pageName = pageName + ".html"}; // add '.html' if missing
+  // if(!pageName.startsWith("/")){pageName = "/" + pageName}; // add '/' page name if missing
+
+  if(pageName.startsWith("/")){
+    location.href = REPO_ + PAGES_ + pageName;  // pages
+  } else {
+    location.href = REPO_ + "/" + pageName;  // root
+  }
+  
 }
 
 // ===============================================
@@ -90,7 +97,7 @@ function drawUser() {
   const a = document.createElement("a");
 
   a.id = "username";
-  a.href = REPO_ + PAGES_ + "login.html";
+  a.href = REPO_ + PAGES_ + "/login.html";
   a.textContent = getActiveUser();
 
   div.classList.add("active-user");
