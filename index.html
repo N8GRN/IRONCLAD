@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
   <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
@@ -40,13 +40,13 @@
   <!-- This page exists as a landing page to load the Service Worker -->
   <img src="/IRONCLAD/img/icon.png" alt="IRONCLAD CRM Logo" class="loader">
   <h2>Loading…</h2>
-
+  
   <!-- Local Database ("Test Mode") -->
   <script src="/IRONCLAD/js/db.js"></script>
-
+  
   <!-- Link JavaScript -->
   <script src="/IRONCLAD/js/app.js"></script>
-
+  
   <script>
     const REPO = "/IRONCLAD/";
     /*
@@ -61,19 +61,35 @@
           });
       });
     }*/
-    navigator.serviceWorker.register('/IRONCLAD/sw.js').then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed') {
-            if (navigator.serviceWorker.controller) {
-              // Prompt user: "Update available?"
-              if (confirm('New version ready—refresh?')) window.location.reload();
-            }
-          }
-        });
+    // Safe Service Worker registration – works locally AND in production
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/IRONCLAD/sw.js')
+          .then(reg => {
+            console.log('Service Worker registered!', reg);
+
+            // Optional: nice update prompt
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (confirm('New version available! Reload to update?')) {
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          })
+          .catch(err => {
+            console.warn('Service Worker registration failed:', err);
+            // This is expected when opening file:// or on insecure origins
+          });
       });
-    });
+    } else {
+      console.warn('Service Workers are not supported in this browser');
+    }
 
     // Redirect to login if not already there
     if (!location.pathname.includes('login.html')) {

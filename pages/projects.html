@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
   <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
@@ -37,7 +37,7 @@
 
     <main>
         <p>This is a list of my projects.</p>
-        <table>
+        <table class="first-column-locked">
             <tbody>
                 <tr>
                     <th>Customer</th>
@@ -102,6 +102,12 @@
                 </tr>
             </tbody>
         </table>
+        <!-- Test Changes to Status Bar Background
+        <div class="button-space">
+            <button onclick="setThemeColor('#FF0000')">Red</button>
+            <button onclick="setThemeColor('#FFFFFF')">White</button>
+            <button onclick="setThemeColor('#0000FF')">Blue</button>
+        </div> -->
     </main>
 
     <footer>
@@ -146,6 +152,22 @@
         }
 
         projectStatus();
+    </script>
+    <script>
+
+        // <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
+        // THEME COLOR
+        function setThemeColor(color){
+            document.body.style.backgroundColor = color;
+            /*
+            let themeColorMeta = document.querySelector('meta[name="theme-color"]');
+        if (!themeColorMeta) {
+            themeColorMeta = document.createElement('meta');
+            themeColorMeta.name = 'theme-color';
+            document.head.appendChild(themeColorMeta);
+        }
+        themeColorMeta.content = color;*/
+        }
     </script>
 </body>
 

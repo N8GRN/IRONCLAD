@@ -10,24 +10,6 @@ window.onload = function () {
   drawUser();
 };
 
-/*
-// Service Worker Registration
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register(REPO_ + '/sw.js')
-      .then(reg => {
-        console.log('Service Worker registered:', reg.scope);
-        maybeRedirectToLogin();  // ← Only redirect from landing page
-      })
-      .catch(err => {
-        console.error('SW registration failed:', err);
-        maybeRedirectToLogin();
-      });
-  });
-} else {
-  maybeRedirectToLogin();
-}
-*/
 
 // Only redirect to login if currently on the root landing page (index.html or /IRONCLAD/)
 function maybeRedirectToLogin() {

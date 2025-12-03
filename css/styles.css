@@ -10,8 +10,9 @@
 }
 
 
-html {
-    background: #1e3c72;;
+html, body {
+    /*background: #1e3c72;*/
+    background-color: #ffffff;
 }
 
 body { 
@@ -21,7 +22,7 @@ body {
     padding:0; 
     height:100dvh; 
     /*background:#1e3c72;*/
-    background:white;
+    background:#ffffff;
     display:flex; 
     align-items:center; 
     justify-content:center; 
@@ -255,7 +256,6 @@ table {
     border: none;
     border-radius: 1rem;
     margin: 0 auto;
-    /*padding: 1em;*/
     padding: 0;
     font-size:1.2em;
     overflow:hidden;
@@ -270,6 +270,39 @@ table tr.active-row:not(th) {
     background: var(--btn1);
     color: white;
 }
+
+
+
+table.first-column-locked {
+    margin-left: 160px !important;
+}
+
+table.first-column-locked tr th:first-of-type, table.first-column-locked tr td:first-of-type {
+    background: rgba(250, 250, 250, 0.5);
+    backdrop-filter: blur(5px);
+    position: absolute;
+    margin-left: -160px;
+    width: 130px;
+    left: inherit;
+    top: inherit;
+
+    border: none;
+    border-bottom: 1px solid black;
+    line-height: 1.8em;
+    padding: .2em 1em;
+    white-space: nowrap;
+}
+
+table.first-column-locked tr th:first-of-type {
+    background: var(--color2);
+    color: white;
+    border-bottom: 1px solid black;
+}
+
+
+
+
+
 
 table.col21 * td {
     width: 50%;
@@ -296,8 +329,6 @@ td, th {
     border: none;
     border-bottom: 1px solid black;
     line-height: 1.8em;
-    margin: 150px 100px;
-    padding: none;
     padding: .2em 1em;
     white-space: nowrap;
 }
