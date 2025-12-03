@@ -10,6 +10,7 @@ window.onload = function () {
   drawUser();
 };
 
+/*
 // Service Worker Registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -26,7 +27,7 @@ if ('serviceWorker' in navigator) {
 } else {
   maybeRedirectToLogin();
 }
-
+*/
 
 // Only redirect to login if currently on the root landing page (index.html or /IRONCLAD/)
 function maybeRedirectToLogin() {

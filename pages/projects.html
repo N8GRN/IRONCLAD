@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
@@ -116,6 +117,8 @@
     <script src="../js/app.js"></script>
 
     <script>
+        const REPO = "/IRONCLAD";
+
         function updateProjectTable(data) {
             var selects = document.querySelectorAll('.projectStatus');
             selects.forEach(select => {
@@ -129,7 +132,7 @@
         }
 
         function projectStatus() {
-            fetch('/data/project_status.json')
+            fetch(REPO +'/data/project_status.json')
                 .then(res => res.ok ? res.json() : Promise.reject('Offline or error'))
                 .then(data => updateProjectTable(data))
                 .catch(err => {
