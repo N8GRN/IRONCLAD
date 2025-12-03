@@ -23,7 +23,6 @@
   <link rel="stylesheet" href="./css/styles.css">
 
   <title>IRONCLAD CRM</title>
-
   <style>
     body {
       margin:0; padding:0; height:100dvh; background:#1e3c72;
@@ -35,8 +34,12 @@
 </head>
 <body>
 
+  <!-- This page exists as a landing page to load the Service Worker -->
   <img src="./img/icon.png" alt="IRONCLAD CRM Logo" class="loader">
   <h2>Loading…</h2>
+  
+  <!-- Link JavaScript -->
+  <script src="./js/app.js"></script>
 
   <script>
     const REPO = "/IRONCLAD/";
@@ -55,7 +58,8 @@
     // Redirect to login if not already there
     if (!location.pathname.includes('login.html')) {
       setTimeout(() => {
-        location.href = '/IRONCLAD/pages/login.html';
+        goToPage("/login");
+        //location.href = '/IRONCLAD/pages/login.html';
       }, 600);
     }
 </script>
