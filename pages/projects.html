@@ -33,7 +33,7 @@
         <h2>My Projects</h2>
     </header>
 
-    
+
     <main>
         <p>This is a list of my projects.</p>
         <table>
@@ -116,7 +116,33 @@
     <script src="../js/app.js"></script>
 
     <script>
+        function updateProjectTable(data) {
+            var selects = document.querySelectorAll('.projectStatus');
+            selects.forEach(select => {
+                options.forEach(text => {
+                    const opt = document.createElement('option');
+                    opt.value = text;       // or opt.value = text.toLowerCase() if you want different values
+                    opt.textContent = text;
+                    select.appendChild(opt);
+                });
+            })
+        }
+
         function projectStatus() {
+            fetch('/data/project_status.json')
+                .then(res => res.ok ? res.json() : Promise.reject('Offline or error'))
+                .then(data => updateProjectTable(data))
+                .catch(err => {
+                    if (err === 'Offline or error') {
+                        // Load from localStorage fallback or show cached
+                        const cached = JSON.parse(localStorage.getItem('lastProjects') || '[]');
+                        updateProjectTable(cached);
+                        document.body.classList.add('offline-mode'); // Style dimmed
+                    }
+                });
+        }
+
+        /*function projectStatus() {
             fetch('../data/project_status.json')
                 .then(response => response.json())
                 .then(options => {
@@ -130,7 +156,7 @@
                         });
                     })
                 });
-        }
+        }*/
 
         projectStatus();
     </script>
