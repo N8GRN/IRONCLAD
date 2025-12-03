@@ -122,8 +122,8 @@
         function updateProjectTable(data) {
             var selects = document.querySelectorAll('.projectStatus');
             selects.forEach(select => {
-                options.forEach(text => {
-                    const opt = document.createElement('option');
+                data.forEach(text => {
+                    let opt = document.createElement('option');
                     opt.value = text;       // or opt.value = text.toLowerCase() if you want different values
                     opt.textContent = text;
                     select.appendChild(opt);
@@ -144,22 +144,6 @@
                     }
                 });
         }
-
-        /*function projectStatus() {
-            fetch('../data/project_status.json')
-                .then(response => response.json())
-                .then(options => {
-                    var selects = document.querySelectorAll('.projectStatus');
-                    selects.forEach(select => {
-                        options.forEach(text => {
-                            const opt = document.createElement('option');
-                            opt.value = text;       // or opt.value = text.toLowerCase() if you want different values
-                            opt.textContent = text;
-                            select.appendChild(opt);
-                        });
-                    })
-                });
-        }*/
 
         projectStatus();
     </script>
