@@ -1,208 +1,341 @@
-const APP_VERSION = 'v2025.2.57'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.12.03'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
-const REPO = '/IRONCLAD'; // ← REPOSITORY NAME
-const PAGES = '/pages';  // Previously "pages/"
+const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
-// ===================================================================
-// PRECACHE LIST – using REPO + PAGES where needed
-// ===================================================================
 const PRECACHE_URLS = [
-  // Core
-  REPO + '/',
-  REPO + '/index.html',
-  REPO + '/offline.html',
-  REPO + '/manifest.json',
-  REPO + '/favicon.png',
+  REPO,
+  REPO + 'index.html',
+  REPO + 'offline.html',        // Now present—great!
+  REPO + 'manifest.json',
+  REPO + 'favicon.png',
 
-  // Core assets
-  REPO + '/js/app.js',
-  REPO + '/css/styles.css',
-  REPO + '/sw.js',
+  // Core JS/CSS
+  REPO + 'js/app.js',
+  REPO + 'css/styles.css',
+  REPO + 'sw.js',
 
-  // Pages (using PAGES constant)
-  REPO + PAGES + '/application.html',
-  REPO + PAGES + '/home.html',
-  REPO + PAGES + '/login.html',
-  REPO + PAGES + '/newProject.html',
-  REPO + PAGES + '/projects.html',
+  // Pages
+  REPO + 'pages/application.html',
+  REPO + 'pages/home.html',
+  REPO + 'pages/login.html',
+  REPO + 'pages/newProject.html',
+  REPO + 'pages/page1.html',
+  REPO + 'pages/page2.html',
+  REPO + 'pages/page3.html',
+  REPO + 'pages/page4.html',
+  REPO + 'pages/page5.html',
+  REPO + 'pages/projects.html',
 
-  // Images & icons
-  REPO + '/img/logo.png',
-  REPO + '/img/icon.png',
-  REPO + '/img/background.png',
-  REPO + '/img/icons/logo.png',
-  REPO + '/img/icons/apple-touch-icon.png',
-  REPO + '/img/icons/icon-192x192.png',
-  REPO + '/img/icons/icon-512x512.png',
+  // Images
+  REPO + 'img/logo.png',
+  REPO + 'img/icon.png',
+  REPO + 'img/background.png',
+  REPO + 'img/icons/logo.png',
+  REPO + 'img/icons/apple-touch-icon.png',
+  REPO + 'img/icons/icon-192x192.png',
+  REPO + 'img/icons/icon-512x512.png',
 
-  // Static data
-  REPO + '/data/project_status.json',
-  REPO + '/data/shingle_options.json'
+  // Data (static)
+  REPO + 'data/project_status.json',
+  REPO + 'data/shingle_options.json',
 
   // Splash screens
-  /*REPO + '/img/splash/splash-2048x2732.png',
-  REPO + '/img/splash/splash-1668x2388.png',
-  REPO + '/img/splash/splash-1536x2048.png'*/
+  REPO + 'img/splash/splash-2048x2732.png',
+  REPO + 'img/splash/splash-1668x2388.png',
+  REPO + 'img/splash/splash-1536x2048.png'
 ];
 
-// ===================================================================
-// INSTALL – Precache everything
-// ===================================================================
+// ===============================================
+// IndexedDB Helpers for Queue (vanilla, with indexing)
+// ===============================================
+const DB_NAME = 'ironclad-queue';
+const STORE_NAME = 'pending';
+const DB_VERSION = 2; // Bumped for index
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+  });
+}
+
+async function queueItem(item) {
+  // Basic validation
+  if (!item.data || typeof item.data !== 'object') {
+    throw new Error('Invalid payload: missing data');
+  }
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.add({ ...item, timestamp: Date.now() });
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function getPendingItems() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function removeItem(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+// Optional: Cleanup old items (>7 days)
+async function cleanupOldItems() {
+  const db = await openDB();
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const index = store.index('timestamp');
+    const request = index.openCursor(IDBKeyRange.upperBound(weekAgo));
+    let count = 0;
+    request.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        store.delete(cursor.value.id);
+        count++;
+        cursor.continue();
+      } else {
+        console.log(`[SW] Cleaned ${count} old queued items`);
+        resolve(count);
+      }
+    };
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+// ===============================================
+// INSTALL
+// ===============================================
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log(`[SW ${APP_VERSION}] Precaching ${PRECACHE_URLS.length} assets`);
-        return cache.addAll(PRECACHE_URLS);
-      })
-      .catch(err => {
-        console.error('[SW] Precaching partially failed:', err);
+        return Promise.allSettled(
+          PRECACHE_URLS.map(url => cache.add(url).catch(err => {
+            console.warn(`[SW] Failed to cache: ${url}`, err);
+          }))
+        );
       })
       .then(() => self.skipWaiting())
   );
 });
 
-// ===================================================================
-// ACTIVATE – Clean up old caches (FIXED: missing return!)
-// ===================================================================
+// ===============================================
+// ACTIVATE – Clean old caches
+// ===============================================
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(  // ← This return was missing before!
-        keys.map(key => {
-          if (key !== CACHE_NAME && key.startsWith('ironclad-crm-')) {
-            console.log(`[SW] Deleting old cache: ${key}`);
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then(keys => Promise.all(
+      keys.map(key => {
+        if (key !== CACHE_NAME && key.startsWith('ironclad-crm-')) {
+          console.log(`[SW] Deleting old cache: ${key}`);
+          return caches.delete(key);
+        }
+      })
+    ))
+    .then(cleanupOldItems) // Clean queue on activate
     .then(() => self.clients.claim())
   );
 });
 
-// ===================================================================
+// ===============================================
 // FETCH
-// ===================================================================
+// ===============================================
 self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Ignore non-GET, cross-origin, non-http(s)
-  if (req.method !== 'GET' ||
-      url.origin !== location.origin ||
-      !req.url.startsWith('http')) {
-    return;
+  // Ignore cross-origin and non-http
+  if (url.origin !== location.origin || !req.url.startsWith('http')) return;
+  if (req.method !== 'GET') {
+    // Handle offline write queuing
+    if (req.method === 'POST' && url.pathname === REPO + 'sync-queue') {
+      event.respondWith(
+        req.clone().json().then(payload => {
+          return queueItem(payload).then(() => {
+            self.registration.sync.register('sync-projects');
+            return new Response(JSON.stringify({success: true, queued: true}), {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }).catch(err => {
+            console.error('[SW] Queue failed:', err);
+            return new Response(JSON.stringify({error: err.message}), {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
+        }).catch(() => new Response('Invalid JSON', { status: 400 }))
+      );
+      return;
+    }
+    // Let other POSTs/PUTs etc. go to network (or fail offline)
+    return fetch(req).catch(() => new Response('Offline - sync when online', { status: 503 }));
   }
 
-  // ———————————————————————
-  // 1. Navigation → Network-first + cache on success
-  // ———————————————————————
+  // Navigation → Network-first + fallback
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
         .then(res => {
           if (res && res.ok) {
             const clone = res.clone();
-            // Critical: don't let SW terminate before caching
-            event.waitUntil(
-              caches.open(CACHE_NAME).then(cache => cache.put(req, clone))
-            );
+            caches.open(CACHE_NAME).then(c => c.put(req, clone));
           }
           return res;
         })
-        .catch(err => {
-          console.warn('[SW] Offline – serving fallback page', err);
-          return caches.match(REPO + '/offline.html')
-            .then(response => response || caches.match(REPO + '/index.html'));
-        })
+        .catch(() => caches.match(REPO + 'offline.html') || caches.match(REPO + 'index.html'))
     );
     return;
   }
 
-  // ———————————————————————
-  // 2. JSON data → Stale-while-revalidate (1 hour freshness)
-  // ———————————————————————
-  if (url.pathname.startsWith(REPO + '/data/') && url.pathname.endsWith('.json')) {
-    event.respondWith(staleWhileRevalidateJson(event, req));
+  // Data JSON files → Stale-while-revalidate (1-hour freshness)
+  if (url.pathname.startsWith(REPO + 'data/') && url.pathname.endsWith('.json')) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(req).then(cached => {
+          const fetchPromise = fetch(req).then(netRes => {
+            if (netRes && netRes.ok) {
+              const clone = netRes.clone();
+              clone.headers.set('sw-cached-at', Date.now());
+              cache.put(req, clone);
+            }
+            return netRes;
+          });
+
+          if (cached) {
+            const age = Date.now() - (parseInt(cached.headers.get('sw-cached-at')) || 0);
+            if (age < 3_600_000) { // 1 hour
+              event.waitUntil(fetchPromise);
+              return cached;
+            }
+          }
+          return fetchPromise.catch(() => cached || new Response('{"error":"offline"}', {
+            headers: { 'Content-Type': 'application/json' }
+          }));
+        });
+      })
+    );
     return;
   }
 
-  // ———————————————————————
-  // 3. Everything else → Cache-first with background update
-  // ———————————————————————
-  event.respondWith(cacheFirstWithUpdate(event, req));
+  // Everything else → Stale-while-revalidate
+  event.respondWith(
+    caches.match(req)
+      .then(cached => {
+        if (cached) {
+          event.waitUntil(
+            fetch(req)
+              .then(fresh => fresh && fresh.ok && caches.open(CACHE_NAME).then(c => c.put(req, fresh.clone())))
+              .catch(() => {})
+          );
+          return cached;
+        }
+
+        return fetch(req)
+          .then(res => {
+            if (res && res.ok && res.type === 'basic') {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then(c => c.put(req, clone));
+            }
+            return res;
+          })
+          .catch(() => {
+            if (req.destination === 'image') {
+              return new Response(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), {
+                headers: { 'Content-Type': 'image/png' }
+              });
+            }
+            return caches.match(REPO + 'offline.html');
+          });
+      })
+  );
 });
 
-// Helper: JSON stale-while-revalidate (1 hour)
-async function staleWhileRevalidateJson(event, request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-
-  if (cached) {
-    const age = Date.now() - (parseInt(cached.headers.get('sw-cached-at') || '0'));
-    if (age < 3_600_000) { // 1 hour
-      event.waitUntil(backgroundJsonUpdate(request));
-      return cached;
-    }
+// ===============================================
+// BACKGROUND SYNC
+// ===============================================
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-projects') {
+    event.waitUntil(syncPendingProjects());
   }
+});
 
-  return backgroundJsonUpdate(request)
-    .catch(() => cached || new Response('{"error":"offline"}', {
-      headers: { 'Content-Type': 'application/json' }
-    }));
-}
-
-async function backgroundJsonUpdate(request) {
-  const response = await fetch(request);
-  if (response && response.ok) {
-    const clone = response.clone();
-    clone.headers.set('sw-cached-at', Date.now());
-    const cache = await caches.open(CACHE_NAME);
-    await cache.put(request, clone);
-  }
-  return response;
-}
-
-// Helper: Generic cache-first + silent background refresh
-async function cacheFirstWithUpdate(event, request) {
-  const cached = await caches.match(request);
-
-  if (cached) {
-    event.waitUntil(backgroundUpdate(request));
-    return cached;
-  }
-
-  return fetch(request)
-    .then(async response => {
-      if (response && response.ok && shouldCache(response, request)) {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.put(request, response.clone());
-      }
-      return response;
-    })
-    .catch(() => {
-      if (request.destination === 'image') {
-        // Optional: precache a real placeholder later
-        return new Response(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='), {
-          headers: { 'Content-Type': 'image/png' }
-        });
-      }
-      return caches.match(REPO + '/offline.html');
-    });
-}
-
-async function backgroundUpdate(request) {
+async function syncPendingProjects() {
   try {
-    const response = await fetch(request);
-    if (response && response.ok && shouldCache(response, request)) {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put(request, response.clone());
+    const pending = await getPendingItems();
+    if (pending.length === 0) {
+      console.log('[SW] No pending items to sync');
+      return;
     }
-  } catch (_) { /* silent */ }
-}
-
-function shouldCache(response, request) {
-  return response.type === 'basic' ||
-         ['script', 'style', 'font', 'image'].includes(request.destination);
+    console.log(`[SW] Syncing ${pending.length} queued items`);
+    for (const item of pending) {
+      let retries = 0;
+      const maxRetries = 3;
+      while (retries < maxRetries) {
+        try {
+          const response = await fetch('/api/projects', { // ← Swap to your prod endpoint
+            method: item.method || 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item.data)
+          });
+          if (response.ok) {
+            await removeItem(item.id);
+            console.log(`[SW] Synced item ${item.id} after ${retries} retries`);
+            break; // Success, move to next
+          } else {
+            retries++;
+            if (retries < maxRetries) {
+              const delay = Math.pow(2, retries) * 1000; // Exponential backoff
+              console.log(`[SW] Sync failed for ${item.id} (attempt ${retries}): ${response.status}. Retrying in ${delay}ms`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+              console.warn(`[SW] Max retries exceeded for ${item.id}`);
+            }
+          }
+        } catch (err) {
+          retries++;
+          if (retries < maxRetries) {
+            const delay = Math.pow(2, retries) * 1000;
+            console.error(`[SW] Network error for ${item.id} (attempt ${retries}):`, err, `- Retrying in ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            console.error(`[SW] Max retries exceeded for ${item.id}:`, err);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[SW] Overall sync error:', err);
+  }
 }
