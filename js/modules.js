@@ -1,7 +1,7 @@
 // src/firebase.js
-import { initializeApp } from './firebase/app.js';
-import { getAuth } from '../IRONCLAD/js/firebase/auth.js';
-import { getFirestore } from '.././IRONCLAD/js/firebase/firestore.js';
+import { initializeApp } from './firebase/firebase-app.js';
+import { getAuth } from '../IRONCLAD/js/firebase/firebase-auth.js';
+import { getFirestore } from '.././IRONCLAD/js/firebase/firebase-firestore.js';
 import { getAnalytics } from '/analytics.js';
 
 // Your config (you already have this)
