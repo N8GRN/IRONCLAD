@@ -1,8 +1,13 @@
 // src/firebase.js
-import { initializeApp } from '/IRONCLAD/js/firebase/firebase-app.js';
-import { getAuth } from '/IRONCLAD/js/firebase/firebase-auth.js';
-import { getFirestore } from '/IRONCLAD/js/firebase/firebase-firestore.js';
-import { getAnalytics } from '/IRONCLAD/js/firebase/firebase-analytics.js';
+import { initializeApp } from '/IRONCLAD/js/firebase/firebase-app';
+
+// import { getFirestore, collection, getDocs } from '/IRONCLAD/js/firebase/firestore/lite.js';
+
+
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+import { getFirestore } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+
+
 
 // Your config (you already have this)
 const firebaseConfig = {
@@ -16,12 +21,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
 
-// Initialize services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const analytics = getAnalytics(app); // optional
+    // Get a reference to Firestore
+    const db = getFirestore(app);
 
 
 
