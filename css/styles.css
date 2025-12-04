@@ -7,6 +7,7 @@
     --logo: url(/slate/designer/project/img/logo.png);
     --link: #0000EE;
     --visited: #551A8B;
+    --rowHeight: 2.4rem;
 }
 
 
@@ -254,10 +255,12 @@ table {
     border-collapse: collapse;
     background: #fff;
     border: none;
-    border-radius: 1rem;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
     margin: 0 auto;
     padding: 0;
-    font-size:1.2em;
+    /*font-size:1.2em;*/
+    line-height: 1.8rem;
     overflow:hidden;
 }
 
@@ -272,49 +275,55 @@ table tr.active-row:not(th) {
 }
 
 
-
+/* SPECIAL */
 table.first-column-locked {
     margin-left: 160px !important;
+    border-top-left-radius: 0;
 }
 
+table.first-column-locked::before {
+    content:"";
+    display: block;
+    position:absolute;
+    height:-webkit-fill-available;
+    width:2rem;
+    left:0px;
+    top:auto;
+    background-color: white;
+}
+
+
+
 table.first-column-locked tr th:first-of-type, table.first-column-locked tr td:first-of-type {
-    background: rgba(250, 250, 250, 0.5);
+    background: inherit;
     backdrop-filter: blur(5px);
+    display:block;
     position: absolute;
     margin-left: -160px;
-    width: 130px;
+    width: calc(130px);
     left: inherit;
     top: inherit;
-
-    border: none;
-    border-bottom: 1px solid black;
-    line-height: 1.8em;
-    padding: .2em 1em;
-    white-space: nowrap;
+    height: var(--rowHeight);
+    border-width: 0 0 1px 0;
+    border-color: black;
+    border-style: solid;
+    line-height: 2.4rem;
+    /*padding: .2em 1em;
+    white-space: nowrap;*/
 }
 
 table.first-column-locked tr th:first-of-type {
     background: var(--color2);
     color: white;
     border-bottom: 1px solid black;
+    border-top-left-radius: 1em;
+    z-index: 2;
 }
 
 
 
 
-
-
-table.col21 * td {
-    width: 50%;
-}
-
-table.col25 tr td:first-of-type {
-    width: 25%;
-    background: rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
+/* --- END SPECIAL --- */
 
 #special-notes * td{
     min-height: 60px !important;
@@ -326,9 +335,12 @@ th {
 }
 
 td, th {
-    border: none;
-    border-bottom: 1px solid black;
-    line-height: 1.8em;
+    
+    height: var(--rowHeight);
+    border-width: 0 0 1px 0;
+    border-color: black;
+    border-style: solid;
+
     padding: .2em 1em;
     white-space: nowrap;
 }
