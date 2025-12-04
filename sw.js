@@ -5,7 +5,7 @@ const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 const PRECACHE_URLS = [
   REPO,
   REPO + 'index.html',
-  REPO + 'offline.html',        // Now present—great!
+  REPO + 'offline.html',
   REPO + 'manifest.json',
   REPO + 'favicon.png',
 

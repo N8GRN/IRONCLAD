@@ -40,6 +40,30 @@
   <!-- This page exists as a landing page to load the Service Worker -->
   <img src="/IRONCLAD/img/icon.png" alt="IRONCLAD CRM Logo" class="loader">
   <h2>Loading…</h2>
+
+  <script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
+    authDomain: "ironclad-127a5.firebaseapp.com",
+    projectId: "ironclad-127a5",
+    storageBucket: "ironclad-127a5.firebasestorage.app",
+    messagingSenderId: "57257280088",
+    appId: "1:57257280088:web:189e4db32d7ae28523402d",
+    measurementId: "G-6RG40RW2YZ"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
   
   <!-- Local Database ("Test Mode") -->
   <script src="/IRONCLAD/js/db.js"></script>

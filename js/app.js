@@ -1,10 +1,29 @@
+
+
+// ===============================================
+// FIREBASE - Import library
+// ===============================================
+// // Import the functions you need from the SDKs you need
+
+// This is done at the page level
+
+
 // ===============================================
 // IRONCLAD CRM PWA - Main Application Logic
 // ===============================================
+
 //const REPO = "/IRONCLAD/"; // ← Declared in sw.js
 const REPO_ = "/IRONCLAD";
 const PAGES_ = "/pages"; // "/pages";
-const db = GrokDB;
+//const db = {};
+/*
+if (localStorage.getItem("Test-Mode") == true){
+  // Test Mode
+  db = GrokDB;
+} else {
+  // Live Mode
+  db = firebase.firestore()
+}*/
 
 window.onload = function () {
   drawUser();
