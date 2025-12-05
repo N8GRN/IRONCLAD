@@ -15,15 +15,15 @@
 //const REPO = "/IRONCLAD/"; // ← Declared in sw.js
 const REPO_ = "/IRONCLAD";
 const PAGES_ = "/pages"; // "/pages";
-//const db = {};
-/*
-if (localStorage.getItem("Test-Mode") == true){
+const db = window.GrokDB;
+
+if (localStorage.getItem("TestMode") == true){
   // Test Mode
-  db = GrokDB;
+  db = window.GrokDB;
 } else {
   // Live Mode
-  db = firebase.firestore()
-}*/
+  //db = firebase.firestore()
+}
 
 window.onload = function () {
   drawUser();
