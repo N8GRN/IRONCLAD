@@ -249,6 +249,23 @@ div.bottom-nav > button {
     min-width: 30dvw;
 }
 
+div.row {
+    display:inline-flex;
+}
+
+div.row input {
+    margin:5px;
+}
+
+div.row input:first-of-type {
+    position:absolute;
+    width:200px;
+}
+
+div.row input:nth-of-type(2) {
+    margin-left:calc(200px + 2rem);
+}
+
 /*----------------  Tables -----------------------*/
 table {
     width: -webkit-fill-available;
@@ -368,14 +385,16 @@ td input, textarea {
     field-sizing: content; 
 }
 
+td input:focus-within, td input:active, textarea:focus {
+    color:white !important;
+}
+
 textarea {
     min-height: 6rem;
     field-sizing: content; 
 }
 
-td input:focus-within, td input:active, textarea:focus {
-    color:white !important;
-}
+
 
 select {
     width: 100%;           /* Take full width of the cell */
@@ -383,7 +402,7 @@ select {
     padding: 8px;          /* Comfortable inner padding */
     font-size: inherit;
     color:inherit;
-    border: none;          /* Remove default border (optional) */
+    border: none;          /* Remove default border */
     border-radius: 0px;    
     box-sizing: border-box; /* Important: include padding in width/height */
     background-color: transparent;
