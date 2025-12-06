@@ -15,15 +15,20 @@
 //const REPO = "/IRONCLAD/"; // ← Declared in sw.js
 const REPO_ = "/IRONCLAD";
 const PAGES_ = "/pages"; // "/pages";
-const db = window.GrokDB;
+const db = (() => {
+  if (localStorage.getItem("TestMode") == "true") {
+    // Test Mode
+    console.log("Test Mode")
+    return window.GrokDB;
+  } else {
+    // Live Mode
+    console.log("Live Mode");
+    return window.FireDB;
+    //return window.dbFirestore;
+  }
+})()
 
-if (localStorage.getItem("TestMode") == true){
-  // Test Mode
-  db = window.GrokDB;
-} else {
-  // Live Mode
-  //db = firebase.firestore()
-}
+
 
 window.onload = function () {
   drawUser();
@@ -108,58 +113,58 @@ if (roofForm !== null) {
 
 
 // STRUCTURE RENDER
-function renderStructure(doc){
+function renderStructure(doc) {
 
   let structure = facetForm.querySelector("#structure");
-    let facet = facetForm.querySelector("#facet");
+  let facet = facetForm.querySelector("#facet");
 
-    let type = facetForm.category;
-    let pitch = facetForm.pitch;
-    let layers = facetForm.layers;
-    let underlay = facetForm.underlay;
+  let type = facetForm.category;
+  let pitch = facetForm.pitch;
+  let layers = facetForm.layers;
+  let underlay = facetForm.underlay;
 
-    db.collection('roof_facets').onSnapshot(snapshot => {
-      let changes = snapshot.docChanges();
-      let y = changes.length;
-      let data = localStorage.getItem("progress") || null;
-      let x = 0;
-      
-      if (data) {
-        x = JSON.parse(localStorage.getItem("progress")).x;
-      }
+  db.collection('roof_facets').onSnapshot(snapshot => {
+    let changes = snapshot.docChanges();
+    let y = changes.length;
+    let data = localStorage.getItem("progress") || null;
+    let x = 0;
 
-      console.log(x + 1, "of", y);
+    if (data) {
+      x = JSON.parse(localStorage.getItem("progress")).x;
+    }
 
-      if (x === y -1) {
-        x = 0;
-      } else {
-        x++;
-      }
+    console.log(x + 1, "of", y);
 
-      // Update Form
-      structure.textContent = changes[x].doc.data().structure;
-      facet.textContent = changes[x].doc.data().facet;
+    if (x === y - 1) {
+      x = 0;
+    } else {
+      x++;
+    }
 
-      // Capture ID
-      let id = changes[x].doc.id;
-      console.log(id);
+    // Update Form
+    structure.textContent = changes[x].doc.data().structure;
+    facet.textContent = changes[x].doc.data().facet;
 
-
-      let str = JSON.stringify({ "x": x, "y": y })
-      localStorage.setItem("progress", str)
-
-      console.log("Before", changes[x].doc.data());
-      db.collection('roof_facets').doc(id).update({
-        type: type.value,
-        pitch: pitch.value,
-        layers: layers.value,
-        underlay: underlay.value
-      });
-
-      console.log("After", changes[x].doc.data());
+    // Capture ID
+    let id = changes[x].doc.id;
+    console.log(id);
 
 
+    let str = JSON.stringify({ "x": x, "y": y })
+    localStorage.setItem("progress", str)
+
+    console.log("Before", changes[x].doc.data());
+    db.collection('roof_facets').doc(id).update({
+      type: type.value,
+      pitch: pitch.value,
+      layers: layers.value,
+      underlay: underlay.value
     });
+
+    console.log("After", changes[x].doc.data());
+
+
+  });
 }
 
 
@@ -174,7 +179,7 @@ if (facetForm !== null) {
 
     // add delay to prevent user from going too fast
     btn.setAttribute("disabled", "disabled");
-    setTimeout(function(){btn.removeAttribute("disabled")}, 3000);
+    setTimeout(function () { btn.removeAttribute("disabled") }, 3000);
 
     renderStructure();
 
