@@ -12,7 +12,7 @@ const PRECACHE_URLS = [
   // Core JS/CSS
   REPO + 'js/app.js',
   REPO + 'css/styles.css',
-  REPO + 'sw.js',
+  // REPO + 'sw.js',
 
   // Pages
   REPO + 'pages/application.html',
