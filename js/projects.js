@@ -146,6 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     displayProjects(); // Initial load
+
+    // Need to add listener for complete or use this as a callback funcion when displayProjects() is complete
+    setTimeout(function(){sortByField(0)}, 2000); // Initial sort
 });
 
 // Next Project Number
@@ -180,7 +183,7 @@ window.loadThisProject = async function (projectId) {
     }
 }
 
-loadThisProject();
+//loadThisProject(); // Removed 2025.12.11
 
 
 // Modal Form
