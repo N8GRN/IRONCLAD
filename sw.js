@@ -1,4 +1,4 @@
-const APP_VERSION = 'v2025.2.65'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.2.67'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -12,7 +12,6 @@ const PRECACHE_URLS = [
   // Core JS/CSS
   REPO + 'js/app.js',
   REPO + 'css/styles.css',
-  // REPO + 'sw.js',
 
   // Pages
   REPO + 'pages/application.html',

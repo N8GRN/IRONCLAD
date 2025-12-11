@@ -28,166 +28,45 @@
   <title>IRONCLAD CRM</title>
 </head>
 <body>
+
     <header>
         <img src="../img/icons/logo.png">
         <h2>My Projects</h2>
     </header>
 
-
     <main>
         <!--
-        <form>
-            <div class="row">
-                <input type="text" name="customer" placeholder="Customer Name">
-                <input type="text" name="application" placeholder="application">
-                <input type="text" name="owner" placeholder="owner">
-                <input type="text" name="lead" placeholder="lead">
-                <input type="text" name="status" placeholder="status">
-                <input type="text" name="price" placeholder="$">
-            </div>
+        <h2>Add New Project</h2>
+        <form class="pseudo-table">
+            <input type="text" id="projectNumber" placeholder="Project Number">
+            <input type="text" id="customerName" placeholder="Customer Name">
+            <input type="text" id="application" placeholder="Application">
+            <input type="text" id="owner" placeholder="Owner">
+            <input type="text" id="lead" placeholder="Lead">
+            <input type="text" id="status" placeholder="Status">
+            <input type="text" id="price" placeholder="Price">
+            <div class="button-space"><button id="addProjectButton" >+</button></div>
         </form>
         -->
 
-        <div>
+        <button id="openProjectModal" onclick="showProjectFormWithNextProject();">New Project</button>
+        <br>
+        <div id="projects-list" class="pseudo-table">
             <div class="row header">
+                <span>Project #</span>
                 <span>Customer Name</span>
                 <span>Application</span>
                 <span>Owner</span>
                 <span>Lead</span>
                 <span>Status</span>
                 <span>Price</span>
+                <span class="icon-column"></span>
+                <span class="icon-column"></span>
             </div>
-            <div class="row">
-                <span>Mario</span>
-                <span>Roof</span>
-                <span>Matt Green</span>
-                <span>Lead</span>
-                <span>Status</span>
-                <span>Price</span>
-            </div>
-            <div class="row">
-                <span>Luigi</span>
-                <span>Roof + Gutters</span>
-                <span>Jon Wright</span>
-                <span>Google</span>
-                <span>Sold</span>
-                <span>$10,000</span>
-            </div>
-            <div class="row">
-                <span>Princess Peach</span>
-                <span>Roof + Gutters + Siding</span>
-                <span>Jon Wright</span>
-                <span>Facebook</span>
-                <span>Lead</span>
-                <span>$79,280</span>
-            </div>
-            <div class="row">
-                <span>Bowser</span>
-                <span>Gutters</span>
-                <span>Matt Green</span>
-                <span>Radio</span>
-                <span>Lead</span>
-                <span>$42,600</span>
-            </div>
-            <div class="row">
-                <span>Yoshi</span>
-                <span>Roof + Siding</span>
-                <span>Jon Wright</span>
-                <span>Referral</span>
-                <span>Complete</span>
-                <span>$36,780</span>
-            </div>
-            <div class="row">
-                <span>Toad</span>
-                <span>Roof</span>
-                <span>Jon Wright</span>
-                <span>Friend</span>
-                <span>Follow-Up</span>
-                <span>$14,035</span>
-            </div>
-            <div class="row">
-                <span>Koopa</span>
-                <span>Roof</span>
-                <span>Jon Wright</span>
-                <span>Unknown</span>
-                <span>Cancelled</span>
-                <span>$19,460</span>
-            </div>
+            <span id="loading-message">Loading projects...</span>
         </div>
-        <!--
-        <table class="first-column-locked">
-            <tbody>
-                <tr>
-                    <th>Customer</th>
-                    <th>Type</th>
-                    <th>Project Owner</th>
-                    <th>Status</th>
-                </tr>
-                <tr>
-                    <td>Nate Green</td>
-                    <td>Roof</td>
-                    <td>Jon Wright</td>
-                    <td>
-                        <select class="projectStatus">
 
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Nancy Green</td>
-                    <td>Roof + Siding</td>
-                    <td>Jon Wright</td>
-                    <td>
-                        <select class="projectStatus">
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>John Doe</td>
-                    <td>Roof</td>
-                    <td>Jon Wright</td>
-                    <td>
-                        <select class="projectStatus">
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Bob Smith</td>
-                    <td>Roof</td>
-                    <td>Matt Green</td>
-                    <td>
-                        <select class="projectStatus">
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Bugs Bunny</td>
-                    <td>Roof + Siding + Gutters</td>
-                    <td>Jon Wright</td>
-                    <td>
-                        <select class="projectStatus">
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Fred Flinstone</td>
-                    <td>Roof</td>
-                    <td>Jon Wright</td>
-                    <td>
-                        <select class="projectStatus">
-                        </select>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-        -->
-
-        <!-- Test Changes to Status Bar Background
-        <div class="button-space">
-            <button onclick="setThemeColor('#FF0000')">Red</button>
-            <button onclick="setThemeColor('#FFFFFF')">White</button>
-            <button onclick="setThemeColor('#0000FF')">Blue</button>
-        </div> -->
+        
     </main>
 
     <footer>
@@ -196,66 +75,33 @@
         </div>
     </footer>
 
+    <!-- Modal Dialog  -->
 
-
-    <!-- Firestore Database ("Live") -->
-    <script type="module" src="../js/modules.js"></script>
-
-    <!-- Local Database ("Test Mode") -->
-    <script src="../js/db.js"></script>
+        <div id="projectModal" class="project-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"
+            style="display: none;">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <form id="projectForm">
+                    <button class="close-btn" type="button" aria-label="Close">✕</button>
+                    <h2>Add New Project</h2>
+                    <input type="text" id="projectNumber" placeholder="Project Number" required>
+                    <input type="text" id="customerName" placeholder="Customer Name" required>
+                    <input type="text" id="application" placeholder="Application">
+                    <input type="text" id="owner" placeholder="Owner">
+                    <input type="text" id="lead" placeholder="Lead">
+                    <input type="text" id="status" placeholder="Status">
+                    <input type="text" id="price" placeholder="$ Price">
+                    <div class="button-space">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
     <!-- Link JavaScript -->
-    <script src="../js/app.js"></script>
-
-
-
-    <script>
-        const REPO = "/IRONCLAD";
-
-        function updateProjectTable(data) {
-            var selects = document.querySelectorAll('.projectStatus');
-            selects.forEach(select => {
-                data.forEach(text => {
-                    let opt = document.createElement('option');
-                    opt.value = text;       // or opt.value = text.toLowerCase() if you want different values
-                    opt.textContent = text;
-                    select.appendChild(opt);
-                });
-            })
-        }
-
-        function projectStatus() {
-            fetch(REPO + '/data/project_status.json')
-                .then(res => res.ok ? res.json() : Promise.reject('Offline or error'))
-                .then(data => updateProjectTable(data))
-                .catch(err => {
-                    if (err === 'Offline or error') {
-                        // Load from localStorage fallback or show cached
-                        const cached = JSON.parse(localStorage.getItem('lastProjects') || '[]');
-                        updateProjectTable(cached);
-                        document.body.classList.add('offline-mode'); // Style dimmed
-                    }
-                });
-        }
-
-        projectStatus();
-    </script>
-    <script>
-
-        // <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
-        // THEME COLOR
-        function setThemeColor(color) {
-            document.body.style.backgroundColor = color;
-            /*
-            let themeColorMeta = document.querySelector('meta[name="theme-color"]');
-        if (!themeColorMeta) {
-            themeColorMeta = document.createElement('meta');
-            themeColorMeta.name = 'theme-color';
-            document.head.appendChild(themeColorMeta);
-        }
-        themeColorMeta.content = color;*/
-        }
-    </script>
+    <script type='module' src="../js/firebase-services.js"></script>
+    <script type='module' src="../js/projects.js"></script>
 </body>
 
 </html>

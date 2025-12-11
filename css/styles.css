@@ -113,6 +113,7 @@ footer {
     margin:auto;
     padding-top:0 !important;
     padding: min(2em, 5%);
+    background: white; /* hide overflow from Main */
 }
 
 h2 {
@@ -223,7 +224,7 @@ form input {
 }
 
 form button {
-    min-width: 20%;
+    min-width: 300px;
 }
 
 
@@ -249,9 +250,100 @@ div.bottom-nav > button {
     min-width: 30dvw;
 }
 
+/*----------------  Modal Dialog -----------------------*/
+.project-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: none; /* Hidden by default */
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  max-width: 90vw;
+  width: 400px;
+  margin: 20vh auto;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* Rest of your styles... */
+
+.project-modal h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.project-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: absolute; 
+}
+
+.project-modal input {
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.project-modal .close-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: red;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    min-width: unset;
+    line-height: 36px;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.project-modal .button-space {
+    display: inline-block;
+    position: relative;
+    margin: auto;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.project-modal .cancel-btn {
+  background: #f0f0f0;
+  color:black;
+}
+
+
 
 /*----------------  Tables -----------------------*/
 /* All */
+div.pseudo-table {
+    overflow-y: auto;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
 div.row {
     display:inline-flex;
     background-color: #fff;
@@ -263,6 +355,13 @@ div.row.header, div.row.header span {
     text-align: center;
     font-weight: 200;
 }
+
+div.row.header span {
+    cursor: pointer;
+    user-select: none;
+}
+div.row.header span.sorted-asc::after { content: " ↑"; padding-left: 10px;}
+div.row.header span.sorted-desc::after { content: " ↓"; padding-left: 10px;}
 
 div.row * {
     padding: 5px;
@@ -324,6 +423,26 @@ div.row.header span:first-of-type {
 div.row span:nth-of-type(2) {
     margin-left:calc(180px + 2rem);
 }
+
+div.row .icon-edit, div.row .icon-delete, div.row .icon-column {
+    margin: auto 15px auto 15px;
+    width: .9rem;
+    height: .9rem;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: none;
+}
+
+div.row .icon-edit {
+    background-image: url(/IRONCLAD/img/icons/icon-edit.png);
+    
+}
+
+div.row .icon-delete {
+    background-image: url(/IRONCLAD/img/icons/icon-trash.png);
+}
+
 
 /*----------------  Tables -----------------------*/
 table {
