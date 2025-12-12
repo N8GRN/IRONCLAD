@@ -20,7 +20,7 @@ const app = firebase.initializeApp(firebaseConfig);
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging(); // No 'app' argument needed for compat
 
-const APP_VERSION = 'v2025.3.4'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.5'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -362,7 +362,7 @@ async function syncPendingProjects() {
 // In your existing service worker file
 // --- FIX START ---
 // Handle background messages using the global 'firebase' object for compat
-/*
+
 firebase.messaging().onBackgroundMessage((payload) => {
 // --- FIX END ---
   console.log('[Your-SW-File.js] Received background message ', payload);
@@ -388,9 +388,9 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(clients.openWindow('/'));
   }
 });
-*/
 
 
+/*
 // Handle background messages
 // This function is called when a message is received while your web app
 // is not in the foreground (e.g., minimized, browser tab is not active, or closed).
@@ -414,4 +414,4 @@ onBackgroundMessage(messaging, (payload) => {
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
-});
+});*/
