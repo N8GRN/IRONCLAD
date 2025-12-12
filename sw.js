@@ -1,6 +1,7 @@
 // Fire Notifications
-importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
+
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -19,7 +20,7 @@ const app = firebase.initializeApp(firebaseConfig);
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging(); // No 'app' argument needed for compat
 
-const APP_VERSION = 'v2025.3.3'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.4'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -361,6 +362,7 @@ async function syncPendingProjects() {
 // In your existing service worker file
 // --- FIX START ---
 // Handle background messages using the global 'firebase' object for compat
+/*
 firebase.messaging().onBackgroundMessage((payload) => {
 // --- FIX END ---
   console.log('[Your-SW-File.js] Received background message ', payload);
@@ -385,4 +387,31 @@ self.addEventListener('notificationclick', (event) => {
   } else {
     event.waitUntil(clients.openWindow('/'));
   }
+});
+*/
+
+
+// Handle background messages
+// This function is called when a message is received while your web app
+// is not in the foreground (e.g., minimized, browser tab is not active, or closed).
+onBackgroundMessage(messaging, (payload) => {
+  console.log('[sw.js] Received background message:', payload);
+
+  // Customize the notification that appears to the user.
+  // The 'payload' object contains the data sent from your server or the Firebase Console.
+  const notificationTitle = payload.notification?.title || 'New Message';
+  const notificationOptions = {
+    body: payload.notification?.body || 'You have a new notification.',
+    icon: payload.notification?.icon || '/firebase-logo.png', // Provide a path to your notification icon
+    // You can add more options here, such as:
+    // image: payload.notification?.image,
+    // badge: '/badge-icon.png',
+    // data: payload.data, // Custom data from your message payload
+    // actions: [
+    //   { action: 'open_url', title: 'Open' },
+    //   { action: 'reply', title: 'Reply' }
+    // ]
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
