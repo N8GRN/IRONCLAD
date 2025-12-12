@@ -1,8 +1,4 @@
 // Fire Notifications
-/*
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-import { getMessaging, onBackgroundMessage } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
-*/
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
 
@@ -17,10 +13,13 @@ const firebaseConfig = {
   measurementId: "G-6RG40RW2YZ"
 };
 
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+// Initialize Firebase using the global 'firebase' object from compat library
+const app = firebase.initializeApp(firebaseConfig);
 
-const APP_VERSION = 'v2025.3.0'; // ← BUMP THIS ON EVERY DEPLOY
+// Get the Messaging instance using the global 'firebase' object
+const messaging = firebase.messaging(); // No 'app' argument needed for compat
+
+const APP_VERSION = 'v2025.3.1'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -360,7 +359,10 @@ async function syncPendingProjects() {
 
 // MESSAGING / PUSH NOTIFICATIONS
 // In your existing service worker file
-onBackgroundMessage(messaging, (payload) => { // Or firebase.messaging().onBackgroundMessage for compat
+// --- FIX START ---
+// Handle background messages using the global 'firebase' object for compat
+firebase.messaging().onBackgroundMessage((payload) => {
+// --- FIX END ---
   console.log('[Your-SW-File.js] Received background message ', payload);
 
   const notificationTitle = payload.notification.title || 'Background Message Title';
