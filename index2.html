@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Firebase Push Test</title>
+      <link rel="manifest" href="/IRONCLAD/manifest.json">
+  <link rel="apple-touch-icon" href="/IRONCLAD/img/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/IRONCLAD/css/styles.css">
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+        #log { margin-top: 20px; text-align: left; background: #f0f0f0; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; }
+        #messages { margin-top: 20px; text-align: left; background: #e0ffe0; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto; }
+        button { padding: 10px 15px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        .message-box { border: 1px solid #c8e6c9; padding: 8px; margin-bottom: 5px; background-color: #f0fdf0; border-radius: 3px; }
+        .message-title { font-weight: bold; }
+        .message-body { font-size: 0.9em; color: #333; }
+    </style>
+</head>
+<body>
+    <h1>Simple Firebase Push Notification Test</h1>
+    <p>This page will ask for notification permission and display messages.</p>
+
+    <button id="enableNotificationsButton">Enable Push Notifications</button>
+
+    <div id="log">
+        <p><strong>App Log:</strong></p>
+    </div>
+
+    <div id="messages">
+        <p><strong>Received Messages (Foreground):</strong></p>
+    </div>
+
+    <!-- Your main application script, using type="module" -->
+    <script type="module" src="/IRONCLAD/js/msgApp.js"></script>
+</body>
+</html>
