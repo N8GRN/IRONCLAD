@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // A placeholder for what you would do after permission is granted
 // This function would typically register a service worker and then subscribe the user to push
-/*
+
 async function subscribeUserToPush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.warn('Push messaging is not supported.');
@@ -410,7 +410,7 @@ async function subscribeUserToPush() {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true, // Required for all push subscriptions
-            applicationServerKey: 'YOUR_VAPID_PUBLIC_KEY_HERE' // Replace with your VAPID public key
+            applicationServerKey: 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4' // Replace with your VAPID public key
         });
         console.log('User is subscribed to push:', subscription);
         // Send this subscription object to your backend (e.g., Firebase Cloud Functions)
@@ -419,4 +419,3 @@ async function subscribeUserToPush() {
         console.error('Failed to subscribe the user:', error);
     }
 }
-*/
