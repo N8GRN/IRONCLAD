@@ -410,7 +410,7 @@ async function subscribeUserToPush() {
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true, // Required for all push subscriptions
-            applicationServerKey: 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4' // Replace with your VAPID public key
+            applicationServerKey: '57257280088' // Replace with your VAPID public key
         });
         console.log('User is subscribed to push:', subscription);
         // Send this subscription object to your backend (e.g., Firebase Cloud Functions)
