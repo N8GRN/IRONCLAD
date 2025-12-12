@@ -20,7 +20,7 @@ const app = firebase.initializeApp(firebaseConfig);
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging(); // No 'app' argument needed for compat
 
-const APP_VERSION = 'v2025.3.5'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.6'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -363,8 +363,9 @@ async function syncPendingProjects() {
 // --- FIX START ---
 // Handle background messages using the global 'firebase' object for compat
 // Attempt #1
+/*
 firebase.messaging().onBackgroundMessage((payload) => {
-// --- FIX END ---
+  // --- FIX END ---
   console.log('[Your-SW-File.js] Received background message ', payload);
 
   const notificationTitle = payload.notification.title || 'Background Message Title';
@@ -388,10 +389,11 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(clients.openWindow('/'));
   }
 });
+*/
 
 // Attempt #2
 firebase.messaging().onBackgroundMessage((payload) => {
-console.log('[sw.js] Received background message:', payload);
+  console.log('[sw.js] Received background message:', payload);
 
   // Customize the notification that appears to the user.
   // The 'payload' object contains the data sent from your server or the Firebase Console.
@@ -400,13 +402,13 @@ console.log('[sw.js] Received background message:', payload);
     body: payload.notification?.body || 'You have a new notification.',
     icon: payload.notification?.icon || '/firebase-logo.png', // Provide a path to your notification icon
     // You can add more options here, such as:
-    // image: payload.notification?.image,
-    // badge: '/badge-icon.png',
-    // data: payload.data, // Custom data from your message payload
-    // actions: [
-    //   { action: 'open_url', title: 'Open' },
-    //   { action: 'reply', title: 'Reply' }
-    // ]
+    image: payload.notification?.image,
+    badge: '/badge-icon.png',
+    data: payload.data, // Custom data from your message payload
+    actions: [
+      { action: 'open_url', title: 'Open' },
+      { action: 'reply', title: 'Reply' }
+    ]
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
