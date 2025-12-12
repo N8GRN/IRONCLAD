@@ -1,4 +1,77 @@
+//
+// This script expects modules.js to be loaded before it,
+// making window.requestNotificationPermissionAndGetFCMToken available.
+// ===============================================
+// FIREBASE - Notifications
+// ===============================================
+document.addEventListener('DOMContentLoaded', () => {
+    const enableNotificationsButton = document.getElementById('enableNotificationsButton');
+    const logDiv = document.getElementById('log'); // Assuming this exists in your HTML
+    const messagesDiv = document.getElementById('messages'); // Assuming this exists in your HTML
 
+    function appendLog(message) {
+        if (logDiv) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            logDiv.appendChild(p);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        } else {
+            console.log(message);
+        }
+    }
+
+    function displayForegroundMessage(payload) {
+        if (messagesDiv) {
+            const messageBox = document.createElement('div');
+            messageBox.className = 'message-box';
+            const title = document.createElement('div');
+            title.className = 'message-title';
+            title.textContent = `Title: ${payload.notification?.title || 'N/A'}`;
+            const body = document.createElement('div');
+            body.className = 'message-body';
+            body.textContent = `Body: ${payload.notification?.body || 'N/A'}`;
+            messageBox.appendChild(title);
+            messageBox.appendChild(body);
+            messagesDiv.appendChild(messageBox);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        } else {
+            console.log('Foreground Message (no display div):', payload);
+        }
+    }
+
+
+    if (enableNotificationsButton) {
+        enableNotificationsButton.addEventListener('click', async () => {
+            appendLog('Attempting to enable notifications...');
+            // Call the function exposed from modules.js
+            window.requestNotificationPermissionAndGetFCMToken(
+                (token) => {
+                    appendLog(`Notifications enabled. Token: ${token}`);
+                    alert('Notifications enabled successfully! Check console for token.');
+                    // You might want to send this token to your backend here
+                },
+                (error) => {
+                    appendLog(`Failed to enable notifications: ${error.message}`);
+                    alert(`Failed to enable notifications: ${error.message}. Check console.`);
+                }
+            );
+        });
+    } else {
+        appendLog("Enable Notifications button not found. Please ensure your HTML is set up.");
+    }
+
+    // You can also set up a custom foreground message handler here if you want,
+    // overriding the default one set in modules.js or adding additional logic.
+    // window.setupForegroundMessageHandler((payload) => {
+    //     appendLog('Custom foreground handler: ' + JSON.stringify(payload));
+    //     displayForegroundMessage(payload);
+    // });
+
+    // Example of using other functions from modules.js
+    // window.loadData('projects').then(data => {
+    //     appendLog('Loaded projects from Firestore: ' + JSON.stringify(data));
+    // }).catch(error => console.error('Error loading data:', error));
+});
 
 // ===============================================
 // FIREBASE - Import library
@@ -397,9 +470,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+
 // A placeholder for what you would do after permission is granted
 // This function would typically register a service worker and then subscribe the user to push
-
 async function subscribeUserToPush() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         console.warn('Push messaging is not supported.');

@@ -1,5 +1,4 @@
 // Fire Notifications
-
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 
@@ -20,7 +19,7 @@ const app = firebase.initializeApp(firebaseConfig);
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging(); // No 'app' argument needed for compat
 
-const APP_VERSION = 'v2025.3.6'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.7'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -359,39 +358,8 @@ async function syncPendingProjects() {
 
 
 // MESSAGING / PUSH NOTIFICATIONS
-// In your existing service worker file
-// --- FIX START ---
-// Handle background messages using the global 'firebase' object for compat
-// Attempt #1
-/*
-firebase.messaging().onBackgroundMessage((payload) => {
-  // --- FIX END ---
-  console.log('[Your-SW-File.js] Received background message ', payload);
 
-  const notificationTitle = payload.notification.title || 'Background Message Title';
-  const notificationOptions = {
-    body: payload.notification.body || 'Background Message Body',
-    icon: payload.notification.icon || '/img/icons/icon-192x192.png',
-    data: {
-      url: payload.data.url || '/'
-    }
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  if (event.notification.data && event.notification.data.url) {
-    event.waitUntil(clients.openWindow(event.notification.data.url));
-  } else {
-    event.waitUntil(clients.openWindow('/'));
-  }
-});
-*/
-
-// Attempt #2
+// Attempt #3
 firebase.messaging().onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message:', payload);
 
@@ -400,7 +368,7 @@ firebase.messaging().onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification?.title || 'New Message';
   const notificationOptions = {
     body: payload.notification?.body || 'You have a new notification.',
-    icon: payload.notification?.icon || '/firebase-logo.png', // Provide a path to your notification icon
+    icon: payload.notification?.icon || '/img/icons/icon-192x192.png',
     // You can add more options here, such as:
     image: payload.notification?.image,
     badge: '/badge-icon.png',
@@ -414,28 +382,24 @@ firebase.messaging().onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-/*
-// Handle background messages
-// This function is called when a message is received while your web app
-// is not in the foreground (e.g., minimized, browser tab is not active, or closed).
-onBackgroundMessage(messaging, (payload) => {
-  console.log('[sw.js] Received background message:', payload);
+// Add this below your onBackgroundMessage handler
+self.addEventListener('notificationclick', (event) => {
+  console.log('[sw.js] Notification clicked:', event.notification);
+  event.notification.close(); // Close the notification after click
 
-  // Customize the notification that appears to the user.
-  // The 'payload' object contains the data sent from your server or the Firebase Console.
-  const notificationTitle = payload.notification?.title || 'New Message';
-  const notificationOptions = {
-    body: payload.notification?.body || 'You have a new notification.',
-    icon: payload.notification?.icon || '/firebase-logo.png', // Provide a path to your notification icon
-    // You can add more options here, such as:
-    // image: payload.notification?.image,
-    // badge: '/badge-icon.png',
-    // data: payload.data, // Custom data from your message payload
-    // actions: [
-    //   { action: 'open_url', title: 'Open' },
-    //   { action: 'reply', title: 'Reply' }
-    // ]
-  };
+  const clickedAction = event.action; // Get the action clicked, if any
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});*/
+  if (clickedAction === 'open_url' && event.notification.data?.url) {
+    event.waitUntil(clients.openWindow(event.notification.data.url));
+  } else if (clickedAction === 'reply' && event.reply) {
+    // Handle reply logic here
+    console.log('Reply received:', event.reply);
+    // You'd typically send this reply back to your server
+  } else if (event.notification.data && event.notification.data.url) {
+    // If no specific action, but data has a URL, open it
+    event.waitUntil(clients.openWindow(event.notification.data.url));
+  } else {
+    // Fallback: open the PWA's start page
+    event.waitUntil(clients.openWindow('/'));
+  }
+});
