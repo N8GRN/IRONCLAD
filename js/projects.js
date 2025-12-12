@@ -7,6 +7,7 @@ import { addDocument, getCollectionData, updateDocument, deleteDocument, getDocu
 
 const addProjectButton = document.getElementById('addProjectButton');
 const projectsListDiv = document.getElementById('projects-list');
+var initialLoad = true;
 
 // Function to add a new project
 async function addNewProject() {
@@ -64,7 +65,7 @@ async function displayProjects() {
         }
         
         let loadingMessage = document.getElementById("loading-message");
-        loadingMessage.parentElement.removeChild(loadingMessage);
+        if(loadingMessage){loadingMessage.parentElement.removeChild(loadingMessage);}
         let projectsHtml = projectsListDiv.innerHTML; // Keeps the header row
 
         projects.forEach((project) => {
@@ -89,6 +90,18 @@ async function displayProjects() {
         // CRITICAL: Attach sort listeners ONLY AFTER the table is fully rendered
         addSortListeners();
 
+        // This may result in the sort-direction changing if a sort is already applied
+        // sortByField(document.body.getAttribute("data-softIndex") || 0);
+        
+        if (initialLoad === true) {    
+            sortByField(0);
+            initialLoad = false;
+        } else {
+            // Do twice to keep sort direction from inverting
+            sortByField(parseInt(document.body.getAttribute("data-sortIndex")) || 0);
+            sortByField(parseInt(document.body.getAttribute("data-sortIndex")) || 0);
+        }
+
     } catch (e) {
         projectsListDiv.innerHTML = '<p style="color: red;">Error loading projects: ' + e.message + '</p>';
     }
@@ -105,7 +118,6 @@ window.editProject = async (id) => {
     const price = document.getElementById('price');
 
     if (id) { // An existing document ID was passes, try updating before creating a new document
-        console.log("Hey " + id + "!");
         try {
             // Use the generic addDocument function, specifying 'projects' collection
             // HERE
@@ -148,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     displayProjects(); // Initial load
 
     // Need to add listener for complete or use this as a callback funcion when displayProjects() is complete
-    setTimeout(function(){sortByField(0)}, 2000); // Initial sort
+    //setTimeout(function(){sortByField(0)}, 2000); // Initial sort
 });
 
 // Next Project Number
@@ -162,7 +174,7 @@ const getNextProjectNumber = function () {
             highestExisting = thisNumber;
         }
     })
-    console.log("Next project found!")
+    
     return highestExisting + 1;
 }
 
@@ -215,9 +227,9 @@ window.showFormAndPopulateProject = function(id){
 
 window.populateProjectForm = function (args) {
     try {
-        console.log("project:", args.project);
+        //console.log("project:", args.project);
     } catch {
-        console.log("No project found");
+        //console.log("No project found");
     }
     try {
         form.projectNumber.value = args.project;
@@ -274,7 +286,7 @@ document.addEventListener('keydown', (e) => {
 form.addEventListener('submit', (e) => {
     e.preventDefault();
     let btnSubmit = e.submitter;
-    console.log(btnSubmit.innerText);
+    
     if (btnSubmit.innerText === "Save") {
         addNewProject(); // <-- Save New Document
     } else {
@@ -302,6 +314,9 @@ window.sortByField = function(columnIndex) {
     // Separate header (first row) and data rows
     const header = rows[0];
     const dataRows = rows.slice(1);
+
+    // Add columnIndex to body to auto-soft when documents are added/removed/changed
+    document.body.setAttribute("data-sortIndex", columnIndex)
 
     // Determine sort direction: toggle if same column, otherwise default to ascending
     let direction = 1;

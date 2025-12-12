@@ -309,7 +309,9 @@ div.bottom-nav > button {
     position: absolute;
     top: 5px;
     right: 5px;
-    background: red;
+    background: rgba(0, 0, 0, 0.1);
+    color: white;
+    outline: 2px solid transparent;
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
@@ -320,6 +322,14 @@ div.bottom-nav > button {
     line-height: 36px;
     vertical-align: middle;
     text-align: center;
+    transition:all .2s ease-in-out;
+}
+
+.project-modal .close-btn:hover {
+    background: red;
+    color: white !important;
+    box-shadow: 0px 0px 5px red;
+    transition:all .2s ease-in-out;
 }
 
 .project-modal .button-space {

@@ -39,5 +39,6 @@
       "type": "image/png",
       "label": "IRONCLAD CRM Homescreen"
     }
-  ]
+  ],
+  "gcm_sender_id": "57257280088"
 }

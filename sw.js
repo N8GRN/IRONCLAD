@@ -1,4 +1,26 @@
-const APP_VERSION = 'v2025.2.69'; // ← BUMP THIS ON EVERY DEPLOY
+// Fire Notifications
+/*
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+import { getMessaging, onBackgroundMessage } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging.js";
+*/
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
+  authDomain: "ironclad-127a5.firebaseapp.com",
+  projectId: "ironclad-127a5",
+  storageBucket: "ironclad-127a5.firebasestorage.app",
+  messagingSenderId: "57257280088",
+  appId: "1:57257280088:web:189e4db32d7ae28523402d",
+  measurementId: "G-6RG40RW2YZ"
+};
+
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
+
+const APP_VERSION = 'v2025.3.0'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -159,8 +181,8 @@ self.addEventListener('activate', event => {
         }
       })
     ))
-    .then(cleanupOldItems) // Clean queue on activate
-    .then(() => self.clients.claim())
+      .then(cleanupOldItems) // Clean queue on activate
+      .then(() => self.clients.claim())
   );
 });
 
@@ -180,12 +202,12 @@ self.addEventListener('fetch', event => {
         req.clone().json().then(payload => {
           return queueItem(payload).then(() => {
             self.registration.sync.register('sync-projects');
-            return new Response(JSON.stringify({success: true, queued: true}), {
+            return new Response(JSON.stringify({ success: true, queued: true }), {
               headers: { 'Content-Type': 'application/json' }
             });
           }).catch(err => {
             console.error('[SW] Queue failed:', err);
-            return new Response(JSON.stringify({error: err.message}), {
+            return new Response(JSON.stringify({ error: err.message }), {
               status: 500,
               headers: { 'Content-Type': 'application/json' }
             });
@@ -252,7 +274,7 @@ self.addEventListener('fetch', event => {
           event.waitUntil(
             fetch(req)
               .then(fresh => fresh && fresh.ok && caches.open(CACHE_NAME).then(c => c.put(req, fresh.clone())))
-              .catch(() => {})
+              .catch(() => { })
           );
           return cached;
         }
@@ -334,3 +356,31 @@ async function syncPendingProjects() {
     console.error('[SW] Overall sync error:', err);
   }
 }
+
+
+// MESSAGING / PUSH NOTIFICATIONS
+// In your existing service worker file
+onBackgroundMessage(messaging, (payload) => { // Or firebase.messaging().onBackgroundMessage for compat
+  console.log('[Your-SW-File.js] Received background message ', payload);
+
+  const notificationTitle = payload.notification.title || 'Background Message Title';
+  const notificationOptions = {
+    body: payload.notification.body || 'Background Message Body',
+    icon: payload.notification.icon || '/img/icons/icon-192x192.png',
+    data: {
+      url: payload.data.url || '/'
+    }
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.notification.data && event.notification.data.url) {
+    event.waitUntil(clients.openWindow(event.notification.data.url));
+  } else {
+    event.waitUntil(clients.openWindow('/'));
+  }
+});
