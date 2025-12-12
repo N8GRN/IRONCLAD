@@ -1,6 +1,8 @@
-// /js/modules.js
+// src/firebase.js
 
-// Firebase Config
+
+
+// Your config (you already have this)
 const firebaseConfig = {
   apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
   authDomain: "ironclad-127a5.firebaseapp.com",
@@ -13,12 +15,11 @@ const firebaseConfig = {
 
 
 // Core app + Firestore imports (modular style)
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js'; // Ensure this version matches your SW
-import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js'; // Ensure this version matches your SW
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
 // Firebase Cloud Messaging imports (modular style)
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js'; // Ensure this version matches your SW
-
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
@@ -28,6 +29,10 @@ const db = getFirestore(app);
 
 // Initialize Firebase Cloud Messaging
 const messaging = getMessaging(app);
+
+
+
+/////////////////////////////////////   MESSAGING   ////////////////////////////////////
 
 // Get the VAPID key from your Firebase Console > Project settings > Cloud Messaging
 // Make sure this is YOUR actual VAPID key!
@@ -79,58 +84,45 @@ function setupForegroundMessageHandler(messageHandler) {
     });
 }
 
-// --- Firestore Example Usage (as before) ---
+////////////////////////////////////////////////////////////////////////////////////////////
+
 // Example usage: Fetch docs from a collection
 async function loadData(col) {
   try {
     const querySnapshot = await getDocs(collection(db, col));
-    const docs = [];
     querySnapshot.forEach((doc) => {
-      docs.push({ id: doc.id, ...doc.data() });
+      console.log(`${doc.id} → ${doc.data()}`);
     });
-    return docs;
   } catch (error) {
     console.error('Firestore error:', error);
-    throw error; // Re-throw for handling in app.js
   }
 }
 
-// Example: Real-time listener (use onSnapshot)
-function watchCollection(col, callback) {
-  return onSnapshot(collection(db, col), (snapshot) => {
+// Example: Real-time listener (use onSnapshot, not snapshot)
+function watchCollection(col) {
+  onSnapshot(collection(db, col), (snapshot) => {
     snapshot.docChanges().forEach((change) => {
-      callback(change);
+      if (change.type === 'added') {
+        console.log('New doc:', change.doc.data());
+      }
     });
   });
 }
 
-// --- Make everything globally accessible via window (as requested) ---
+
+
+// Call your functions (e.g., on page load)
+/*loadData('projects');
+watchCollection('projects');
+*/
+
 window.firebaseConfig = firebaseConfig;
-window.initializeApp = initializeApp; // Note: app is already initialized, this is just for reference
+window.initializeApp = initializeApp;
 window.getFirestore = getFirestore;
 window.collection = collection;
 window.getDocs = getDocs;
 window.onSnapshot = onSnapshot;
-
 window.app = app;
-window.FireDB = db; // Renamed for clarity vs. 'db' in this file
-
+window.FireDB = db;
 window.loadData = loadData;
 window.watchCollection = watchCollection;
-
-// Export FCM related objects and functions
-window.getMessaging = getMessaging; // For direct access if needed
-window.messaging = messaging;       // The initialized messaging instance
-window.requestNotificationPermissionAndGetFCMToken = requestNotificationPermissionAndGetFCMToken;
-window.setupForegroundMessageHandler = setupForegroundMessageHandler;
-
-// Optional: Add a simple foreground message handler here if you want a default behavior
-// This will display a browser notification for foreground messages
-setupForegroundMessageHandler((payload) => {
-    const notificationTitle = payload.notification?.title || 'New Message (Foreground)';
-    const notificationOptions = {
-        body: payload.notification?.body || 'You have a new notification.',
-        icon: payload.notification?.icon || '/img/icons/icon-192x192.png' // Use a default icon
-    };
-    new Notification(notificationTitle, notificationOptions);
-});

@@ -131,28 +131,6 @@ export async function deleteDocument(collectionName, documentId) {
     }
 }
 
-/*
-export async function getDocumentById(collectionName, documentId) {
-    try {
-        // Create a reference to a specific document
-        const docRef = doc(db, collectionName, documentId);
-        // Get the document snapshot
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            console.log(`Document ${documentId} from ${collectionName} retrieved.`);
-            // Return the document data along with its ID
-            return { id: docSnap.id, ...docSnap.data() };
-        } else {
-            // Document does not exist
-            console.log(`No such document: ${documentId} in ${collectionName}`);
-            return null;
-        }
-    } catch (e) {
-        console.error(`Error getting document ${documentId} from ${collectionName}:`, e);
-        throw e;
-    }
-}*/
 
 // You can also export the 'db' instance if you need more direct access sometimes
 export { db };
