@@ -6,8 +6,8 @@
 // ===============================================
 document.addEventListener('DOMContentLoaded', () => {
     const enableNotificationsButton = document.getElementById('enableNotificationsButton');
-    const logDiv = document.getElementById('log'); // Assuming this exists in your HTML
-    const messagesDiv = document.getElementById('messages'); // Assuming this exists in your HTML
+    const logDiv = document.getElementById('log');
+    const messagesDiv = document.getElementById('messages');
 
     function appendLog(message) {
         if (logDiv) {
@@ -39,6 +39,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Setup foreground message listener AFTER DOM is ready ---
+    // Now using the globally exposed messaging and onMessage from modules.js
+    if (window.messaging && window.onMessage) {
+        window.onMessage(window.messaging, (payload) => {
+            appendLog('Message received in foreground:');
+            appendLog(JSON.stringify(payload));
+            displayForegroundMessage(payload);
+
+            // Display a browser notification for foreground messages (optional, but good for UX)
+            new Notification(payload.notification?.title || 'New Message', {
+                body: payload.notification?.body || 'You have a new notification.',
+                icon: payload.notification?.icon || '/img/icons/icon-192x192.png' // Ensure this icon path is correct
+            });
+        });
+        appendLog("Foreground FCM message listener set up.");
+    } else {
+        appendLog("WARNING: Firebase Messaging not fully exposed by modules.js. Cannot set up foreground listener.");
+    }
+
 
     if (enableNotificationsButton) {
         enableNotificationsButton.addEventListener('click', async () => {
@@ -48,7 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 (token) => {
                     appendLog(`Notifications enabled. Token: ${token}`);
                     alert('Notifications enabled successfully! Check console for token.');
-                    // You might want to send this token to your backend here
+                    // In a real app, send this token to your backend server
+                    // so you can send targeted notifications to this user.
+                    // For example: yourBackendApi.saveFCMToken(token);
                 },
                 (error) => {
                     appendLog(`Failed to enable notifications: ${error.message}`);
@@ -56,21 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             );
         });
+        appendLog("Enable Notifications button found and listener attached.");
     } else {
-        appendLog("Enable Notifications button not found. Please ensure your HTML is set up.");
+        appendLog("Enable Notifications button not found. Please add <button id='enableNotificationsButton'>Enable Notifications</button> to your HTML.");
     }
 
-    // You can also set up a custom foreground message handler here if you want,
-    // overriding the default one set in modules.js or adding additional logic.
-    // window.setupForegroundMessageHandler((payload) => {
-    //     appendLog('Custom foreground handler: ' + JSON.stringify(payload));
-    //     displayForegroundMessage(payload);
-    // });
-
     // Example of using other functions from modules.js
-    // window.loadData('projects').then(data => {
-    //     appendLog('Loaded projects from Firestore: ' + JSON.stringify(data));
-    // }).catch(error => console.error('Error loading data:', error));
+    // if (window.loadData) {
+    //   window.loadData('projects').then(data => {
+    //       appendLog('Loaded projects from Firestore: ' + JSON.stringify(data));
+    //   }).catch(error => console.error('Error loading data:', error));
+    // }
 });
 
 // ===============================================

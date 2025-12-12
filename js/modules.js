@@ -73,17 +73,6 @@ async function requestNotificationPermissionAndGetFCMToken(successCallback, erro
     }
 }
 
-/**
- * Sets up a listener for messages received when the app is in the foreground.
- * @param {function(object): void} messageHandler - Function to call when a message is received.
- */
-function setupForegroundMessageHandler(messageHandler) {
-    onMessage(messaging, (payload) => {
-        console.log('Message received in foreground:', payload);
-        messageHandler(payload);
-    });
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 // Example usage: Fetch docs from a collection
@@ -126,3 +115,10 @@ window.app = app;
 window.FireDB = db;
 window.loadData = loadData;
 window.watchCollection = watchCollection;
+
+// Export FCM related objects and functions
+window.getMessaging = getMessaging; // For direct access if needed
+window.messaging = messaging;       // The initialized messaging instance
+window.getToken = getToken;         // Explicitly expose getToken for app.js
+window.onMessage = onMessage;       // Explicitly expose onMessage for app.js (crucial for app.js)
+window.requestNotificationPermissionAndGetFCMToken = requestNotificationPermissionAndGetFCMToken;
