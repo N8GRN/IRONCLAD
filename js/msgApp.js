@@ -25,6 +25,7 @@ const messaging = getMessaging(app);
 
 // --- DOM Elements ---
 const enableNotificationsButton = document.getElementById('enableNotificationsButton');
+const enableNotificationsSwitch = document.getElementById('notificationToggleCheckbox');
 const logDiv = document.getElementById('log');
 const messagesDiv = document.getElementById('messages');
 
@@ -129,13 +130,26 @@ onMessage(messaging, (payload) => {
 
 
 // --- Event Listeners ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {       
     appendLog("Document loaded. Setting up...");
 
-    if (enableNotificationsButton) {
-        enableNotificationsButton.addEventListener('click', requestPermissionAndGetFCMToken);
-        appendLog("Enable Notifications button is ready.");
+    if (enableNotificationsSwitch) {
+        const currentPermission = Notification.permission;
+
+        if(currentPermission === 'granted') {
+            enableNotificationsSwitch.checked = true;
+            enableNotificationsSwitch.setAttribute("disabled", true)
+        }
+        
+        enableNotificationsSwitch.addEventListener('click', function(e) {
+            requestPermissionAndGetFCMToken;
+            
+            enableNotificationsSwitch.setAttribute("disabled", true)
+        })
+
+        appendLog("Enable Notifications switch is ready.");
     } else {
-        appendLog("Enable Notifications button not found. Please check HTML.");
+        appendLog("Enable Notifications switch not found. Please check HTML.");
     }
+
 });
