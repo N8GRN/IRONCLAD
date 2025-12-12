@@ -57,7 +57,7 @@ self.addEventListener('notificationclick', (event) => {
     const clickedAction = event.action;
 
     // Check for custom data in the notification
-    const urlToOpen = event.notification.data?.url || '/'; // Default to homepage
+    const urlToOpen = event.notification.data?.url || '/IRONCLAD/pages/projects.html'; // Default to projects page
 
     if (clickedAction === 'open_url') {
         event.waitUntil(clients.openWindow(urlToOpen));
