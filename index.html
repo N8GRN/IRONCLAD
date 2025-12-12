@@ -41,6 +41,9 @@
   <img src="/IRONCLAD/img/icon.png" alt="IRONCLAD CRM Logo" class="loader">
   <h2>Loading…</h2>
 
+  <!-- Request Notifications -->
+  <button id="enableNotificationsButton">Enable Notifications</button>
+
   <!-- Firestore Database ("Live") -->
   <script type="module" src="/IRONCLAD/js/modules.js"></script>
   
@@ -50,6 +53,19 @@
   <!-- Link JavaScript -->
   <script src="/IRONCLAD/js/app.js"></script>
   
+<!-- Messaging -->
+  <script>
+        // Check if the browser supports notifications
+        if ('Notification' in window) {
+            console.log('Notifications are supported.');
+        } else {
+            console.warn('Notifications are not supported in this browser.');
+            document.getElementById('enableNotificationsButton').disabled = true;
+            document.getElementById('enableNotificationsButton').innerText = 'Notifications Not Supported';
+        }
+    </script>
+
+
   <script>
     const REPO = "/IRONCLAD/";
     /*
@@ -99,7 +115,7 @@
       setTimeout(() => {
         goToPage("/login");
         //location.href = '/IRONCLAD/pages/login.html';
-      }, 60000);
+      }, 6000);
     }
   </script>
 </body>
