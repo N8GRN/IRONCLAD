@@ -362,7 +362,7 @@ async function syncPendingProjects() {
 // In your existing service worker file
 // --- FIX START ---
 // Handle background messages using the global 'firebase' object for compat
-
+// Attempt #1
 firebase.messaging().onBackgroundMessage((payload) => {
 // --- FIX END ---
   console.log('[Your-SW-File.js] Received background message ', payload);
@@ -389,6 +389,28 @@ self.addEventListener('notificationclick', (event) => {
   }
 });
 
+// Attempt #2
+firebase.messaging().onBackgroundMessage((payload) => {
+console.log('[sw.js] Received background message:', payload);
+
+  // Customize the notification that appears to the user.
+  // The 'payload' object contains the data sent from your server or the Firebase Console.
+  const notificationTitle = payload.notification?.title || 'New Message';
+  const notificationOptions = {
+    body: payload.notification?.body || 'You have a new notification.',
+    icon: payload.notification?.icon || '/firebase-logo.png', // Provide a path to your notification icon
+    // You can add more options here, such as:
+    // image: payload.notification?.image,
+    // badge: '/badge-icon.png',
+    // data: payload.data, // Custom data from your message payload
+    // actions: [
+    //   { action: 'open_url', title: 'Open' },
+    //   { action: 'reply', title: 'Reply' }
+    // ]
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
 
 /*
 // Handle background messages
