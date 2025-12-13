@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase using the global 'firebase' object from compat library
 const app = firebase.initializeApp(firebaseConfig);
-const APP_VERSION = 'v2025.3.12'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.13'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 

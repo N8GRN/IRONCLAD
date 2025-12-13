@@ -45,6 +45,8 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
  * @param {function(string): void} successCallback - Callback to execute on success with the token.
  * @param {function(Error): void} errorCallback - Callback to execute on error.
  */
+
+/*
 async function requestNotificationPermissionAndGetFCMToken(successCallback, errorCallback) {
     if (!('Notification' in window)) {
         const error = new Error('This browser does not support notifications.');
@@ -71,7 +73,7 @@ async function requestNotificationPermissionAndGetFCMToken(successCallback, erro
         }
         if (errorCallback) errorCallback(error);
     }
-}
+}*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
