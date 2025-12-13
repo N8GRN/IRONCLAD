@@ -1,5 +1,3 @@
-// /app.js
-// This script runs in the browser's main thread.
 
 // --- Firebase SDK Imports for the main app (Modular API) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
@@ -24,6 +22,8 @@ const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 // --- DOM Elements ---
+
+const enableNotificationsButton = document.getElementById('enableNotificationsButton');
 const enableNotificationsSwitch = document.getElementById('notificationToggleCheckbox');
 const logDiv = document.getElementById('log');
 const messagesDiv = document.getElementById('messages');
@@ -128,29 +128,52 @@ onMessage(messaging, (payload) => {
 });
 
 
-// --- Event Listeners ---
-self.addEventListener('DOMContentLoaded', () => {       
-    appendLog("Document loaded. Setting up...");
-    console.log("document ready")
-    if (enableNotificationsSwitch) {
-        const currentPermission = Notification.permission;
 
+// --- Event Listeners ---
+self.addEventListener('DOMContentLoaded', () => {    
+    
+    const currentPermission = Notification.permission;
+    
+    appendLog("Document loaded. Setting up...");
+
+    // Button
+    if (enableNotificationsButton) {
+        enableNotificationsButton.addEventListener('click', requestPermissionAndGetFCMToken);
+        appendLog("Enable Notifications button is ready.");
+    } else {
+        appendLog("Enable Notifications button not found. Please check HTML.");
+    }
+
+    // Switch
+    if (enableNotificationsSwitch) {
         if(currentPermission === 'granted') {
-            console.log("has permission")
             enableNotificationsSwitch.checked = true;
             enableNotificationsSwitch.setAttribute("disabled", true)
         }
-        
-        enableNotificationsSwitch.addEventListener('click', function(e) {
-            console.log("permission requested")
-            requestPermissionAndGetFCMToken;
-            
-            enableNotificationsSwitch.setAttribute("disabled", true)
-        })
+        enableNotificationsSwitch.addEventListener('click', function(e){requestPermissionAndGetFCMToken}); // cannot nest for security reasons
+        enableNotificationsSwitch.addEventListener('click', requestPermissionAndGetFCMToken);
+        //enableNotificationsSwitch.setAttribute("disabled", true);
 
         appendLog("Enable Notifications switch is ready.");
     } else {
         appendLog("Enable Notifications switch not found. Please check HTML.");
     }
+/*
+
+    if (enableNotificationsSwitch) {
+
+        if(currentPermission === 'granted') {
+            enableNotificationsSwitch.checked = true;
+            enableNotificationsSwitch.setAttribute("disabled", true)
+        }
+        
+        enableNotificationsSwitch.addEventListener('click', function(e) {
+            requestPermissionAndGetFCMToken;
+        })
+
+        appendLog("Enable Notifications switch is ready.");
+    } else {
+        appendLog("Enable Notifications switch not found. Please check HTML.");
+    }*/
 
 });

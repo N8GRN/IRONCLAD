@@ -19,7 +19,7 @@ const app = firebase.initializeApp(firebaseConfig);
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging(); // No 'app' argument needed for compat
 
-const APP_VERSION = 'v2025.3.9'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.10'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
