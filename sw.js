@@ -1,6 +1,6 @@
 // Fire Notifications
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
-//importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase using the global 'firebase' object from compat library
 const app = firebase.initializeApp(firebaseConfig);
-const APP_VERSION = 'v2025.3.14'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.16'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 

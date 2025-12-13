@@ -19,7 +19,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
 // Firebase Cloud Messaging imports (modular style)
-//import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
@@ -28,7 +28,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Initialize Firebase Cloud Messaging
-//const messaging = getMessaging(app);
+const messaging = getMessaging(app);
 
 
 
@@ -45,8 +45,6 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
  * @param {function(string): void} successCallback - Callback to execute on success with the token.
  * @param {function(Error): void} errorCallback - Callback to execute on error.
  */
-
-/*
 async function requestNotificationPermissionAndGetFCMToken(successCallback, errorCallback) {
     if (!('Notification' in window)) {
         const error = new Error('This browser does not support notifications.');
@@ -73,7 +71,7 @@ async function requestNotificationPermissionAndGetFCMToken(successCallback, erro
         }
         if (errorCallback) errorCallback(error);
     }
-}*/
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -118,11 +116,9 @@ window.FireDB = db;
 window.loadData = loadData;
 window.watchCollection = watchCollection;
 
-/*
 // Export FCM related objects and functions
 window.getMessaging = getMessaging; // For direct access if needed
 window.messaging = messaging;       // The initialized messaging instance
 window.getToken = getToken;         // Explicitly expose getToken for app.js
 window.onMessage = onMessage;       // Explicitly expose onMessage for app.js (crucial for app.js)
 window.requestNotificationPermissionAndGetFCMToken = requestNotificationPermissionAndGetFCMToken;
-*/

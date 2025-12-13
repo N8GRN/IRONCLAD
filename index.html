@@ -74,7 +74,7 @@
 
 
     <button id="enableNotificationsButton">Enable Push Notifications</button>
-    
+
     <p id="featureMessage" style="margin-top: 2rem; font-size: 1.1rem; color: #555;">
         Push Notifications are currently <strong>disabled</strong>.
     </p>
@@ -104,8 +104,38 @@
     </footer>
 
     <!-- Your main application script, using type="module" -->
-    <!-- <script type="module" src="/IRONCLAD/js/app.js"></script> -->
+    <script type="module" src="/IRONCLAD/js/app.js"></script>
     <script type="module" src="/IRONCLAD/js/msgApp.js"></script>
+    
+    <script>if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/IRONCLAD/sw.js')
+          .then(reg => {
+            console.log('Service Worker registered!', reg);
+
+            // Optional: nice update prompt
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (confirm('New version available! Reload to update?')) {
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          })
+          .catch(err => {
+            console.warn('Service Worker registration failed:', err);
+            // This is expected when opening file:// or on insecure origins
+          });
+      });
+    } else {
+      console.warn('Service Workers are not supported in this browser');
+    }
+    </script>
 
 </body>
 
