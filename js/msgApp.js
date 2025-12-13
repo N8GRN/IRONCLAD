@@ -65,17 +65,17 @@ async function requestPermissionAndGetFCMToken() {
     }
 
     // 2. Register your Service Worker
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator) {  // <-- FIX NEEDED!  This is where the service worker is loaded twice!
         try {
             // Register your service worker. Make sure the path is correct!
             // It MUST be at the root of your domain for FCM to work correctly.
             const registration = await navigator.serviceWorker.register('/IRONCLAD/firebase-messaging-sw.js');
-            appendLog('Service Worker registered successfully.');
+            appendLog('Firebase messaging service Worker registered successfully.');
             // This line ensures the messaging service knows about your service worker registration.
             // Some tutorials might omit this, but it's good practice for clarity.
             messaging.swRegistration = registration;
         } catch (error) {
-            appendLog(`Service Worker registration failed: ${error}`);
+            appendLog(`Firebase messaging service Worker registration failed: ${error}`);
             console.error('Service Worker registration failed:', error);
             alert('Could not register service worker for push notifications.');
             return;
@@ -136,7 +136,11 @@ onMessage(messaging, (payload) => {
 self.addEventListener('DOMContentLoaded', () => {    
     
     const currentPermission = Notification.permission;
-    
+
+    if (currentPermission === 'granted') {
+        requestPermissionAndGetFCMToken();
+    }
+
     appendLog("Document loaded. Setting up...");
 
     // Button
@@ -153,7 +157,7 @@ self.addEventListener('DOMContentLoaded', () => {
             enableNotificationsSwitch.checked = true;
             enableNotificationsSwitch.setAttribute("disabled", true)
         }
-        enableNotificationsSwitch.addEventListener('click', function(e){requestPermissionAndGetFCMToken}); // cannot nest for security reasons
+        //enableNotificationsSwitch.addEventListener('click', function(e){requestPermissionAndGetFCMToken}); // cannot nest for security reasons
         enableNotificationsSwitch.addEventListener('click', requestPermissionAndGetFCMToken);
         //enableNotificationsSwitch.setAttribute("disabled", true);
 
