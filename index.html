@@ -112,6 +112,13 @@
     <script src="/IRONCLAD/js/db.js"></script>
     
     <script>
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+ for(const registration of registrations) {
+  registration.unregister();
+  console.log('Service worker unregistered:', registration.scope);
+ }
+});
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/IRONCLAD/sw.js')

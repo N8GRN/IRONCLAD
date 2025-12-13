@@ -3,8 +3,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
 
-importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
-
 // --- Your Project's Firebase Configuration ---
 const firebaseConfig = {
     apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
@@ -68,6 +66,7 @@ async function requestPermissionAndGetFCMToken() {
 
     // 2. Register your Service Worker
     if ('serviceWorker' in navigator) {  // <-- FIX NEEDED!  This is where the service worker is loaded twice!
+        
         try {
             // Register your service worker. Make sure the path is correct!
             // It MUST be at the root of your domain for FCM to work correctly.
@@ -138,11 +137,7 @@ onMessage(messaging, (payload) => {
 self.addEventListener('DOMContentLoaded', () => {    
     
     const currentPermission = Notification.permission;
-
-    /*if (currentPermission === 'granted') {
-        requestPermissionAndGetFCMToken;
-    }*/
-
+    
     appendLog("Document loaded. Setting up...");
 
     // Button
@@ -167,5 +162,22 @@ self.addEventListener('DOMContentLoaded', () => {
     } else {
         appendLog("Enable Notifications switch not found. Please check HTML.");
     }
+/*
+
+    if (enableNotificationsSwitch) {
+
+        if(currentPermission === 'granted') {
+            enableNotificationsSwitch.checked = true;
+            enableNotificationsSwitch.setAttribute("disabled", true)
+        }
+        
+        enableNotificationsSwitch.addEventListener('click', function(e) {
+            requestPermissionAndGetFCMToken;
+        })
+
+        appendLog("Enable Notifications switch is ready.");
+    } else {
+        appendLog("Enable Notifications switch not found. Please check HTML.");
+    }*/
 
 });
