@@ -8,6 +8,10 @@
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 
+const MSG_VERSION = 'v2025.3.11'; // ← BUMP THIS ON EVERY DEPLOY
+const CACHE_NAME = `ironclad-msg-${MSG_VERSION}`;
+
+
 // --- Your Project's Firebase Configuration (MUST BE IDENTICAL TO app.js) ---
 const firebaseConfig = {
     apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",

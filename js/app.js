@@ -1,10 +1,13 @@
+
 //
 // This script expects modules.js to be loaded before it,
 // making window.requestNotificationPermissionAndGetFCMToken available.
 // ===============================================
 // FIREBASE - Notifications
 // ===============================================
-console.log("notification", window.requestNotificationPermissionAndGetFCMToken);
+
+
+
 
 // ===============================================
 // FIREBASE - Import library
@@ -356,7 +359,7 @@ const write = (file = 'story.txt', text = '') => {
 // ===============================================
 // Push Notifications and Messaging
 // ===============================================
-document.addEventListener('DOMContentLoaded', () => {
+/*document.addEventListener('DOMContentLoaded', () => {
     const enableNotificationsButton = document.getElementById('enableNotificationsButton');
 
     if (enableNotificationsButton) {
@@ -425,3 +428,4 @@ async function subscribeUserToPush() {
         console.error('Failed to subscribe the user:', error);
     }
 }
+*/
