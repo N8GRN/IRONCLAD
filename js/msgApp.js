@@ -131,20 +131,19 @@ onMessage(messaging, (payload) => {
 // --- Event Listeners ---
 self.addEventListener('DOMContentLoaded', () => {       
     appendLog("Document loaded. Setting up...");
-    alert("document ready")
+    console.log("document ready")
     if (enableNotificationsSwitch) {
         const currentPermission = Notification.permission;
 
         if(currentPermission === 'granted') {
-            alert("has permission")
+            console.log("has permission")
             enableNotificationsSwitch.checked = true;
             enableNotificationsSwitch.setAttribute("disabled", true)
         }
         
         enableNotificationsSwitch.addEventListener('click', function(e) {
-            alert("permission requested")
+            console.alert("permission requested")
             requestPermissionAndGetFCMToken;
-            
             
             enableNotificationsSwitch.setAttribute("disabled", true)
         })
