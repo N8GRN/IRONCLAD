@@ -3,7 +3,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
 
-
 // --- Your Project's Firebase Configuration ---
 const firebaseConfig = {
     apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
@@ -28,53 +27,6 @@ const enableNotificationsButton = document.getElementById('enableNotificationsBu
 const enableNotificationsSwitch = document.getElementById('notificationToggleCheckbox');
 const logDiv = document.getElementById('log');
 const messagesDiv = document.getElementById('messages');
-
-
-
-function isInStandaloneMode() {
-  return (window.matchMedia('(display-mode: standalone)').matches) || 
-         (navigator.standalone) ||  // For Safari iOS
-         (window.navigator.standalone === true);
-}
-
-// Updated subscribeToPush – make it idempotent and PWA-only
-async function subscribeToPush(force = false) {
-  if (!force && !isInStandaloneMode()) {
-    console.log('Not in PWA standalone mode – skipping subscription to avoid browser duplicates');
-    return;  // Critical: Prevents subscribing in regular browser tabs
-  }
-
-  const reg = await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-
-  if (sub) {
-    console.log('Already subscribed – reusing existing subscription');
-    // Optional: Still send to server to ensure it's registered (idempotent on backend)
-    await fetch('/subscribe', { method: 'POST', body: JSON.stringify(sub) });
-    return sub;
-  }
-
-  console.log('Creating new push subscription');
-  sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)  // Ensure helper is defined
-  });
-
-  // Send new sub to server
-  await fetch('/subscribe', { method: 'POST', body: JSON.stringify(sub) });
-  return sub;
-}
-
-// Call it once, e.g., after SW ready and permission granted
-// Example: In your init code or button handler
-if ('serviceWorker' in navigator && 'PushManager' in window) {
-  Notification.requestPermission().then(permission => {
-    if (permission === 'granted') {
-      subscribeToPush();
-    }
-  });
-}
-
 
 // --- Helper Functions for Logging and Display ---
 function appendLog(message) {
@@ -114,7 +66,6 @@ async function requestPermissionAndGetFCMToken() {
 
     // 2. Register your Service Worker
     if ('serviceWorker' in navigator) {  // <-- FIX NEEDED!  This is where the service worker is loaded twice!
-        
         try {
             // Register your service worker. Make sure the path is correct!
             // It MUST be at the root of your domain for FCM to work correctly.
@@ -229,5 +180,3 @@ self.addEventListener('DOMContentLoaded', () => {
     }*/
 
 });
-
-

@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase using the global 'firebase' object from compat library
 const app = firebase.initializeApp(firebaseConfig);
-const APP_VERSION = 'v2025.3.25'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.23'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -351,6 +351,21 @@ async function syncPendingProjects() {
     console.error('[SW] Overall sync error:', err);
   }
 }
+
+self.addEventListener('push', (event) => {
+        const data = event.data.json();
+        const notificationTitle = data.title || 'New Notification';
+        const notificationOptions = {
+            body: data.body || 'You have a new message.',
+            icon: data.icon || '/images/icon-192x192.png',
+            tag: data.tag || 'unique-notification-tag', // THIS IS KEY!
+            renotify: true // Set to true if you want vibration/sound for an updated notification
+        };
+
+        event.waitUntil(
+            self.registration.showNotification(notificationTitle, notificationOptions)
+        );
+    });
 
 
 // MESSAGING / PUSH NOTIFICATIONS
