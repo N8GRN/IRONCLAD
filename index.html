@@ -112,16 +112,9 @@
     <script src="/IRONCLAD/js/db.js"></script>
     
     <script>
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
- for(const registration of registrations) {
-  registration.unregister();
-  console.log('Service worker unregistered:', registration.scope);
- }
-});
-
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/IRONCLAD/sw.js')
+                navigator.serviceWorker.register('/IRONCLAD/sw.js', { scope: "/IRONCLAD/" })
                     .then(reg => {
                         console.log('Service Worker registered!', reg);
 
@@ -151,31 +144,31 @@
 
             // Firebase Messaging
             navigator.serviceWorker.register('/IRONCLAD/firebase-messaging-sw.js')
-                    /*.then(reg => {
-                        console.log('Service Worker registered!', reg);
-
-                        // Optional: nice update prompt
-                        reg.addEventListener('updatefound', () => {
-                            const newWorker = reg.installing;
-                            if (!newWorker) return;
-
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    console.log("New: ", newWorker.scriptURL);
-                                    console.log("This: ", navigator.serviceWorker.controller.scriptURL)
-                                    if (newWorker.scriptURL == navigator.serviceWorker.controller.scriptURL) {
-                                        if (confirm('New version available! Reload to update?')) {
-                                            window.location.reload();
-                                        }
-                                    }
+            /*.then(reg => {
+                console.log('Service Worker registered!', reg);
+ 
+                // Optional: nice update prompt
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    if (!newWorker) return;
+ 
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log("New: ", newWorker.scriptURL);
+                            console.log("This: ", navigator.serviceWorker.controller.scriptURL)
+                            if (newWorker.scriptURL == navigator.serviceWorker.controller.scriptURL) {
+                                if (confirm('New version available! Reload to update?')) {
+                                    window.location.reload();
                                 }
-                            });
-                        });
-                    })
-                    .catch(err => {
-                        console.warn('Service Worker registration failed:', err);
-                        // This is expected when opening file:// or on insecure origins
-                    });*/
+                            }
+                        }
+                    });
+                });
+            })
+            .catch(err => {
+                console.warn('Service Worker registration failed:', err);
+                // This is expected when opening file:// or on insecure origins
+            });*/
         } else {
             console.warn('Service Workers are not supported in this browser');
         }

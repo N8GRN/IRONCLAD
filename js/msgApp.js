@@ -181,3 +181,47 @@ self.addEventListener('DOMContentLoaded', () => {
     }*/
 
 });
+
+function isInStandaloneMode() {
+  return (window.matchMedia('(display-mode: standalone)').matches) || 
+         (navigator.standalone) ||  // For Safari iOS
+         (window.navigator.standalone === true);
+}
+
+// Updated subscribeToPush – make it idempotent and PWA-only
+async function subscribeToPush(force = false) {
+  if (!force && !isInStandaloneMode()) {
+    console.log('Not in PWA standalone mode – skipping subscription to avoid browser duplicates');
+    return;  // Critical: Prevents subscribing in regular browser tabs
+  }
+
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+
+  if (sub) {
+    console.log('Already subscribed – reusing existing subscription');
+    // Optional: Still send to server to ensure it's registered (idempotent on backend)
+    await fetch('/subscribe', { method: 'POST', body: JSON.stringify(sub) });
+    return sub;
+  }
+
+  console.log('Creating new push subscription');
+  sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)  // Ensure helper is defined
+  });
+
+  // Send new sub to server
+  await fetch('/subscribe', { method: 'POST', body: JSON.stringify(sub) });
+  return sub;
+}
+
+// Call it once, e.g., after SW ready and permission granted
+// Example: In your init code or button handler
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+  Notification.requestPermission().then(permission => {
+    if (permission === 'granted') {
+      subscribeToPush();
+    }
+  });
+}
