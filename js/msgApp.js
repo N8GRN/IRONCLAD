@@ -94,6 +94,9 @@ async function requestPermissionAndGetFCMToken() {
         if (currentToken) {
             appendLog(`FCM Registration Token: ${currentToken}`);
             alert('Notifications enabled and token obtained successfully! Check app log for token.');
+
+            // Use this as potential navigation point
+
             // IMPORTANT: In a real app, you would send this 'currentToken' to your backend server
             // and associate it with the logged-in user so you can send targeted notifications.
         } else {
@@ -123,7 +126,7 @@ onMessage(messaging, (payload) => {
     // This provides a consistent UX.
     new Notification(payload.notification?.title || 'New Message', {
         body: payload.notification?.body || 'You have a new notification.',
-        icon: payload.notification?.icon || '/icon-192x192.png' // Use a generic icon
+        icon: payload.notification?.icon || 'IRONCLAD/img/icons/icon-192x192.png' // Use a generic icon
     });
 });
 
