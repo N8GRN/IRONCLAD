@@ -142,7 +142,7 @@ self.addEventListener('DOMContentLoaded', () => {
         }
         
         enableNotificationsSwitch.addEventListener('click', function(e) {
-            console.alert("permission requested")
+            console.log("permission requested")
             requestPermissionAndGetFCMToken;
             
             enableNotificationsSwitch.setAttribute("disabled", true)
