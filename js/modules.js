@@ -19,7 +19,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
 // Firebase Cloud Messaging imports (modular style)
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
+//import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
@@ -28,7 +28,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Initialize Firebase Cloud Messaging
-const messaging = getMessaging(app);
+//const messaging = getMessaging(app);
 
 
 
@@ -116,9 +116,11 @@ window.FireDB = db;
 window.loadData = loadData;
 window.watchCollection = watchCollection;
 
+/*
 // Export FCM related objects and functions
 window.getMessaging = getMessaging; // For direct access if needed
 window.messaging = messaging;       // The initialized messaging instance
 window.getToken = getToken;         // Explicitly expose getToken for app.js
 window.onMessage = onMessage;       // Explicitly expose onMessage for app.js (crucial for app.js)
 window.requestNotificationPermissionAndGetFCMToken = requestNotificationPermissionAndGetFCMToken;
+*/
