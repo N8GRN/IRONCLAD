@@ -208,7 +208,7 @@ async function subscribeToPush(force = false) {
   console.log('Creating new push subscription');
   sub = await reg.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)  // Ensure helper is defined
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)  // Ensure helper is defined
   });
 
   // Send new sub to server
