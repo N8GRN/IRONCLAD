@@ -7,36 +7,71 @@
     --logo: url(/slate/designer/project/img/logo.png);
     --link: #0000EE;
     --visited: #551A8B;
+    --rowHeight: 2.4rem;
 }
 
 
-html {
-    background: white;
-    overflow:hidden;
-    display:block;
-    position:absolute;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
+html, body {
+    /*background: #1e3c72;*/
+    background-color: #ffffff;
 }
 
 body { 
-    font-family: -apple-system, sans-serif; 
-    background:#fff; 
-    max-height:100dvh;
-    display:block;
-    position:absolute;
-    top:0;
-    right: 0;
-    bottom: 0;
-    left:0;
-    margin: 0 auto;
-    overflow:hidden;
-    padding-top:none;
     padding: min(2rem, 8%);
-    display: flex;
-    flex-direction: column;
+    overflow:hidden;
+    margin:0; 
+    padding:0; 
+    height:100dvh; 
+    /*background:#1e3c72;*/
+    background:#ffffff;
+    display:flex; 
+    align-items:center; 
+    justify-content:center; 
+    flex-direction:column;
+    color:unset; 
+    font-family:-apple-system, sans-serif;
+}
+
+body.Delete-tron-mode {
+    position: relative;
+    background: #fff;
+    padding: 0;
+    margin-top: 6px;
+    height: calc(100dvh - 6px);
+}
+
+body.Delete-tron-mode::before {
+    content: "";
+    pointer-events: none;
+    scale: 5;
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: conic-gradient(red, white, white, red, white, white, red);
+    animation: tron-spin 6s linear infinite;
+}
+
+/* Optional: subtle pulse to make it feel alive */
+body.Delete-tron-mode::after {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+}
+
+/* FIXED: Remove unused @keyframes spin (duplicate of tron-spin) */
+@keyframes tron-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    from { opacity: 0.6; }
+    to   { opacity: 1; }
+}
+
+body.offline-mode {
+    border-top: 20px solid red;
 }
 
 header {
@@ -58,7 +93,8 @@ header * {
     text-align: center;
     vertical-align: middle;
     margin: auto;
-    padding-bottom: 1rem;
+    padding-top: 0 !important;
+    padding: min(2em, 5%);
 }
 
 header img {
@@ -68,6 +104,16 @@ header img {
     height: auto;
     width:auto;
     
+}
+
+footer {
+    display:block;
+    position:relative;
+    width:-webkit-fill-available;
+    margin:auto;
+    padding-top:0 !important;
+    padding: min(2em, 5%);
+    background: white; /* hide overflow from Main */
 }
 
 h2 {
@@ -81,13 +127,16 @@ h2 {
 main {
     width:-webkit-fill-available;
     margin:0 auto; 
-    overflow-x:auto; 
+    padding: 0 2em;
+    overflow-x:hidden; 
     overflow-y:auto;
     flex-grow: 1;
     display:flex;
     flex-direction: column;
     /*justify-content: center;*/
     scrollbar-width: none;
+    position:relative;
+    height:auto;
 }
 
 main::before {
@@ -124,12 +173,60 @@ main.scrolled::after {
     height:1%/*1rem;*/
 }
 
-footer {
-    display:block;
-    position:relative;
-    bottom:0;
-    left:0;
-    right:0;
+.application-content {
+    font-size: 1.2rem;
+
+
+}
+
+form {
+    display:flex;
+    flex-wrap: wrap;
+    flex-direction:row;
+    max-width: 100dvw;
+}
+
+form li {
+    display:flex;
+    width: -webkit-fill-available;
+    padding: 0.5rem 0;
+    line-height: 2rem;
+}
+
+form li div.close {
+    background: lightgray;
+    min-width: 3rem;
+    text-align: center;
+    border-radius: 4px;
+}
+
+form li span {
+    flex:auto;
+}
+
+/*form div {
+    display:flex;
+    width: -webkit-fill-available;
+}*/
+
+form div input, form div span {
+    display: inline;
+    margin-left:auto;
+    margin-right: auto;
+}
+
+form input {
+    justify-content: center;
+    flex:auto;
+    font-size: 1.2rem;
+    border:none;
+    border-radius: 0;
+    border-bottom:1px solid gray;
+    margin-bottom: .5rem;
+}
+
+form button {
+    min-width: 300px;
 }
 
 
@@ -146,11 +243,6 @@ img { max-width:100%; border-radius:8px; }
 div.bottom-nav {
     display:inline-flex;
     justify-content: space-evenly;
-    /*position:absolute;
-    top: auto;
-    bottom:20px;
-    left:0;
-    right:0;*/
     width: -webkit-fill-available;
     height:auto;
     padding: 1.5rem;
@@ -160,17 +252,225 @@ div.bottom-nav > button {
     min-width: 30dvw;
 }
 
-/*----------------  TEMPORARY -----------------------*/
+/*----------------  Modal Dialog -----------------------*/
+.project-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: none; /* Hidden by default */
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  max-width: 90vw;
+  width: 400px;
+  margin: 20vh auto;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* Rest of your styles... */
+
+.project-modal h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+.project-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: absolute; 
+}
+
+.project-modal input {
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.project-modal .close-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.1);
+    color: white;
+    outline: 2px solid transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    min-width: unset;
+    line-height: 36px;
+    vertical-align: middle;
+    text-align: center;
+    transition:all .2s ease-in-out;
+}
+
+.project-modal .close-btn:hover {
+    background: red;
+    color: white !important;
+    box-shadow: 0px 0px 5px red;
+    transition:all .2s ease-in-out;
+}
+
+.project-modal .button-space {
+    display: inline-block;
+    position: relative;
+    margin: auto;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.project-modal .cancel-btn {
+  background: #f0f0f0;
+  color:black;
+}
+
+
+
+/*----------------  Tables -----------------------*/
+/* All */
+div.pseudo-table {
+    overflow-y: hidden;
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-height: fit-content;
+    height:auto;
+}
+
+div.row {
+    display:inline-flex;
+    background-color: #fff;
+}
+
+div.row.header, div.row.header span {
+    background-color: var(--color2) !important;
+    color:white;
+    text-align: center;
+    font-weight: 200;
+}
+
+div.row.header span {
+    cursor: pointer;
+    user-select: none;
+}
+div.row.header span.sorted-asc::after { content: " ↑"; padding-left: 10px;}
+div.row.header span.sorted-desc::after { content: " ↓"; padding-left: 10px;}
+
+div.row * {
+    padding: 5px;
+    width: 180px;
+    white-space: nowrap;
+    overflow:hidden;
+    text-overflow: ellipsis;
+}
+
+/* Input */
+div.row input {
+    margin:5px;
+}
+
+div.row input:first-of-type {
+    position:absolute;
+}
+
+div.row input:nth-of-type(2) {
+    margin-left:calc(125px + 1.6rem);
+}
+
+/* Span */
+div.row span {
+    margin:5px;
+    font-size: 1.2rem;
+    color: #000;
+    border-bottom: 1px solid black;
+}
+
+div.row span:first-of-type {
+    position:absolute;
+    background:linear-gradient(90deg, white, white, transparent);
+    backdrop-filter: blur(0px);
+    width: 120px;
+}
+
+div.row::before {
+    content: "";
+    background: white;
+    position: absolute;
+    display: block;
+    width: calc(2rem + 5px);
+    margin-left: -2rem;
+    height: 100%;
+}
+
+div.row.header span:first-of-type {
+    position: absolute;
+    background: none;
+    background-color: var(--color2) !important;
+    border-top: 5px solid var(--color2);
+    border-bottom: 6px solid var(--color2);
+    margin-top: 0;
+    margin-bottom: 0;
+    border-left: 0;
+    border-right: 0;
+}
+
+div.row span:nth-of-type(2) {
+    margin-left:calc(120px + 1.6rem);
+}
+
+div.row .icon-edit, div.row .icon-delete, div.row .icon-column {
+    margin: auto 15px auto 15px;
+    width: .9rem;
+    height: .9rem;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: none;
+}
+
+div.row .icon-edit {
+    background-image: url(/IRONCLAD/img/icons/icon-edit.png);
+    
+}
+
+div.row .icon-delete {
+    background-image: url(/IRONCLAD/img/icons/icon-trash.png);
+}
+
+
+/*----------------  Tables -----------------------*/
 table {
     width: -webkit-fill-available;
     border-collapse: collapse;
     background: #fff;
     border: none;
-    border-radius: 1rem;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
     margin: 0 auto;
-    /*padding: 1em;*/
     padding: 0;
-    font-size:1.2em;
+    /*font-size:1.2em;*/
+    line-height: 1.8rem;
     overflow:hidden;
 }
 
@@ -184,16 +484,67 @@ table tr.active-row:not(th) {
     color: white;
 }
 
-table.col21 * td {
-    width: 50%;
+
+/* SPECIAL */
+table.first-column-locked {
+    margin-left: 160px !important;
+    border-top-left-radius: 0;
 }
 
-table.col25 tr td:first-of-type {
-    width: 25%;
-    background: rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+table.first-column-locked::before {
+    content:"";
+    display: block;
+    position:absolute;
+    height:-webkit-fill-available;
+    width:2rem;
+    left:0px;
+    top:auto;
+    background-color: white;
+}
+
+
+
+table.first-column-locked tr th:first-of-type, table.first-column-locked tr td:first-of-type {
+    background: inherit;
+    color:inherit;
+    backdrop-filter: blur(5px);
+    display:block;
+    position: absolute;
+    margin-left: -160px;
+    width: calc(130px);
+    left: inherit;
+    top: inherit;
+    height: var(--rowHeight);
+    border-width: 0 0 1px 0;
+    border-color: black;
+    border-style: solid;
+    line-height: 2.4rem;
+    /*padding: .2em 1em;
+    white-space: nowrap;*/
+}
+
+
+table.first-column-locked tr th:first-of-type {
+    background: var(--color2);
+    color: white;
+    border-bottom: 1px solid black;
+    border-top-left-radius: 1em;
+    z-index: 2;
+}
+
+table.first-column-locked tr td:first-of-type {
+    background: linear-gradient(90deg, white, transparent);
+}
+
+table.first-column-locked tr td:first-of-type::hover {
+    background: linear-gradient(90deg, white, transparent);
+}
+
+
+/* --- END SPECIAL --- */
+
+.sticky {
+    position:fixed;
 }
 
 #special-notes * td{
@@ -206,11 +557,12 @@ th {
 }
 
 td, th {
-    border: none;
-    border-bottom: 1px solid black;
-    line-height: 1.8em;
-    margin: 150px 100px;
-    padding: none;
+    
+    height: var(--rowHeight);
+    border-width: 0 0 1px 0;
+    border-color: black;
+    border-style: solid;
+
     padding: .2em 1em;
     white-space: nowrap;
 }
@@ -226,14 +578,16 @@ td input, textarea {
     field-sizing: content; 
 }
 
+td input:focus-within, td input:active, textarea:focus {
+    color:white !important;
+}
+
 textarea {
     min-height: 6rem;
     field-sizing: content; 
 }
 
-td input:focus-within, td input:active, textarea:focus {
-    color:white !important;
-}
+
 
 select {
     width: 100%;           /* Take full width of the cell */
@@ -241,19 +595,12 @@ select {
     padding: 8px;          /* Comfortable inner padding */
     font-size: inherit;
     color:inherit;
-    border: none;          /* Remove default border (optional) */
+    border: none;          /* Remove default border */
     border-radius: 0px;    
     box-sizing: border-box; /* Important: include padding in width/height */
     background-color: transparent;
     outline:none;
 }
-
-/*select:hover {
-    border: none !important;
-    color: inherit;
-    outline: none;
-    background: var(--btn1);
-}*/
 
 select:focus-visible {
     border: none !important;
@@ -321,13 +668,6 @@ button, .button {
     width: -webkit-fit-content;
     margin: 0 auto;
     white-space: nowrap;
-    /*box-shadow: 0px 4px 6px rgba(0,0,0,0.15);*/
-
-    /*opacity: 1;
-	animation-name: fadeInOpacity;
-	animation-iteration-count: 1;
-	animation-timing-function: ease-in-out;
-	animation-duration: .5s;*/
 }
 
 
@@ -348,7 +688,7 @@ button:hover, .button:hover {
 }
 
 .slideUp {
-    -webkit-animation: slideUp 3s;
+    animation: slideUp 3s;
     display:block;
     position:absolute;
 }
@@ -397,7 +737,9 @@ button:hover, .button:hover {
 .slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0; left: 0;
+  width: -webkit-fill-available;
+  height:-webkit-fill-available;
   background-color: #ccc;
   transition: .4s;
   border-radius: 34px;

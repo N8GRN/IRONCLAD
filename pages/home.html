@@ -4,9 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
+  <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
   <!-- Apple Splash Screens (iPad portrait) -->
@@ -34,11 +36,10 @@
 
     <main>
         <div class="button-space">
-            <button class="full" onclick="location.href='projects.html'">My Projects</button>
-            <button class="full" onclick="location.href='newProject.html'">New Project</button>
+            <button class="full" onclick="goToPage('/projects.html')">My Projects</button>
+            <button class="full" onclick="goToPage('/newProject.html')">New Project</button>
         </div>
 
-      <!--<img src="../img/logo.png" alt="Logo"> -->
       <img src="../img/background.png" alt="Background" style="margin:auto;">
       <!-- Add more images from your img/ folder -->
 
@@ -62,7 +63,15 @@
         </p>
     </footer>
 
-    <script src="../js/app.js"></script>
+    <!-- Firestore Database ("Live") -->
+  <script type="module" src="../js/modules.js"></script>
+  
+  <!-- Local Database ("Test Mode") -->
+  <script src="/IRONCLAD/js/db.js"></script>
+  
+  <!-- Link JavaScript -->
+  <script src="/IRONCLAD/js/app.js"></script>
+
     <script>
         // === Feature Toggle Logic ===
         const toggle = document.getElementById('featureToggle');
@@ -70,22 +79,24 @@
         const message = document.getElementById('featureMessage');
 
         // Load saved state (if any)
-        if (localStorage.getItem('featureEnabled') === 'true') {
+        if (localStorage.getItem('TestMode') === 'true') {
             toggle.checked = true;
             status.textContent = 'On';
-            message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
+            message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';            
         }
 
         // Listen for changes
         toggle.addEventListener('change', function () {
             if (this.checked) {
-                localStorage.setItem('featureEnabled', 'true');
+                localStorage.setItem('TestMode', 'true');
                 status.textContent = 'On';
                 message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
+                document.body.classList.toggle("tron-mode", true);
             } else {
-                localStorage.setItem('featureEnabled', 'false');
+                localStorage.setItem('TestMode', 'false');
                 status.textContent = 'Off';
                 message.innerHTML = 'The experimental feature is currently <strong>disabled</strong>.';
+                document.body.classList.toggle("tron-mode", false);
             }
         });
     </script>

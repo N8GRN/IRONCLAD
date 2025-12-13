@@ -1,30 +1,46 @@
-const APP_VERSION = 'v2025.2.15'; // ← BUMP THIS ON EVERY DEPLOY
+// Fire Notifications
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
+  authDomain: "ironclad-127a5.firebaseapp.com",
+  projectId: "ironclad-127a5",
+  storageBucket: "ironclad-127a5.firebasestorage.app",
+  messagingSenderId: "57257280088",
+  appId: "1:57257280088:web:189e4db32d7ae28523402d",
+  measurementId: "G-6RG40RW2YZ"
+};
+
+// Initialize Firebase using the global 'firebase' object from compat library
+const app = firebase.initializeApp(firebaseConfig);
+
+// Get the Messaging instance using the global 'firebase' object
+const messaging = firebase.messaging(); // No 'app' argument needed for compat
+
+const APP_VERSION = 'v2025.3.8'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
 const PRECACHE_URLS = [
   REPO,
   REPO + 'index.html',
-  REPO + 'offline.html',        // ← Create this file!
+  REPO + 'offline.html',
   REPO + 'manifest.json',
   REPO + 'favicon.png',
 
   // Core JS/CSS
   REPO + 'js/app.js',
   REPO + 'css/styles.css',
-  REPO + 'sw.js',
 
   // Pages
   REPO + 'pages/application.html',
   REPO + 'pages/home.html',
   REPO + 'pages/login.html',
   REPO + 'pages/newProject.html',
-  REPO + 'pages/page1.html',
-  REPO + 'pages/page2.html',
-  REPO + 'pages/page3.html',
-  REPO + 'pages/page4.html',
-  REPO + 'pages/page5.html',
   REPO + 'pages/projects.html',
+  REPO + 'pages/roofDefinitions.html',
 
   // Images
   REPO + 'img/logo.png',
@@ -45,7 +61,97 @@ const PRECACHE_URLS = [
   REPO + 'img/splash/splash-1536x2048.png'
 ];
 
+// ===============================================
+// IndexedDB Helpers for Queue (vanilla, with indexing)
+// ===============================================
+const DB_NAME = 'ironclad-queue';
+const STORE_NAME = 'pending';
+const DB_VERSION = 2; // Bumped for index
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+  });
+}
+
+async function queueItem(item) {
+  // Basic validation
+  if (!item.data || typeof item.data !== 'object') {
+    throw new Error('Invalid payload: missing data');
+  }
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.add({ ...item, timestamp: Date.now() });
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function getPendingItems() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function removeItem(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+// Optional: Cleanup old items (>7 days)
+async function cleanupOldItems() {
+  const db = await openDB();
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const index = store.index('timestamp');
+    const request = index.openCursor(IDBKeyRange.upperBound(weekAgo));
+    let count = 0;
+    request.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        store.delete(cursor.value.id);
+        count++;
+        cursor.continue();
+      } else {
+        console.log(`[SW] Cleaned ${count} old queued items`);
+        resolve(count);
+      }
+    };
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+// ===============================================
 // INSTALL
+// ===============================================
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -61,7 +167,9 @@ self.addEventListener('install', event => {
   );
 });
 
+// ===============================================
 // ACTIVATE – Clean old caches
+// ===============================================
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
@@ -72,18 +180,44 @@ self.addEventListener('activate', event => {
         }
       })
     ))
-    .then(() => self.clients.claim())
+      .then(cleanupOldItems) // Clean queue on activate
+      .then(() => self.clients.claim())
   );
 });
 
+// ===============================================
 // FETCH
+// ===============================================
 self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
   // Ignore cross-origin and non-http
   if (url.origin !== location.origin || !req.url.startsWith('http')) return;
-  if (req.method !== 'GET') return fetch(req); // Let POSTs etc. go through
+  if (req.method !== 'GET') {
+    // Handle offline write queuing
+    if (req.method === 'POST' && url.pathname === REPO + 'sync-queue') {
+      event.respondWith(
+        req.clone().json().then(payload => {
+          return queueItem(payload).then(() => {
+            self.registration.sync.register('sync-projects');
+            return new Response(JSON.stringify({ success: true, queued: true }), {
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }).catch(err => {
+            console.error('[SW] Queue failed:', err);
+            return new Response(JSON.stringify({ error: err.message }), {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' }
+            });
+          });
+        }).catch(() => new Response('Invalid JSON', { status: 400 }))
+      );
+      return;
+    }
+    // Let other POSTs/PUTs etc. go to network (or fail offline)
+    return fetch(req).catch(() => new Response('Offline - sync when online', { status: 503 }));
+  }
 
   // Navigation → Network-first + fallback
   if (req.mode === 'navigate') {
@@ -139,7 +273,7 @@ self.addEventListener('fetch', event => {
           event.waitUntil(
             fetch(req)
               .then(fresh => fresh && fresh.ok && caches.open(CACHE_NAME).then(c => c.put(req, fresh.clone())))
-              .catch(() => {})
+              .catch(() => { })
           );
           return cached;
         }
@@ -162,4 +296,110 @@ self.addEventListener('fetch', event => {
           });
       })
   );
+});
+
+// ===============================================
+// BACKGROUND SYNC
+// ===============================================
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-projects') {
+    event.waitUntil(syncPendingProjects());
+  }
+});
+
+async function syncPendingProjects() {
+  try {
+    const pending = await getPendingItems();
+    if (pending.length === 0) {
+      console.log('[SW] No pending items to sync');
+      return;
+    }
+    console.log(`[SW] Syncing ${pending.length} queued items`);
+    for (const item of pending) {
+      let retries = 0;
+      const maxRetries = 3;
+      while (retries < maxRetries) {
+        try {
+          const response = await fetch('/api/projects', { // ← Swap to your prod endpoint
+            method: item.method || 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item.data)
+          });
+          if (response.ok) {
+            await removeItem(item.id);
+            console.log(`[SW] Synced item ${item.id} after ${retries} retries`);
+            break; // Success, move to next
+          } else {
+            retries++;
+            if (retries < maxRetries) {
+              const delay = Math.pow(2, retries) * 1000; // Exponential backoff
+              console.log(`[SW] Sync failed for ${item.id} (attempt ${retries}): ${response.status}. Retrying in ${delay}ms`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            } else {
+              console.warn(`[SW] Max retries exceeded for ${item.id}`);
+            }
+          }
+        } catch (err) {
+          retries++;
+          if (retries < maxRetries) {
+            const delay = Math.pow(2, retries) * 1000;
+            console.error(`[SW] Network error for ${item.id} (attempt ${retries}):`, err, `- Retrying in ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            console.error(`[SW] Max retries exceeded for ${item.id}:`, err);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[SW] Overall sync error:', err);
+  }
+}
+
+
+// MESSAGING / PUSH NOTIFICATIONS
+
+// Attempt #3
+firebase.messaging().onBackgroundMessage((payload) => {
+  console.log('[sw.js] Received background message:', payload);
+
+  // Customize the notification that appears to the user.
+  // The 'payload' object contains the data sent from your server or the Firebase Console.
+  const notificationTitle = payload.notification?.title || 'New Message';
+  const notificationOptions = {
+    body: payload.notification?.body || 'You have a new notification.',
+    icon: payload.notification?.icon || '/img/icons/icon-192x192.png',
+    // You can add more options here, such as:
+    image: payload.notification?.image,
+    badge: '/badge-icon.png',
+    data: payload.data, // Custom data from your message payload
+    actions: [
+      { action: 'open_url', title: 'Open' },
+      { action: 'reply', title: 'Reply' }
+    ]
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Add this below your onBackgroundMessage handler
+self.addEventListener('notificationclick', (event) => {
+  console.log('[sw.js] Notification clicked:', event.notification);
+  event.notification.close(); // Close the notification after click
+
+  const clickedAction = event.action; // Get the action clicked, if any
+
+  if (clickedAction === 'open_url' && event.notification.data?.url) {
+    event.waitUntil(clients.openWindow(event.notification.data.url));
+  } else if (clickedAction === 'reply' && event.reply) {
+    // Handle reply logic here
+    console.log('Reply received:', event.reply);
+    // You'd typically send this reply back to your server
+  } else if (event.notification.data && event.notification.data.url) {
+    // If no specific action, but data has a URL, open it
+    event.waitUntil(clients.openWindow(event.notification.data.url));
+  } else {
+    // Fallback: open the PWA's start page
+    event.waitUntil(clients.openWindow('/'));
+  }
 });

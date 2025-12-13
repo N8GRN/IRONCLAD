@@ -3,24 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
+  <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
   <!-- Apple Splash Screens (iPad portrait) -->
-  <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="./img/splash/splash-2048x2732.png">
-  <link rel="apple-touch-startup-image" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="./img/splash/splash-1668x2388.png">
-  <link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="./img/splash/splash-1536x2048.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/IRONCLAD/img/splash/splash-2048x2732.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/IRONCLAD/img/splash/splash-1668x2388.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="/IRONCLAD/img/splash/splash-1536x2048.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="./favicon.png">
-  <link rel="icon" type="image/png" href="./favicon.png">
-  <link rel="shortcut icon" href="./favicon.png">
+  <link rel="icon" type="image/x-icon" href="/IRONCLAD/favicon.png">
+  <link rel="icon" type="image/png" href="/IRONCLAD/favicon.png">
+  <link rel="shortcut icon" href="/IRONCLAD/favicon.png">
 
-  <link rel="manifest" href="./manifest.json">
-  <link rel="apple-touch-icon" href="./img/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./css/styles.css">
+  <link rel="manifest" href="/IRONCLAD/manifest.json">
+  <link rel="apple-touch-icon" href="/IRONCLAD/img/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/IRONCLAD/css/styles.css">
 
   <title>IRONCLAD CRM</title>
 
@@ -35,11 +37,38 @@
 </head>
 <body>
 
-  <img src="./img/icon.png" alt="IRONCLAD CRM Logo" class="loader">
+  <!-- This page exists as a landing page to load the Service Worker -->
+  <img src="/IRONCLAD/img/icon.png" alt="IRONCLAD CRM Logo" class="loader">
   <h2>Loading…</h2>
+
+  <!-- Request Notifications -->
+  <button id="enableNotificationsButton">Enable Notifications</button>
+
+  <!-- Firestore Database ("Live") -->
+  <script type="module" src="/IRONCLAD/js/modules.js"></script>
+  
+  <!-- Local Database ("Test Mode") -->
+  <script src="/IRONCLAD/js/db.js"></script>
+  
+  <!-- Link JavaScript -->
+  <script src="/IRONCLAD/js/app.js"></script>
+  
+<!-- Messaging -->
+  <script>
+        // Check if the browser supports notifications
+        if ('Notification' in window) {
+            console.log('Notifications are supported.');
+        } else {
+            console.warn('Notifications are not supported in this browser.');
+            document.getElementById('enableNotificationsButton').disabled = true;
+            document.getElementById('enableNotificationsButton').innerText = 'Notifications Not Supported';
+        }
+    </script>
+
 
   <script>
     const REPO = "/IRONCLAD/";
+    /*
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/IRONCLAD/sw.js')
@@ -50,14 +79,44 @@
             console.error('Service Worker registration failed:', err);
           });
       });
+    }*/
+    // Safe Service Worker registration – works locally AND in production
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/IRONCLAD/firebase-messaging-sw.js')
+          .then(reg => {
+            console.log('Service Worker registered!', reg);
+
+            // Optional: nice update prompt
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  if (confirm('New version available! Reload to update?')) {
+                    window.location.reload();
+                  }
+                }
+              });
+            });
+          })
+          .catch(err => {
+            console.warn('Service Worker registration failed:', err);
+            // This is expected when opening file:// or on insecure origins
+          });
+      });
+    } else {
+      console.warn('Service Workers are not supported in this browser');
     }
 
     // Redirect to login if not already there
     if (!location.pathname.includes('login.html')) {
       setTimeout(() => {
-        location.href = '/IRONCLAD/pages/login.html';
-      }, 600);
+        //goToPage("/login");
+        goToPage('index2');
+      }, 6000);
     }
-</script>
+  </script>
 </body>
 </html>

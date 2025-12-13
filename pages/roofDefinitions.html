@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
   <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
@@ -31,45 +31,69 @@
 <body>
     <header>
         <img src="../img/icons/logo.png">
-        <h2>Applications</h2>
+        <h2>Structure</h2>
     </header>
 
     <main>
         <!-- Toggle Switch -->
-        <div class="toggle-container full">
+        <!-- <div class="toggle-container full">
             <label class="switch">
                 <input type="checkbox" id="roofInclude" data-target="roof-form">
                 <span class="slider round"></span>
             </label>
             <span class="toggle-label">Roof</span>
             <span class="status" id="status">Not Included</span>
-        </div>
-        <div class="application-content" style="visibility:hidden;height:0;">
-            <form id="roof-form">
-                <input type="text" name="structure" placeholder="Structure Name">
-                <input type="text" name="facet" placeholder="Facet">
-                <button>Add Facet</button>
+        </div> -->
+        <div class="application-content">
+            <form id="facet-form">
+                <table>
+                    <tdata>
+                        <tr>
+                            <th><span id="structure">Structure</span></th>
+                            <th><span id="facet">Facet</span></th>
+                        </tr>
+                        <tr>
+                            <td><span>Type</span></td>
+                            <td><select name="category">
+                                    <option>Shingle</option>
+                                    <option>Metal</option>
+                                    <option>Flat</option>
+                                </select></td>
+                        </tr>
+                        <tr>
+                            <td><span>Pitch</span></td>
+                            <td><select name="pitch">
+                                    <option>0 - 2/12</option>
+                                    <option>2/12 - 3/12</option>
+                                    <option>4/12 - 7/12</option>
+                                    <option>8/12 - 9/12</option>
+                                    <option>10/12 - 11/12</option>
+                                    <option>12/12 - 13/12</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span>Tearoff</span></td>
+                            <td><select name="layers">
+                                    <option>None</option>
+                                    <option>1-Layer</option>
+                                    <option>2-Layer</option>
+                                    <option>3-Layer</option>
+                                    <option>4-Layer</option>
+                                </select></td>
+                        </tr>
+                        <tr>
+                            <td><span>Underlay</span></td>
+                            <td><select name="underlay">
+                                    <option>Wood Board</option>
+                                    <option>OSB / Plywood</option>
+                            </td>
+                        </tr>
+                    </tdata>
+                </table>
+
+                <button>Next Facet</button>
             </form>
-        </div>
-
-        <!-- Toggle Switch -->
-        <div class="toggle-container full">
-            <label class="switch">
-                <input type="checkbox" id="sidingInclude">
-                <span class="slider round"></span>
-            </label>
-            <span class="toggle-label">Siding</span>
-            <span class="status" id="status">Not Included</span>
-        </div>
-
-        <!-- Toggle Switch -->
-        <div class="toggle-container full">
-            <label class="switch">
-                <input type="checkbox" id="gutterInclude">
-                <span class="slider round"></span>
-            </label>
-            <span class="toggle-label">Gutters</span>
-            <span class="status" id="status">Not Included</span>
         </div>
 
         <p style="color: rgb(100, 100, 100);">Version 1.0 • Updated November 2025<br>Written by Nathan Green</p>
@@ -77,8 +101,8 @@
 
     <footer>
         <div class="bottom-nav">
-            <button class="" onclick="goToPage('/newProject.html')">◄ Back</button>
-            <button class="" onclick="goToPage(location.href='/roofDefinitions.html')">Next ►</button>
+            <button class="" onclick="goToPage('/Application.html')">◄ Back</button>
+            <button class="" onclick="goToPage(location.href='/home.html')">Next ►</button>
         </div>
     </footer>
 
@@ -91,6 +115,7 @@
   
     <!-- Link JavaScript -->
     <script src="/IRONCLAD/js/app.js"></script>
+
 
     <!-- Page JavaScript -->
     <script>
@@ -124,15 +149,15 @@
         function showHideContent(target, bool) {
             let el = document.querySelector(`#${target}`);
             let container = el.parentElement;
-            
-            if(bool) {
+
+            if (bool) {
                 container.style.visibility = "visible";
                 container.style.height = "auto";
                 container.style.opacity = 1;
                 container.style.transition = "opacity .5s";
             } else {
                 container.style.visibility = "hidden";
-                setTimeout(function(){container.style.height = "0px";}, 400);
+                setTimeout(function () { container.style.height = "0px"; }, 400);
                 container.style.opacity = 0;
                 container.style.transition = "opacity 350ms";
             }
@@ -145,7 +170,6 @@
             message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
         }
 
-        
     </script>
 
 </body>
