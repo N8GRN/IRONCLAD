@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase using the global 'firebase' object from compat library
 const app = firebase.initializeApp(firebaseConfig);
-const APP_VERSION = 'v2025.3.27'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.28'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -384,7 +384,7 @@ self.addEventListener('push', (event) => {
 // --- Initialize Firebase in the Service Worker ---
 // Use the global 'firebase' object provided by firebase-app-compat.js
 firebase.initializeApp(firebaseConfig);
-
+*/
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging();
 
@@ -431,4 +431,3 @@ self.addEventListener('notificationclick', (event) => {
         event.waitUntil(clients.openWindow(urlToOpen));
     }
 });
-*/
