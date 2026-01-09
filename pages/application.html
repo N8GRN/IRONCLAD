@@ -124,6 +124,8 @@
 
         function showHideContent(target, bool) {
             let el = document.querySelector(`#${target}`);
+            
+            if (el) {
             let container = el.parentElement;
             
             if(bool) {
@@ -138,6 +140,7 @@
                 container.style.transition = "opacity 350ms";
             }
         }
+    }
 
         // Load saved state (if any)
         if (localStorage.getItem('featureEnabled') === 'true') {
