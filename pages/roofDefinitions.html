@@ -61,6 +61,11 @@
                                 </select></td>
                         </tr>
                         <tr>
+                            <td><span>Size (sq.)</span></td>
+                            <td><input name="size" placeholder="0" type="number">
+                            </td>
+                        </tr>
+                        <tr>
                             <td><span>Pitch</span></td>
                             <td><select name="pitch">
                                     <option>0 - 2/12</option>
@@ -92,12 +97,13 @@
                         </tr>
                     </tdata>
                 </table>
-
-                <button>Next Facet</button>
+                <!--<button>Next Facet</button>-->
             </form>
+            <br>
+            <br>
         </div>
 
-        <p style="color: rgb(100, 100, 100);">Version 1.0 • Updated November 2025<br>Written by Nathan Green</p>
+        <p style="color: rgb(100, 100, 100);">Use the form(s) below to configure each of the structures/facets defined in the previous screen</p>
     </main>
 
     <footer>
@@ -120,56 +126,46 @@
 
     <!-- Page JavaScript -->
     <script>
-        // === Feature Toggle Logic ===
-        const switches = document.querySelectorAll('.switch');
-        const status = document.getElementById('status');
-        const message = document.getElementById('featureMessage');
+        // Clone table form
+        function cloneForm(name, structure, facet) {
+            // 1. Select the original element
+            const originalForm = document.querySelector('.application-content');
 
-        switches.forEach(lbl => {
-            let cb = lbl.firstElementChild;
-            showHideContent(cb.getAttribute("data-target"));
+            // 2. Clone the element deeply (with children)
+            const clonedForm = originalForm.cloneNode(true);
 
-            // Listen for changes
-            cb.addEventListener('change', function (evt) {
-                let $this = evt.target;
-                if ($this.checked) {
-                    myAttribute = $this.id;
-                    localStorage.setItem($this.id, 'true');
-                    status.textContent = 'Included';
-                    showHideContent($this.getAttribute('data-target'), true);
-                } else {
-                    localStorage.setItem($this.id, 'false');
-                    status.textContent = 'Not Included';
+            // 3. Modify the clone's ID to ensure uniqueness
+            // You might want a more sophisticated way to generate unique IDs in a real application
+            clonedForm.id = name;
+            var headers = clonedForm.querySelectorAll('th');
+            headers[0].innerText = structure;
+            headers[1].innerText = facet;
 
-                    //initialize hidden
-                    showHideContent($this.getAttribute('data-target'), false);
-                }
+            // 4. Insert the clone into the DOM (append to the list)
+            const main = document.querySelector('main');
+            main.appendChild(clonedForm);
+        }
+
+        var x = 0;
+        db.collection('roof_facets').onSnapshot(snapshot => {
+            //console.log(snapshot);
+            let changes = snapshot.docChanges();
+
+            changes.forEach(change => {
+                /*if (change.type == 'added') {
+                    renderRoof(change.doc);
+                } else if (change.type == 'removed') {
+                    let li = roofForm.querySelector('[data-id=' + change.doc.id + ']');
+                    roofForm.removeChild(li);
+                }*/
+               cloneForm(change.doc.id, change.doc.data().structure, change.doc.data().facet);
+               console.log(changes[x].doc.data(), changes[x].doc.data().facet);
+               x = x + 1;
             });
-        })
+        });
 
-        function showHideContent(target, bool) {
-            let el = document.querySelector(`#${target}`);
-            let container = el.parentElement;
-
-            if (bool) {
-                container.style.visibility = "visible";
-                container.style.height = "auto";
-                container.style.opacity = 1;
-                container.style.transition = "opacity .5s";
-            } else {
-                container.style.visibility = "hidden";
-                setTimeout(function () { container.style.height = "0px"; }, 400);
-                container.style.opacity = 0;
-                container.style.transition = "opacity 350ms";
-            }
-        }
-
-        // Load saved state (if any)
-        if (localStorage.getItem('featureEnabled') === 'true') {
-            toggle.checked = true;
-            status.textContent = 'On';
-            message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
-        }
+        var originalForm = document.querySelector('.application-content');
+        originalForm.parentNode.removeChild(originalForm);
 
     </script>
 

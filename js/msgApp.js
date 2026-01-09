@@ -147,36 +147,4 @@ self.addEventListener('DOMContentLoaded', () => {
         appendLog("Enable Notifications button not found. Please check HTML.");
     }
 
-    // Switch
-    if (enableNotificationsSwitch) {
-        if(currentPermission === 'granted') {
-            enableNotificationsSwitch.checked = true;
-            enableNotificationsSwitch.setAttribute("disabled", true)
-        }
-        //enableNotificationsSwitch.addEventListener('click', function(e){requestPermissionAndGetFCMToken}); // cannot nest for security reasons
-        enableNotificationsSwitch.addEventListener('click', requestPermissionAndGetFCMToken);
-        //enableNotificationsSwitch.setAttribute("disabled", true);
-
-        appendLog("Enable Notifications switch is ready.");
-    } else {
-        appendLog("Enable Notifications switch not found. Please check HTML.");
-    }
-/*
-
-    if (enableNotificationsSwitch) {
-
-        if(currentPermission === 'granted') {
-            enableNotificationsSwitch.checked = true;
-            enableNotificationsSwitch.setAttribute("disabled", true)
-        }
-        
-        enableNotificationsSwitch.addEventListener('click', function(e) {
-            requestPermissionAndGetFCMToken;
-        })
-
-        appendLog("Enable Notifications switch is ready.");
-    } else {
-        appendLog("Enable Notifications switch not found. Please check HTML.");
-    }*/
-
 });

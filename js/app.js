@@ -111,7 +111,7 @@ if (roofForm !== null) {
   roofForm.addEventListener('submit', (e) => {
     e.preventDefault();
     let structure = roofForm.structure.value || "House";
-    let facet = roofForm.facet.value || "facet #" + parseInt(roofForm.querySelectorAll('li').length + 1);
+    let facet = roofForm.facet.value || "Facet #" + parseInt(roofForm.querySelectorAll('li').length + 1);
 
     db.collection('roof_facets').add({
       structure: structure,
@@ -132,7 +132,7 @@ function renderStructure(doc) {
   let type = facetForm.category;
   let pitch = facetForm.pitch;
   let layers = facetForm.layers;
-  let underlay = facetForm.underlay;
+  let sheathing = facetForm.sheathing;
 
   db.collection('roof_facets').onSnapshot(snapshot => {
     let changes = snapshot.docChanges();
@@ -169,7 +169,7 @@ function renderStructure(doc) {
       type: type.value,
       pitch: pitch.value,
       layers: layers.value,
-      underlay: underlay.value
+      sheathing: sheathing.value
     });
 
     console.log("After", changes[x].doc.data());
