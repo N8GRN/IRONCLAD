@@ -547,11 +547,11 @@ table.first-column-locked tr td:first-of-type::hover {
     position:absolute;
     top:50px;
     left:40px;
-    background-image: url("../img/icons/settings.png");
+    background-image: url("../img/icons/gear-dark.png");
     background-repeat: no-repeat;
     background-size: contain;
-    height:30px;
-    width:30px;
+    height:20px;
+    width:20px;
 }
 
 .sticky {
