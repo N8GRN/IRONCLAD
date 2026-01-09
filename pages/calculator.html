@@ -58,7 +58,7 @@
                 <span class="slider round"></span>
             </label>
             <span class="toggle-label">Partial Roof</span>
-            <span class="status" id="status">Not Included</span>
+            <span class="status">Not Included</span>
         </div>
 
         <!-- Toggle Repair Roof -->
@@ -68,7 +68,7 @@
                 <span class="slider round"></span>
             </label>
             <span class="toggle-label">Repair</span>
-            <span class="status" id="status">Not Included</span>
+            <span class="status">Not Included</span>
         </div>
 
 
@@ -154,12 +154,13 @@
 
         // === Feature Toggle Logic ===
         const switches = document.querySelectorAll('.switch');
-        const status = document.getElementById('status');
+        //const status = document.getElementById('status');
         const message = document.getElementById('featureMessage');
 
         switches.forEach(lbl => {
             let cb = lbl.firstElementChild;
-            showHideContent(cb.getAttribute("data-target"));
+            //showHideContent(cb.getAttribute("data-target"));
+            let status = lbl.parentNode.querySelector(".status");
 
             // Listen for changes
             cb.addEventListener('change', function (evt) {
@@ -168,18 +169,18 @@
                     myAttribute = $this.id;
                     localStorage.setItem($this.id, 'true');
                     status.textContent = 'Included';
-                    showHideContent($this.getAttribute('data-target'), true);
+                    //showHideContent($this.getAttribute('data-target'), true);
                 } else {
                     localStorage.setItem($this.id, 'false');
                     status.textContent = 'Not Included';
 
                     //initialize hidden
-                    showHideContent($this.getAttribute('data-target'), false);
+                    //showHideContent($this.getAttribute('data-target'), false);
                 }
             });
         })
 
-        function showHideContent(target, bool) {
+        /*function showHideContent(target, bool) {
             let el = document.querySelector(`#${target}`);
             let container = el.parentElement;
             
@@ -194,7 +195,7 @@
                 container.style.opacity = 0;
                 container.style.transition = "opacity 350ms";
             }
-        }
+        }*/
 
         // Load saved state (if any)
         if (localStorage.getItem('featureEnabled') === 'true') {

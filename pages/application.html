@@ -42,7 +42,7 @@
                 <span class="slider round"></span>
             </label>
             <span class="toggle-label">Roof</span>
-            <span class="status" id="status">Not Included</span>
+            <span class="status">Not Included</span>
         </div>
         <div class="application-content" style="visibility:hidden;height:0;">
             <form id="roof-form">
@@ -59,7 +59,7 @@
                 <span class="slider round"></span>
             </label>
             <span class="toggle-label">Siding</span>
-            <span class="status" id="status">Not Included</span>
+            <span class="status">Not Included</span>
         </div>
 
         <!-- Toggle Switch -->
@@ -69,7 +69,7 @@
                 <span class="slider round"></span>
             </label>
             <span class="toggle-label">Gutters</span>
-            <span class="status" id="status">Not Included</span>
+            <span class="status">Not Included</span>
         </div>
 
         <p style="color: rgb(100, 100, 100);">Version 1.0 • Updated November 2025<br>Written by Nathan Green</p>
@@ -96,11 +96,12 @@
     <script>
         // === Feature Toggle Logic ===
         const switches = document.querySelectorAll('.switch');
-        const status = document.getElementById('status');
         const message = document.getElementById('featureMessage');
 
         switches.forEach(lbl => {
             let cb = lbl.firstElementChild;
+            let status = lbl.parentNode.querySelector(".status");
+
             showHideContent(cb.getAttribute("data-target"));
 
             // Listen for changes
