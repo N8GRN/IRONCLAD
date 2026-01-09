@@ -31,46 +31,47 @@
 <body>
     <header>
         <img src="../img/icons/logo.png">
-        <h2>Applications</h2>
+        <h2>Project Information</h2>
     </header>
 
     <main>
-        <!-- Toggle Switch -->
+        <form id="project-form">
+            <table>
+                <tdata>
+                    <tr><th><span>Item</span></th><th><span>Color / Style</span></th></tr>
+                    <tr><td><span>Shingle</span></td><td><select name="shingle"></select></td></tr>
+                    <tr><td><span>Starter</span></td><td><select name="starter"></select></td></tr>
+                    <tr><td><span>Drip Edge</span></td><td><select name="drip_edge"></select></td></tr>
+                    <tr><td><span>Gutter Apron</span></td><td><select name="gutter_apron"></select></td></tr>
+                    <tr><td><span>Flashing</span></td><td><select name="flashing"></select></td></tr>
+                    <tr><td><span>Pipe Boots</span></td><td><select name="pipe_boots"></select></td></tr>
+                    <tr><td><span>Broan Vents</span></td><td><select name="broan_vents"></select></td></tr>
+                    <tr><td><span>Chimney</span></td><td><select name="chimney"></select></td></tr>
+                    <tr><td><span>Wall Flashing</span></td><td><select name="wall_flashing"></select></td></tr>
+                </tdata>
+            </table>
+        </form>
+        <!-- Toggle Partial Roof -->
         <div class="toggle-container full">
             <label class="switch">
-                <input type="checkbox" id="roofInclude" data-target="roof-form">
+                <input type="checkbox" id="roofPartial" data-target="roof-partial">
                 <span class="slider round"></span>
             </label>
-            <span class="toggle-label">Roof</span>
+            <span class="toggle-label">Partial Roof</span>
             <span class="status" id="status">Not Included</span>
-        </div>
-        <div class="application-content" style="visibility:hidden;height:0;">
-            <form id="roof-form">
-                <input type="text" name="structure" placeholder="Structure Name">
-                <input type="text" name="facet" placeholder="Facet">
-                <button>Add Facet</button>
-            </form>
         </div>
 
-        <!-- Toggle Switch -->
+        <!-- Toggle Repair Roof -->
         <div class="toggle-container full">
             <label class="switch">
-                <input type="checkbox" id="sidingInclude">
+                <input type="checkbox" id="roofRepair" data-target="roof-repair">
                 <span class="slider round"></span>
             </label>
-            <span class="toggle-label">Siding</span>
+            <span class="toggle-label">Repair</span>
             <span class="status" id="status">Not Included</span>
         </div>
 
-        <!-- Toggle Switch -->
-        <div class="toggle-container full">
-            <label class="switch">
-                <input type="checkbox" id="gutterInclude">
-                <span class="slider round"></span>
-            </label>
-            <span class="toggle-label">Gutters</span>
-            <span class="status" id="status">Not Included</span>
-        </div>
+
 
         <p style="color: rgb(100, 100, 100);">Version 1.0 • Updated November 2025<br>Written by Nathan Green</p>
     </main>
@@ -78,7 +79,7 @@
     <footer>
         <div class="bottom-nav">
             <button class="" onclick="goToPage('/newProject.html')">◄ Back</button>
-            <button class="" onclick="goToPage(location.href='/calculator.html')">Next ►</button>
+            <button class="" onclick="goToPage(location.href='/roofDefinitions.html')">Next ►</button>
         </div>
     </footer>
 
@@ -94,6 +95,63 @@
 
     <!-- Page JavaScript -->
     <script>
+        // Populate Form
+        var form = document.getElementById("project-form");
+
+        fetch('../data/material.json')
+            .then(response => response.json())
+            .then(data => {
+                console.log(data)
+                // Use the 'data' array here with the same forEach loop
+                data.Shingles.forEach(itemData => { // Shingles
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.shingle.appendChild(list);
+                });
+                data.Starter.forEach(itemData => { // Starter
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.starter.appendChild(list);
+                });
+                data.DripEdge.forEach(itemData => { // Drip Edge
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.drip_edge.appendChild(list);
+                });
+                data.GutterApron.forEach(itemData => { // Gutter Apron
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.gutter_apron.appendChild(list);
+                });
+                data.Flashing.forEach(itemData => { // Flashing
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.flashing.appendChild(list);
+                });
+                data.PipeBoots.forEach(itemData => { // Pipe Boots
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.pipe_boots.appendChild(list);
+                });
+                data.BroanVents.forEach(itemData => { // Broan Vents
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.broan_vents.appendChild(list);
+                });
+                data.Chimney.forEach(itemData => { // Chimney(s)
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.chimney.appendChild(list);
+                });
+                data.WallFlashing.forEach(itemData => { // Wall Flashing
+                    let list = document.createElement("option");
+                    list.innerHTML = itemData.name;
+                    form.wall_flashing.appendChild(list);
+                });
+            })
+    .catch(error => console.error('Error fetching data:', error));
+
+
         // === Feature Toggle Logic ===
         const switches = document.querySelectorAll('.switch');
         const status = document.getElementById('status');

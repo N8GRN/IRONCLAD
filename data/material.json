@@ -1,0 +1,353 @@
+{
+  "Shingles": [
+    {
+      "name": "Brownwood",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Estate Gray",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Sierra Gray",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Desert Tan",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Colonial Slate",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Teak",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Chateau Green",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Driftwood",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Terra Cotta",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Onyx Black",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Slatestone Gray",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Desert Rose",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Midnight Plum",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Peppercorn",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Sandcastle",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Williamsburg Gray",
+      "price": "$38.00",
+      "sku": ""
+    },
+    {
+      "name": "Black Sable",
+      "price": "$38.00",
+      "sku": ""
+    }
+  ],
+  "HipAndRidge": [
+    {
+      "name": "Brownwood",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Estate Gray",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Sierra Gray",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Desert Tan",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Colonial Slate",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Teak",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Chateau Green",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Driftwood",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Terra Cotta",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Onyx Black",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Slatestone Gray",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Desert Rose",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Midnight Plum",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Peppercorn",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Sandcastle",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Williamsburg Gray",
+      "price": "$71.50",
+      "sku": ""
+    },
+    {
+      "name": "Black Sable",
+      "price": "$71.50",
+      "sku": ""
+    }
+  ],
+  "DripEdge": [
+    {
+      "name": "Black",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "Brown",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "Clay",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "Cobblestone",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "White",
+      "price": "$8.15",
+      "sku": ""
+    }
+  ],
+  "GutterApron": [
+    {
+      "name": "Black",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "Brown",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "Clay",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "Cobblestone",
+      "price": "$8.15",
+      "sku": ""
+    },
+    {
+      "name": "White",
+      "price": "$8.15",
+      "sku": ""
+    }
+  ],
+  "IceAndWater": {
+    "name": "Rhino",
+    "price": "$81.37",
+    "sku": ""
+  },
+  "FeltRolls": [
+    {
+      "name": "Rhino",
+      "price": "$75.00",
+      "sku": ""
+    }
+  ],
+  "BroanVents": [
+    {
+      "name": "4 in",
+      "price": "$23.00",
+      "sku": ""
+    },
+    {
+      "name": "8 in",
+      "price": "$40.00",
+      "sku": ""
+    }
+  ],
+  "RidgeVents": [
+    {
+      "name": "SkyRunner LTE",
+      "price": "$88.00",
+      "sku": ""
+    }
+  ],
+  "Chimney": [
+    {
+      "name": "Black",
+      "price": "$2.05",
+      "sku": ""
+    },
+    {
+      "name": "Brown",
+      "price": "$2.05",
+      "sku": ""
+    },
+    {
+      "name": "White",
+      "price": "$2.05",
+      "sku": ""
+    },
+    {
+      "name": "Other",
+      "price": "$2.05",
+      "sku": ""
+    }
+  ],
+  "WallFlashing": [
+    {
+      "name": "Black",
+      "price": "$2.05",
+      "sku": ""
+    },
+    {
+      "name": "Brown",
+      "price": "$2.05",
+      "sku": ""
+    },
+    {
+      "name": "White",
+      "price": "$2.05",
+      "sku": ""
+    },
+    {
+      "name": "Other",
+      "price": "$2.05",
+      "sku": ""
+    }
+  ],
+  "Starter": [
+    {
+      "name": "Starter Strip Plus",
+      "price": "$51.00",
+      "sku": ""
+    }
+  ],
+  "Flashing": [
+    {
+      "name": "Black",
+      "price": "$75.00",
+      "sku": ""
+    },
+    {
+      "name": "Brown",
+      "price": "$75.00",
+      "sku": ""
+    },
+    {
+      "name": "White",
+      "price": "$75.00",
+      "sku": ""
+    }
+  ],
+  "PipeBoots": [
+    {
+      "name": "Black",
+      "price": "$16.69",
+      "sku": ""
+    },
+    {
+      "name": "Brown",
+      "price": "$16.69",
+      "sku": ""
+    }
+  ],
+  "Lomance750": [
+    {
+      "name": "Black",
+      "price": "$23.80",
+      "sku": ""
+    },
+    {
+      "name": "Brown",
+      "price": "$23.80",
+      "sku": ""
+    }
+  ]
+}
