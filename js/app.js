@@ -250,7 +250,7 @@ if (main) {
   });
 }
 
-function goToPage(pageName) {
+window.goToPage = function(pageName) {
   if (!pageName.endsWith(".html")) { pageName = pageName + ".html" }; // add '.html' if missing
   // if(!pageName.startsWith("/")){pageName = "/" + pageName}; // add '/' page name if missing
 
