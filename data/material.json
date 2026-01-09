@@ -1,6 +1,11 @@
 {
   "Shingles": [
     {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
       "name": "Brownwood",
       "price": "$38.00",
       "sku": ""
@@ -87,6 +92,11 @@
     }
   ],
   "HipAndRidge": [
+    {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
     {
       "name": "Brownwood",
       "price": "$71.50",
@@ -175,6 +185,11 @@
   ],
   "DripEdge": [
     {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
       "name": "Black",
       "price": "$8.15",
       "sku": ""
@@ -202,6 +217,11 @@
   ],
   "GutterApron": [
     {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
       "name": "Black",
       "price": "$8.15",
       "sku": ""
@@ -227,12 +247,24 @@
       "sku": ""
     }
   ],
-  "IceAndWater": {
-    "name": "Rhino",
-    "price": "$81.37",
-    "sku": ""
-  },
+  "IceAndWater": [
+    {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
+      "name": "Rhino",
+      "price": "$81.37",
+      "sku": ""
+    }
+  ],
   "FeltRolls": [
+    {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
     {
       "name": "Rhino",
       "price": "$75.00",
@@ -240,6 +272,11 @@
     }
   ],
   "BroanVents": [
+    {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
     {
       "name": "4 in",
       "price": "$23.00",
@@ -253,12 +290,22 @@
   ],
   "RidgeVents": [
     {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
       "name": "SkyRunner LTE",
       "price": "$88.00",
       "sku": ""
     }
   ],
   "Chimney": [
+    {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
     {
       "name": "Black",
       "price": "$2.05",
@@ -282,6 +329,11 @@
   ],
   "WallFlashing": [
     {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
       "name": "Black",
       "price": "$2.05",
       "sku": ""
@@ -304,12 +356,22 @@
   ],
   "Starter": [
     {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
       "name": "Starter Strip Plus",
       "price": "$51.00",
       "sku": ""
     }
   ],
   "Flashing": [
+    {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
     {
       "name": "Black",
       "price": "$75.00",
@@ -328,6 +390,11 @@
   ],
   "PipeBoots": [
     {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
+    {
       "name": "Black",
       "price": "$16.69",
       "sku": ""
@@ -339,6 +406,11 @@
     }
   ],
   "Lomance750": [
+    {
+      "name": "-",
+      "price": "$0.00",
+      "sku": ""
+    },
     {
       "name": "Black",
       "price": "$23.80",
