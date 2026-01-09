@@ -24,7 +24,7 @@
             border-radius: 5px;
             max-height: 200px;
             overflow-y: auto;
-            width:-webkit-fill-available;
+            width: -webkit-fill-available;
             max-width: -webkit-fill-available;
         }
 
@@ -36,7 +36,7 @@
             border-radius: 5px;
             max-height: 200px;
             overflow-y: auto;
-            width:-webkit-fill-available;
+            width: -webkit-fill-available;
             max-width: -webkit-fill-available;
         }
 
@@ -72,34 +72,35 @@
         <h2>Push Notifications</h2>
     </header>
 
+    <main>
+        <button id="enableNotificationsButton">Enable Push Notifications</button>
 
-    <button id="enableNotificationsButton">Enable Push Notifications</button>
+        <p id="featureMessage" style="margin-top: 2rem; font-size: 1.1rem; color: #555;">
+            Push Notifications are currently <strong>disabled</strong>.
+        </p>
 
-    <p id="featureMessage" style="margin-top: 2rem; font-size: 1.1rem; color: #555;">
-        Push Notifications are currently <strong>disabled</strong>.
-    </p>
+        <!-- Toggle Switch -->
+        <!--
+        <div class="toggle-container">
 
-    <!-- Toggle Switch -->
-    <!--<div class="toggle-container">
+            <label class="switch" id="toggleNotifications">
+                <input type="checkbox" id="notificationToggleCheckbox">
+                <span class="slider round"></span>
+            </label>
+            <span class="toggle-label">Push Notifications</span>
+            "Stay Logged In" 
+            <span class="status" id="statusNotifications">Off</span>
+        </div>
+        -->
 
-        <label class="switch" id="toggleNotifications">
-            <input type="checkbox" id="notificationToggleCheckbox">
-            <span class="slider round"></span>
-        </label>
-        <span class="toggle-label">Push Notifications</span>
-        "Stay Logged In" 
-        <span class="status" id="statusNotifications">Off</span>
-    </div>
-    -->
+        <div id="log">
+            <p><strong>App Log:</strong></p>
+        </div>
 
-    <div id="log">
-        <p><strong>App Log:</strong></p>
-    </div>
-
-    <div id="messages">
-        <p><strong>Received Messages (Foreground):</strong></p>
-    </div>
-
+        <div id="messages">
+            <p><strong>Received Messages (Foreground):</strong></p>
+        </div>
+    </main>
     <footer>
         <button onclick='location.href="/IRONCLAD/pages/home.html" '>Home</button>
     </footer>
@@ -108,10 +109,10 @@
     <script type="module" src="/IRONCLAD/js/app.js"></script>
     <script type="module" src="/IRONCLAD/js/msgApp.js"></script>
     <script type="module" src="/IRONCLAD/js/modules.js"></script>
-    
+
     <!-- Local Database ("Test Mode") -->
     <script src="/IRONCLAD/js/db.js"></script>
-    
+
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
