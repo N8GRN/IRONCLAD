@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase using the global 'firebase' object from compat library
 const app = firebase.initializeApp(firebaseConfig);
-const APP_VERSION = 'v2025.3.28'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.29'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -388,6 +388,7 @@ firebase.initializeApp(firebaseConfig);
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging();
 
+/*
 // --- Handle background messages ---
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message:', payload);
@@ -410,6 +411,7 @@ messaging.onBackgroundMessage((payload) => {
     // Show the notification to the user
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
+*/
 
 // --- Handle notification clicks ---
 self.addEventListener('notificationclick', (event) => {
