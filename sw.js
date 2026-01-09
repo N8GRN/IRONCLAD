@@ -15,7 +15,7 @@ const firebaseConfig = {
 
 // Initialize Firebase using the global 'firebase' object from compat library
 const app = firebase.initializeApp(firebaseConfig);
-const APP_VERSION = 'v2025.3.24'; // ← BUMP THIS ON EVERY DEPLOY
+const APP_VERSION = 'v2025.3.25'; // ← BUMP THIS ON EVERY DEPLOY
 const CACHE_NAME = `ironclad-crm-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // ← REPOSITORY NAME
 
@@ -50,6 +50,7 @@ const PRECACHE_URLS = [
   // Data (static)
   REPO + 'data/project_status.json',
   REPO + 'data/shingle_options.json',
+  REPO + 'data/material.json',
 
   // Splash screens
   REPO + 'img/splash/splash-2048x2732.png',
