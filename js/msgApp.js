@@ -3,7 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
 
-// --- Your Project's Firebase Configuration ---
+// --- Firebase Configuration ---
 const firebaseConfig = {
     apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
     authDomain: "ironclad-127a5.firebaseapp.com",
@@ -24,7 +24,6 @@ const messaging = getMessaging(app);
 // --- DOM Elements ---
 
 const enableNotificationsButton = document.getElementById('enableNotificationsButton');
-const enableNotificationsSwitch = document.getElementById('notificationToggleCheckbox');
 const logDiv = document.getElementById('log');
 const messagesDiv = document.getElementById('messages');
 
@@ -128,6 +127,28 @@ onMessage(messaging, (payload) => {
         body: payload.notification?.body || 'You have a new notification.',
         icon: payload.notification?.icon || 'IRONCLAD/img/icons/icon-192x192.png' // Use a generic icon
     });
+});
+
+
+// --- Handle notification clicks ---
+self.addEventListener('notificationclick', (event) => {
+    console.log('[firebase-messaging-sw.js] Notification clicked:', event.notification);
+    event.notification.close(); // Close the notification when clicked
+
+    const clickedAction = event.action;
+
+    // Check for custom data in the notification
+    const urlToOpen = event.notification.data?.url || '/IRONCLAD/pages/projects.html'; // Default to homepage
+
+    if (clickedAction === 'open_url') {
+        event.waitUntil(clients.openWindow(urlToOpen));
+    } else if (clickedAction === 'dismiss') {
+        // Do nothing, just close the notification
+        console.log('Notification dismissed.');
+    } else {
+        // Default behavior if no specific action or data.url is found
+        event.waitUntil(clients.openWindow(urlToOpen));
+    }
 });
 
 
