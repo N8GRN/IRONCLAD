@@ -101,7 +101,8 @@ function watchCollection(col) {
 
 
 // Call your functions (e.g., on page load)
-/*loadData('projects');
+/*
+loadData('projects');
 watchCollection('projects');
 */
 

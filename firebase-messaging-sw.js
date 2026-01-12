@@ -33,7 +33,7 @@ messaging.onBackgroundMessage((payload) => {
     // Customize the notification that appears to the user.
     const notificationTitle = payload.notification?.title || 'New Message';
     const notificationOptions = {
-        body: payload.notification?.body || 'You have a new notification.',
+        body: payload.notification?.body & " from Nathan" || 'You have a new notification from Nathan.',
         // IMPORTANT: Ensure this icon path is correct and the file exists!
         icon: payload.notification?.icon || '/icon-192x192.png',
         image: payload.notification?.image, // Optional image
