@@ -24,13 +24,9 @@ const firebaseConfig = {
   measurementId: "G-6RG40RW2YZ"
 };
 
-// Initialize Firebase App
+// Initialize Firebase App, Firestore, and Firebase Cloud Messaging
 const app = initializeApp(firebaseConfig);
-
-// Initialize Firestore
 const db = getFirestore(app);
-
-// Initialize Firebase Cloud Messaging
 const messaging = getMessaging(app);
 
 // VAPID key from Firebase Console > Project settings > Cloud Messaging
@@ -47,7 +43,7 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
  */
 
 /* [01.12.2026] Deleted to prevent duplicate Push */
-async function requestNotificationPermissionAndGetFCMToken(successCallback, errorCallback) {
+/*async function requestNotificationPermissionAndGetFCMToken(successCallback, errorCallback) {
     if (!('Notification' in window)) {
         const error = new Error('This browser does not support notifications.');
         console.error(error);
@@ -73,7 +69,7 @@ async function requestNotificationPermissionAndGetFCMToken(successCallback, erro
         }
         if (errorCallback) errorCallback(error);
     }
-}
+}*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
