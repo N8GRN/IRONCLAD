@@ -5,8 +5,8 @@
 // --- Firebase SDK Imports for the Service Worker (Compat API) ---
 // We use compat for service workers to avoid potential module resolution issues
 // with the modular API in some service worker environments.
-importScripts('https://www.gstatic.com/firebasejs/12.6.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 
 // Core app + Firestore imports (modular style)
 //import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
