@@ -12,7 +12,7 @@
 //import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 //import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
+import { getMessaging, getToken } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
 
 
 // --- Firebase Configuration ---
