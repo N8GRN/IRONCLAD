@@ -1,3 +1,12 @@
+/*
+    Name: msgApp.js
+    Description: Request push notifications
+
+    Author: Nathan Green
+    Version: v2.0
+    Last Update: 01.12.2026
+*/
+
 
 // --- Firebase SDK Imports for the main app (Modular API) ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
@@ -22,7 +31,6 @@ const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 // --- DOM Elements ---
-
 const enableNotificationsButton = document.getElementById('enableNotificationsButton');
 const logDiv = document.getElementById('log');
 const messagesDiv = document.getElementById('messages');
@@ -35,6 +43,7 @@ function appendLog(message) {
     logDiv.scrollTop = logDiv.scrollHeight;
 }
 
+/*  [01.12.2026] - Removed to prevent duplicate Push
 function displayForegroundMessage(payload) {
     const messageBox = document.createElement('div');
     messageBox.className = 'message-box';
@@ -48,7 +57,7 @@ function displayForegroundMessage(payload) {
     messageBox.appendChild(body);
     messagesDiv.appendChild(messageBox);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
+}*/
 
 // --- FCM Specific Logic (Permission & Token) ---
 
@@ -113,7 +122,7 @@ async function requestPermissionAndGetFCMToken() {
         }
     }
 }
-
+/* -- This is handled by "firebase-messaging.js"
 // --- Handle messages when the app is in the foreground ---
 // This listener MUST be set up after DOMContentLoaded.
 onMessage(messaging, (payload) => {
@@ -150,6 +159,7 @@ self.addEventListener('notificationclick', (event) => {
         event.waitUntil(clients.openWindow(urlToOpen));
     }
 });
+*/
 
 
 
