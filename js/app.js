@@ -1,7 +1,3 @@
-//import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-//import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
-
-//
 // This script expects modules.js to be loaded before it,
 // making window.requestNotificationPermissionAndGetFCMToken available.
 // ===============================================
