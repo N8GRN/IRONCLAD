@@ -51,7 +51,7 @@ function appendLog(message) {
 /*
  * Requests notification permission, registers the service worker, and gets the FCM token.
  */
-async function requestPermissionAndGetFCMToken() {
+async function requestPermissionAndGetFCMToken(successCallback, errorCallback) {
     // 1. Check browser support for Notification API
     if (!('Notification' in window)) {
         appendLog('This browser does not support notifications.');
@@ -60,7 +60,7 @@ async function requestPermissionAndGetFCMToken() {
     }
 
     // 2. Register your Service Worker
-    if ('serviceWorker' in navigator) {  // <-- FIX NEEDED!  This is where the service worker is loaded twice!
+    if ('serviceWorker' in navigator) {
         try {
             // Register your service worker. Make sure the path is correct!
             // It MUST be at the root of your domain for FCM to work correctly.
