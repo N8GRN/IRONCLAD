@@ -45,7 +45,7 @@
             <span class="status" id="status">Not Included</span>
         </div> -->
         <div class="application-content">
-            <form id="facet-form">
+            <form id="template">
                 <table>
                     <tdata>
                         <tr>
@@ -54,10 +54,18 @@
                         </tr>
                         <tr>
                             <td><span>Type</span></td>
-                            <td><select name="category">
+                            <td><select name="type">
                                     <option>Shingle</option>
                                     <option>Metal</option>
                                     <option>Flat</option>
+                                </select></td>
+                        </tr>
+                        <tr>
+                            <td><span>Level</span></td>
+                            <td><select name="level">
+                                    <option>1-Story</option>
+                                    <option>2-Story</option>
+                                    <option>3-Story</option>
                                 </select></td>
                         </tr>
                         <tr>
@@ -126,46 +134,42 @@
 
     <!-- Page JavaScript -->
     <script>
+        // 1. Define where the forms live in the DOM
+        const div = document.querySelector('main');
+
+        // 2. Select template form to copy
+        const originalForm = document.querySelector('#template').parentElement;
+        
         // Clone table form
         function cloneForm(name, structure, facet) {
-            // 1. Select the original element
-            const originalForm = document.querySelector('.application-content');
-
-            // 2. Clone the element deeply (with children)
+            // 3. Clone the element deeply (with children)
             const clonedForm = originalForm.cloneNode(true);
 
-            // 3. Modify the clone's ID to ensure uniqueness
-            // You might want a more sophisticated way to generate unique IDs in a real application
+            // 4. Modify the clone's ID to ensure uniqueness and update titles
             clonedForm.id = name;
             var headers = clonedForm.querySelectorAll('th');
             headers[0].innerText = structure;
             headers[1].innerText = facet;
 
-            // 4. Insert the clone into the DOM (append to the list)
-            const main = document.querySelector('main');
-            main.appendChild(clonedForm);
+            // 5. Insert the clone into the DOM (append to the list)
+            div.appendChild(clonedForm);
         }
 
-        var x = 0;
+        
         db.collection('roof_facets').onSnapshot(snapshot => {
             //console.log(snapshot);
             let changes = snapshot.docChanges();
-
+            var x = 0;
+            
             changes.forEach(change => {
-                /*if (change.type == 'added') {
-                    renderRoof(change.doc);
-                } else if (change.type == 'removed') {
-                    let li = roofForm.querySelector('[data-id=' + change.doc.id + ']');
-                    roofForm.removeChild(li);
-                }*/
-               cloneForm(change.doc.id, change.doc.data().structure, change.doc.data().facet);
-               //console.log(changes[x].doc.data(), changes[x].doc.data().facet);
-               x = x + 1;
+                cloneForm(change.doc.id, change.doc.data().structure, change.doc.data().facet);
+                x = x + 1;
             });
+            
+            // Delete the template
+            originalForm.parentNode.removeChild(originalForm);
         });
 
-        var originalForm = document.querySelector('.application-content');
-        originalForm.parentNode.removeChild(originalForm);
 
     </script>
 
