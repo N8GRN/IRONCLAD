@@ -19,7 +19,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
 // Firebase Cloud Messaging imports (modular style)
-//import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
+import { getMessaging, getToken/*, onMessage */} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
 
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
@@ -46,7 +46,7 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
  * @param {function(Error): void} errorCallback - Callback to execute on error.
  */
 
-/* [01.12.2026] Deleted to prevent duplicate Push
+/* [01.12.2026] Deleted to prevent duplicate Push */
 async function requestNotificationPermissionAndGetFCMToken(successCallback, errorCallback) {
     if (!('Notification' in window)) {
         const error = new Error('This browser does not support notifications.');
@@ -74,7 +74,7 @@ async function requestNotificationPermissionAndGetFCMToken(successCallback, erro
         if (errorCallback) errorCallback(error);
     }
 }
-*/
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 // Example usage: Fetch docs from a collection
