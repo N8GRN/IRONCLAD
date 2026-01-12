@@ -24,17 +24,17 @@ const firebaseConfig = {
     measurementId: "G-6RG40RW2YZ"
 };
 
-/*
+
 // --- Initialize Firebase in the Service Worker ---
 // Use the global 'firebase' object provided by firebase-app-compat.js
 firebase.initializeApp(firebaseConfig);
 
 // Get the Messaging instance using the global 'firebase' object
 const messaging = firebase.messaging();
-*/
 
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+
+//const app = initializeApp(firebaseConfig);
+//const messaging = getMessaging(app);
 
 // --- Handle background messages ---
 messaging.onBackgroundMessage((payload) => {
