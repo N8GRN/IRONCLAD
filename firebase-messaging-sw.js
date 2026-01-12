@@ -8,6 +8,9 @@
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js');
 
+//import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+//import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
+
 // --- Your Project's Firebase Configuration (MUST BE IDENTICAL TO app.js) ---
 const firebaseConfig = {
     apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",

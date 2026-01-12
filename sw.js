@@ -353,6 +353,8 @@ async function syncPendingProjects() {
   }
 }
 
+// MESSAGING / PUSH NOTIFICATIONS
+/*
 self.addEventListener('push', (event) => {
         const data = event.data.json();
         const notificationTitle = data.title || 'New Notification';
@@ -371,7 +373,7 @@ self.addEventListener('push', (event) => {
 
 // MESSAGING / PUSH NOTIFICATIONS
 // --- Your Project's Firebase Configuration (MUST BE IDENTICAL TO app.js) ---
-/*const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
     authDomain: "ironclad-127a5.firebaseapp.com",
     projectId: "ironclad-127a5",
