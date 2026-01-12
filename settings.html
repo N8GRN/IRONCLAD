@@ -118,9 +118,14 @@
     </script> -->
 
     <!-- Main application script, using type="module" -->
-    <script type="module" src="/IRONCLAD/js/app.js"></script>
-    <script type="module" src="/IRONCLAD/js/msgApp.js"></script>
-    <script type="module" src="/IRONCLAD/js/modules.js"></script>
+    
+  <!-- Your main application script, using type="module" -->
+  <script type="module" src="/IRONCLAD/js/app.js"></script>
+  <!--
+  -- loaded in firebase-messaging-sw.js via app.js 
+  <script type="module" src="/IRONCLAD/js/msgApp.js"></script> -->
+  
+  <script type="module" src="/IRONCLAD/js/modules.js"></script>
 
     <!-- Local Database ("Test Mode") -->
     <script src="/IRONCLAD/js/db.js"></script>
