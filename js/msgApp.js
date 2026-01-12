@@ -9,8 +9,12 @@
 
 
 // --- Firebase SDK Imports for the main app (Modular API) ---
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
+//import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+//import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging.js";
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
+
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -33,7 +37,7 @@ const messaging = getMessaging(app);
 // --- DOM Elements ---
 const enableNotificationsButton = document.getElementById('enableNotificationsButton');
 const logDiv = document.getElementById('log');
-const messagesDiv = document.getElementById('messages');
+//const messagesDiv = document.getElementById('messages'); --> Unused
 
 // --- Helper Functions for Logging and Display ---
 function appendLog(message) {
@@ -43,25 +47,9 @@ function appendLog(message) {
     logDiv.scrollTop = logDiv.scrollHeight;
 }
 
-/*  [01.12.2026] - Removed to prevent duplicate Push
-function displayForegroundMessage(payload) {
-    const messageBox = document.createElement('div');
-    messageBox.className = 'message-box';
-    const title = document.createElement('div');
-    title.className = 'message-title';
-    title.textContent = `Title: ${payload.notification?.title || 'N/A'}`;
-    const body = document.createElement('div');
-    body.className = 'message-body';
-    body.textContent = `Body: ${payload.notification?.body || 'N/A'}`;
-    messageBox.appendChild(title);
-    messageBox.appendChild(body);
-    messagesDiv.appendChild(messageBox);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}*/
 
 // --- FCM Specific Logic (Permission & Token) ---
-
-/**
+/*
  * Requests notification permission, registers the service worker, and gets the FCM token.
  */
 async function requestPermissionAndGetFCMToken() {
@@ -122,44 +110,6 @@ async function requestPermissionAndGetFCMToken() {
         }
     }
 }
-/* -- This is handled by "firebase-messaging.js"
-// --- Handle messages when the app is in the foreground ---
-// This listener MUST be set up after DOMContentLoaded.
-onMessage(messaging, (payload) => {
-    appendLog('Message received in foreground:');
-    appendLog(JSON.stringify(payload));
-    displayForegroundMessage(payload);
-
-    // Optionally display a browser notification even when in foreground
-    // This provides a consistent UX.
-    new Notification(payload.notification?.title || 'New Message', {
-        body: payload.notification?.body || 'You have a new notification.',
-        icon: payload.notification?.icon || 'IRONCLAD/img/icons/icon-192x192.png' // Use a generic icon
-    });
-});
-
-
-// --- Handle notification clicks ---
-self.addEventListener('notificationclick', (event) => {
-    console.log('[firebase-messaging-sw.js] Notification clicked:', event.notification);
-    event.notification.close(); // Close the notification when clicked
-
-    const clickedAction = event.action;
-
-    // Check for custom data in the notification
-    const urlToOpen = event.notification.data?.url || '/IRONCLAD/pages/projects.html'; // Default to homepage
-
-    if (clickedAction === 'open_url') {
-        event.waitUntil(clients.openWindow(urlToOpen));
-    } else if (clickedAction === 'dismiss') {
-        // Do nothing, just close the notification
-        console.log('Notification dismissed.');
-    } else {
-        // Default behavior if no specific action or data.url is found
-        event.waitUntil(clients.openWindow(urlToOpen));
-    }
-});
-*/
 
 
 

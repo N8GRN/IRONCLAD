@@ -1,8 +1,19 @@
-// src/firebase.js
+/*
+    Name: modules.js
+    Description: Attempt to load all used Firebase libraries (e.g., Firestore, Messaging, Authorization, etc.) for Global use
+
+    Author: Nathan Green
+    Version: v2.0
+    Last Update: 01.12.2026
+*/
+
+// Core app + Firestore imports (modular style)
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
+import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
 
 
-
-// Your config (you already have this)
+// --- Firebase Configuration ---
 const firebaseConfig = {
   apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
   authDomain: "ironclad-127a5.firebaseapp.com",
@@ -13,14 +24,6 @@ const firebaseConfig = {
   measurementId: "G-6RG40RW2YZ"
 };
 
-
-// Core app + Firestore imports (modular style)
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
-import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
-
-// Firebase Cloud Messaging imports (modular style)
-import { getMessaging, getToken/*, onMessage */} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
-
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
@@ -30,14 +33,11 @@ const db = getFirestore(app);
 // Initialize Firebase Cloud Messaging
 const messaging = getMessaging(app);
 
+// VAPID key from Firebase Console > Project settings > Cloud Messaging
+const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
 
 
 /////////////////////////////////////   MESSAGING   ////////////////////////////////////
-
-// Get the VAPID key from your Firebase Console > Project settings > Cloud Messaging
-// Make sure this is YOUR actual VAPID key!
-const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
-
 // --- FCM Specific Functions ---
 
 /**
@@ -77,6 +77,7 @@ async function requestNotificationPermissionAndGetFCMToken(successCallback, erro
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
+
 // Example usage: Fetch docs from a collection
 async function loadData(col) {
   try {
@@ -102,7 +103,7 @@ function watchCollection(col) {
 
 
 
-// Call your functions (e.g., on page load)
+// Call project functions (e.g., on page load)
 /*
 loadData('projects');
 watchCollection('projects');
