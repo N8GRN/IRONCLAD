@@ -1,7 +1,20 @@
 // js/modules.js - Firebase init, Firestore, FCM (foreground + token handling)
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, getDoc, /*enablePersistence, */enableIndexedDbPersistence } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import { 
+  initializeFirestore,                // Required for custom settings like localCache
+  persistentLocalCache,               // Enables IndexedDB persistence
+  persistentSingleTabManager,         // Single-tab manager (perfect for standalone PWA)
+  CACHE_SIZE_UNLIMITED,               // Optional: no cache size limit
+  collection, 
+  addDoc, 
+  getDocs, 
+  onSnapshot, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
+  getDoc
+} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
 
 // My web app's Firebase configuration
@@ -18,25 +31,19 @@ const firebaseConfig = {
 const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
-// Enable offline persistence (IndexedDB cache for snapshots/queries)
-enableIndexedDbPersistence(db)
-  .then(() => {
-    console.log('Firestore offline persistence enabled successfully');
+// Initialize Firestore with offline persistence enabled (IndexedDB cache via persistentLocalCache)
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    // Single-tab mode (ideal for standalone PWA → no multi-tab conflicts)
+    tabManager: persistentSingleTabManager(),
+    
+    // Optional: unlimited cache size (default is ~40MB; set to CACHE_SIZE_UNLIMITED for no limit)
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED
   })
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open — but in standalone PWA mode, this shouldn't happen
-      console.warn('Persistence failed: Multiple tabs open (unlikely in standalone)');
-    } else if (err.code === 'unimplemented') {
-      // Browser doesn't support persistence (e.g., private browsing or incompatible)
-      console.warn('Persistence not supported in this browser');
-    } else {
-      console.error('Error enabling Firestore persistence:', err);
-    }
-    // App continues online-only — no crash
-  });
+});
+
+console.log('Firestore initialized with modern offline persistence (persistentLocalCache)');
 
 
 const messaging = getMessaging(app);
