@@ -4,6 +4,15 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebas
 import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, getDoc } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
 
+import {
+  getFirestore,
+  initializeFirestore,                // ← Add this
+  persistentLocalCache,               // ← Add this
+  persistentSingleTabManager,         // ← Add this (recommended for most PWAs)
+  CACHE_SIZE_UNLIMITED                // ← Optional, for larger cache
+} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+
+
 // My web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
@@ -18,8 +27,31 @@ const firebaseConfig = {
 const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+//const db = getFirestore(app); [01.13.2026] - Removed to enable offline persistence (see below)
 const messaging = getMessaging(app);
+
+// === Enable Firestore Offline Persistence (IndexedDB cache for snapshots) ===
+let db;
+
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      // Use single-tab manager → persistence works reliably in one tab
+      // (prevents "failed-precondition" errors in multi-tab scenarios)
+      tabManager: persistentSingleTabManager(),
+      
+      // Optional: allow unlimited cache size (default ~40MB)
+      // Remove or set to 40 * 1024 * 1024 for 40MB limit
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED
+    })
+  });
+  console.log('Firestore persistence enabled (single-tab mode)');
+} catch (err) {
+  console.warn('Failed to enable Firestore persistence:', err);
+  
+  // Fallback: use basic getFirestore without persistence
+  db = getFirestore(app);
+}
 
 // Log helper (for settings.html or console)
 function logMessage(msg) {
