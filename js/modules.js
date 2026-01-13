@@ -117,3 +117,5 @@ onMessage(messaging, (payload) => {
 // Export for use in other files
 window.FireDB = db;
 window.requestNotificationPermission = requestNotificationPermission;
+
+// Example usage in settings.html: document.getElementById('enable-btn').addEventListener('click', requestNotificationPermission);
