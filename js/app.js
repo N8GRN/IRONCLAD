@@ -3,16 +3,15 @@
 // ===============================================
 // FIREBASE - Notifications
 // ===============================================
-
+// Add Firebase Cloud Messaging functions here
 
 
 
 // ===============================================
 // FIREBASE - Import library
 // ===============================================
-// // Import the functions you need from the SDKs you need
+// Add Firebase functions here
 
-// This is done at the page level
 
 
 // ===============================================

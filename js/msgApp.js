@@ -111,32 +111,6 @@ async function requestPermissionAndGetFCMToken(successCallback, errorCallback) {
 }
 
 
-
-
-messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message:', payload);
-
-    // Customize the notification that appears to the user.
-    const notificationTitle = "payload.notification?.title" || 'New Message';
-    const notificationOptions = {
-        body: payload.notification?.body + " from msgApp" || 'You have a new notification from Nathan.',
-        // IMPORTANT: Ensure this icon path is correct and the file exists!
-        icon: payload.notification?.icon || '/icon-192x192.png',
-        image: payload.notification?.image, // Optional image
-        badge: '/badge.png', // Optional badge icon
-        data: payload.data, // Custom data from your message payload
-        actions: [ // Example actions
-            { action: 'open_url', title: 'Open' },
-            { action: 'dismiss', title: 'Dismiss' }
-        ]
-    };
-
-    // Show the notification to the user
-    self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-
-
 // --- Event Listeners ---
 self.addEventListener('DOMContentLoaded', () => {    
     
