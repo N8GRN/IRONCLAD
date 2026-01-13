@@ -3,7 +3,7 @@
 
 import {
   collection,
-  getDocs,
+  onSnapshot,
   getDoc,
   doc,
   addDoc,
@@ -46,11 +46,12 @@ async function addNewProject() {
       createdAt: new Date()
     });
 
-    // Optional: clear form fields
+    // Optional: clear form fields after add
     // projectNumberEl.value = "";
-    // customerEl.value = ""; etc.
+    // customerEl.value = "";
+    // etc.
 
-    displayProjects(); // Refresh list
+    // No need to refresh manually - onSnapshot will handle
   } catch (e) {
     console.error("Error adding project:", e);
     alert("Error adding project: " + e.message);
@@ -63,81 +64,87 @@ function clearProjectList() {
   rows.forEach(row => row.remove());
 }
 
-// Display all projects
-async function displayProjects() {
+// Display all projects with real-time updates using onSnapshot
+function displayProjects() {
+  // Clear initial list
   clearProjectList();
   projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>'; // Preserve header if needed
 
-  try {
-    const querySnapshot = await getDocs(collection(db, "projects"));
-    const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // Set up real-time listener
+  onSnapshot(collection(db, "projects"), (querySnapshot) => {
+    try {
+      const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    if (projects.length === 0) {
-      projectsListDiv.insertAdjacentHTML('beforeend', '<p>No projects found. Add one above!</p>');
-      return;
+      clearProjectList(); // Clear before rebuild
+
+      if (projects.length === 0) {
+        projectsListDiv.insertAdjacentHTML('beforeend', '<p>No projects found. Add one above!</p>');
+        return;
+      }
+
+      // Remove any stale loading message
+      document.getElementById("loading-message")?.remove();
+
+      let projectsHtml = '';
+
+      projects.forEach(project => {
+        projectsHtml += `
+          <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
+            <span class="project-number">${project.project || '—'}</span>
+            <span>${project.customer || '—'}</span>
+            <span>${project.application || '—'}</span>
+            <span>${project.owner || '—'}</span>
+            <span>${project.lead || '—'}</span>
+            <span>${project.status || '—'}</span>
+            <span>${project.price || '—'}</span>
+            <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}'); event.stopPropagation();"></div>
+            <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}'); event.stopPropagation();"></div>
+          </div>
+        `;
+      });
+
+      projectsListDiv.insertAdjacentHTML('beforeend', projectsHtml + '<span id="loading-message"></span>');
+
+      // Attach sort listeners after render
+      addSortListeners();
+
+      if (initialLoad) {
+        sortByField(0);
+        initialLoad = false;
+      } else {
+        const sortIndex = parseInt(document.body.getAttribute("data-sortIndex")) || 0;
+        sortByField(sortIndex);
+        sortByField(sortIndex); // Toggle twice to preserve direction
+      }
+
+    } catch (e) {
+      console.error("Error in real-time projects update:", e);
+      projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Error loading projects: ${e.message}</p>`);
     }
-
-    // Remove any stale loading message
-    document.getElementById("loading-message")?.remove();
-
-    let projectsHtml = '';
-
-    projects.forEach(project => {
-      projectsHtml += `
-        <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
-          <span class="project-number">${project.project || '—'}</span>
-          <span>${project.customer || '—'}</span>
-          <span>${project.application || '—'}</span>
-          <span>${project.owner || '—'}</span>
-          <span>${project.lead || '—'}</span>
-          <span>${project.status || '—'}</span>
-          <span>${project.price || '—'}</span>
-          <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}'); event.stopPropagation();"></div>
-          <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}'); event.stopPropagation();"></div>
-        </div>
-      `;
-    });
-
-    projectsListDiv.insertAdjacentHTML('beforeend', projectsHtml + '<span id="loading-message"></span>');
-
-    addSortListeners();
-
-    if (initialLoad) {
-      sortByField(0);
-      initialLoad = false;
-    } else {
-      const sortIndex = parseInt(document.body.getAttribute("data-sortIndex")) || 0;
-      sortByField(sortIndex);
-      sortByField(sortIndex); // Toggle twice to preserve direction
-    }
-
-  } catch (e) {
-    console.error("Error loading projects:", e);
-    projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Error loading projects: ${e.message}</p>`);
-  }
+  }, (error) => {
+    console.error("Snapshot listener error:", error);
+    projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Real-time updates failed: ${error.message}</p>`);
+  });
 }
 
 // Update existing project
 window.editProject = async (id) => {
-  const projectNumberEl = document.getElementById('projectNumber');
-  // ... get other elements the same way
-
   if (!id) return;
 
   try {
     const projectRef = doc(db, "projects", id);
     await updateDoc(projectRef, {
-      project: projectNumberEl.value.trim(),
-      application: document.getElementById('application').value.trim(),
-      customer: document.getElementById('customerName').value.trim(),
-      owner: document.getElementById('owner').value.trim(),
-      lead: document.getElementById('lead').value.trim(),
-      status: document.getElementById('status').value.trim(),
-      price: document.getElementById('price').value.trim(),
+      project: document.getElementById('projectNumber')?.value.trim() || '',
+      application: document.getElementById('application')?.value.trim() || '',
+      customer: document.getElementById('customerName')?.value.trim() || '',
+      owner: document.getElementById('owner')?.value.trim() || '',
+      lead: document.getElementById('lead')?.value.trim() || '',
+      status: document.getElementById('status')?.value.trim() || '',
+      price: document.getElementById('price')?.value.trim() || '',
       updatedAt: new Date()
     });
 
-    displayProjects();
+    // No need to refresh - onSnapshot will handle
   } catch (e) {
     console.error("Error updating project:", e);
     alert("Error updating project: " + e.message);
@@ -150,7 +157,7 @@ window.deleteProject = async (id) => {
 
   try {
     await deleteDoc(doc(db, "projects", id));
-    displayProjects();
+    // onSnapshot will auto-refresh
   } catch (e) {
     console.error("Error deleting project:", e);
     alert("Error deleting project: " + e.message);
@@ -187,12 +194,172 @@ window.populateProjectForm = function (project = {}) {
   form.price.value           = project.price     || "";
 };
 
-// ... (keep the rest of your modal, sorting, getNextProjectNumber, event listeners, etc. unchanged)
-// Just make sure to remove any remaining references to getDocumentById, addDocument, etc.
+// Modal Form
+const modal = document.getElementById('projectModal');
+const closeButton = modal.querySelector('.close-btn');
+const cancelButton = modal.querySelector('.cancel-btn');
+const form = document.getElementById('projectForm');
 
+window.showProjectForm = function (id) {
+  modal.style.display = 'flex'; // Or 'block'
+  form.reset();
+  modal.focus(); // For accessibility
+};
+
+window.showProjectFormWithNextProject = function () {
+  showProjectForm();
+  populateProjectForm({ project: getNextProjectNumber().toString() });
+};
+
+window.showFormAndPopulateProject = function(id) {
+  showProjectForm();
+  loadThisProject(id); // Fetch and populate
+  // Change Button Function
+  let submitBtn = form.querySelector("[type=submit]");
+  submitBtn.innerText = "Update";
+  submitBtn.setAttribute("data-id", id);
+};
+
+const closeModal = () => {
+  modal.style.display = 'none';
+};
+
+closeButton.addEventListener('click', closeModal);
+cancelButton.addEventListener('click', closeModal);
+modal.querySelector('.modal-backdrop')?.addEventListener('click', closeModal); // Close on backdrop click
+
+// Escape key close
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+});
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  let btnSubmit = e.submitter;
+  
+  if (btnSubmit.innerText === "Save") {
+    addNewProject(); // <-- Save New Document
+  } else {
+    let id = btnSubmit.getAttribute('data-id');
+    editProject(id); // <-- Update existing Document
+  }
+  
+  const projectData = Object.fromEntries(new FormData(form));
+  console.log('Saving project:', projectData);
+
+  btnSubmit.innerText = "Save";
+  btnSubmit.setAttribute("data-id", "");
+  closeModal();
+});
+
+// Next Project Number
+const getNextProjectNumber = function () {
+  const projects = document.querySelectorAll(".project-number");
+  let highestExisting = 10000; // lowest possible
+
+  projects.forEach((project) => {
+    let thisNumber = parseInt(project.innerText);
+    if (thisNumber > highestExisting) {
+      highestExisting = thisNumber;
+    }
+  });
+  
+  return highestExisting + 1;
+};
+
+// Sorting Algorithm
+let lastSortColumn = -1;
+let lastSortDirection = 1; // 1 = ascending, -1 = descending
+
+window.sortByField = function(columnIndex) {
+  const projectList = document.getElementById("projects-list");
+  const rows = Array.from(projectList.querySelectorAll(".row")); // Convert to array
+
+  // Separate header (first row) and data rows
+  const header = rows[0];
+  const dataRows = rows.slice(1);
+
+  // Add columnIndex to body to auto-sort when documents are added/removed/changed
+  document.body.setAttribute("data-sortIndex", columnIndex);
+
+  // Determine sort direction: toggle if same column, otherwise default to ascending
+  let direction = 1;
+  if (lastSortColumn === columnIndex) {
+    direction = lastSortDirection * -1; // toggle
+  }
+  lastSortColumn = columnIndex;
+  lastSortDirection = direction;
+
+  // Sort the data rows
+  dataRows.sort((a, b) => {
+    // Get the cell elements at the specified column index
+    const cellA = a.children[columnIndex];
+    const cellB = b.children[columnIndex];
+
+    let valueA = cellA ? cellA.textContent.trim() : "";
+    let valueB = cellB ? cellB.textContent.trim() : "";
+
+    // Special handling for numeric columns
+    if (columnIndex === 0) { // Project # (class="project-number")
+      valueA = parseInt(valueA) || 0;
+      valueB = parseInt(valueB) || 0;
+    } else if (columnIndex === 6) { // Price column
+      // Remove $ and commas, then parse as float
+      valueA = parseFloat(valueA.replace(/[$,]/g, '')) || 0;
+      valueB = parseFloat(valueB.replace(/[$,]/g, '')) || 0;
+    }
+    // For other columns (strings), use localeCompare for proper alphabetical sorting
+
+    let comparison = 0;
+    if (typeof valueA === 'number' && typeof valueB === 'number') {
+      comparison = valueA - valueB;
+    } else {
+      comparison = valueA.localeCompare(valueB);
+    }
+
+    return comparison * direction;
+  });
+
+  // Re-append in sorted order: header first, then sorted data rows
+  projectList.innerHTML = ''; // Clear
+  projectList.appendChild(header);
+  dataRows.forEach(row => projectList.appendChild(row));
+
+  // Optional: Visual feedback — add a class to the header to show sort direction
+  const headerSpans = header.querySelectorAll("span");
+  headerSpans.forEach((span, i) => {
+    span.classList.remove("sorted-asc", "sorted-desc");
+    if (i === columnIndex) {
+      span.classList.add(direction === 1 ? "sorted-asc" : "sorted-desc");
+    }
+  });
+};
+
+window.addSortListeners = function() {
+  const headerRow = document.querySelector("#projects-list .row.header");
+  if (!headerRow) return;
+
+  const headerColumns = headerRow.querySelectorAll("span:not(.icon-column)");
+
+  headerColumns.forEach((span, index) => {
+    // Clean up old listener if exists
+    if (span._sortHandler) {
+      span.removeEventListener("click", span._sortHandler);
+    }
+
+    const handler = () => sortByField(index);
+    span._sortHandler = handler;
+
+    span.addEventListener("click", handler);
+    span.style.cursor = "pointer";
+    span.title = `Click to sort by ${span.innerText.trim()}`;
+  });
+};
+
+// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   if (addProjectButton) {
     addProjectButton.addEventListener('click', addNewProject);
   }
-  displayProjects(); // Initial load
+  displayProjects(); // Initial load and setup real-time listener
 });
