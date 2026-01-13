@@ -8,10 +8,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
-  <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
-  <!-- Apple Splash Screens (iPad portrait) -->
+  <!-- Apple Splash Screens -->
   <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../img/splash/splash-2048x2732.png">
   <link rel="apple-touch-startup-image" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../img/splash/splash-1668x2388.png">
   <link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../img/splash/splash-1536x2048.png">
@@ -25,15 +24,10 @@
   <link rel="apple-touch-icon" href="../img/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="../css/styles.css">
 
-  <title>IRONCLAD CRM</title>
+  <title>IRONCLAD CRM - Sign In</title>
 
   <style>
-    /* Full-screen centered login */
-    html {
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-    }
-
-    body {
+    html, body {
       margin: 0;
       height: 100dvh;
       background: linear-gradient(135deg, #1e3c72, #2a5298);
@@ -45,14 +39,14 @@
     }
 
     .login-container {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
       padding: 3rem 2.5rem;
       border-radius: 24px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
       text-align: center;
       width: 90%;
-      max-width: 420px;
+      max-width: 440px;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
@@ -61,13 +55,19 @@
       height: 120px;
       margin-bottom: 2rem;
       border-radius: 24px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     h1 {
       margin: 0 0 2rem 0;
       font-weight: 600;
-      font-size: 2rem;
+      font-size: 2.2rem;
+    }
+
+    h3 {
+      margin: 1.5rem 0 1rem 0;
+      font-weight: 500;
+      font-size: 1.4rem;
     }
 
     input {
@@ -86,161 +86,195 @@
       color: rgba(255, 255, 255, 0.7);
     }
 
-    .login-btn {
-      margin-top: 1.5rem;
-      padding: 1rem 2.5rem;
-      font-size: 1.2rem;
+    button {
+      /*margin: 1rem 0;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
       font-weight: 600;
       color: white;
+      background: rgba(255, 255, 255, 0.25);
       border: none;
       border-radius: 50px;
-      cursor: pointer;
+      cursor: pointer;*/
       width: 100%;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
     }
 
-    .login-btn:hover,
-    .login-btn:active {
+    button:hover {
+      /*background: rgba(255, 255, 255, 0.35);*/
       transform: translateY(-2px);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #authMessage {
+      margin-top: 1.5rem;
+      min-height: 1.5rem;
+      font-weight: 500;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .button-group button {
+      flex: 1;
+    }
+
+    .small-link {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      display: inline-block;
     }
   </style>
 </head>
 
 <body>
 
-  <!-- Phone Auth Form -->
-<div id="phone-auth-section">
-  <h2>Sign in with Phone Number</h2>
-
-  <!-- Hidden container for invisible reCAPTCHA -->
-  <div id="recaptcha-container" style="display: none;"></div>
-
-  <label for="phoneNumber">Phone Number (with country code, e.g. +17651234567):</label>
-  <input type="tel" id="phoneNumber" placeholder="+1XXXXXXXXXX" required />
-
-  <button id="sendCodeBtn">Send Verification Code</button>
-
-  <div id="code-section" style="display: none; margin-top: 1rem;">
-    <label for="verificationCode">Enter the code you received:</label>
-    <input type="text" id="verificationCode" placeholder="123456" maxlength="6" required />
-    <button id="verifyCodeBtn">Verify & Sign In</button>
-  </div>
-
-  <p id="auth-message" style="color: #d32f2f; min-height: 1.5rem;"></p>
-</div>
-<!--   
-/////////// --- OLD --- //////////////
   <div class="login-container">
-    <img src="../img/icons/user.png" alt="App Logo" class="logo">
-    <h1>Welcome Back</h1>
+    <img src="../img/icons/icon-192x192.png" alt="IRONCLAD Logo" class="logo">
+    <h1>IRONCLAD CRM</h1>
 
-    <input type="text" id="name" placeholder="Your Name" autocomplete="name" required>
-    <input type="password" id="password" placeholder="Password" autocomplete="current-password" required>
+    <!-- Register Section -->
+    <div id="register-section" style="display: none ">
+      <h3>Create Your Account</h3>
+      <input type="text" id="registerUsername" placeholder="Username (e.g., Nathan)" required />
+      <input type="email" id="registerEmail" placeholder="Email Address" required />
+      <input type="password" id="registerPassword" placeholder="Password (6+ characters)" required />
+      <button id="registerBtn">Register</button>
+      <div class="small-link" id="switchToLogin">I already have an account</div>
+    </div>
 
-    <button class="login-btn" onclick="login()">Login</button>
+    <!-- Login Section -->
+    <div id="login-section" style="margin-top: 2rem;">
+      <h3>Sign In</h3>
+      <input type="email" id="loginEmail" placeholder="Email Address" required />
+      <input type="password" id="loginPassword" placeholder="Password" required />
+      <div class="button-group">
+        <button id="loginBtn">Sign In</button>
+        <button id="forgotPasswordBtn">Forgot?</button>
+      </div>
+      <div class="small-link" id="switchToRegister">New here? Create an account</div>
+    </div>
+
+    <p id="authMessage"></p>
   </div>
--->
 
-  <!-- Firestore Database ("Live") -->
+  <!-- Load core modules -->
   <script type="module" src="/IRONCLAD/js/modules.js"></script>
-  
-  <!-- Local Database ("Test Mode") -->
   <script src="/IRONCLAD/js/db.js"></script>
-  
-  <!-- Link JavaScript -->
   <script src="/IRONCLAD/js/app.js"></script>
 
   <script type="module">
-  // Wait for DOM and modules
-  document.addEventListener('DOMContentLoaded', () => {
-    const phoneInput = document.getElementById('phoneNumber');
-    const sendBtn = document.getElementById('sendCodeBtn');
-    const codeSection = document.getElementById('code-section');
-    const codeInput = document.getElementById('verificationCode');
-    const verifyBtn = document.getElementById('verifyCodeBtn');
-    const messageEl = document.getElementById('auth-message');
+    document.addEventListener('DOMContentLoaded', () => {
+      // Elements
+      const registerUsername = document.getElementById('registerUsername');
+      const registerEmail = document.getElementById('registerEmail');
+      const registerPassword = document.getElementById('registerPassword');
+      const registerBtn = document.getElementById('registerBtn');
 
-    function showMessage(text, isError = false) {
-      messageEl.textContent = text;
-      messageEl.style.color = isError ? '#d32f2f' : '#2e7d32';
-    }
+      const loginEmail = document.getElementById('loginEmail');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginBtn = document.getElementById('loginBtn');
+      const forgotBtn = document.getElementById('forgotPasswordBtn');
 
-    sendBtn.addEventListener('click', async () => {
-      const phone = phoneInput.value.trim();
-      if (!phone || !phone.startsWith('+')) {
-        showMessage('Please enter a valid phone number with country code (+1...)', true);
-        return;
+      const messageEl = document.getElementById('authMessage');
+      const registerSection = document.getElementById('register-section');
+      const loginSection = document.getElementById('login-section');
+      const switchLink = document.getElementById('switchToRegister');
+      const switchLink2 = document.getElementById('switchToLogin');
+
+      function showMessage(text, isError = false) {
+        messageEl.textContent = text;
+        messageEl.style.color = isError ? '#ff4444' : '#44ff44';
+        messageEl.style.fontWeight = 'bold';
       }
 
-      sendBtn.disabled = true;
-      showMessage('Sending code...');
+      // Register handler
+      registerBtn.addEventListener('click', async () => {
+        const username = registerUsername.value.trim();
+        const email = registerEmail.value.trim();
+        const password = registerPassword.value;
 
-      const result = await window.AuthAPI.sendPhoneVerificationCode(phone);
+        if (!username || !email || !password) {
+          showMessage('Please fill in username, email, and password.', true);
+          return;
+        }
 
-      sendBtn.disabled = false;
+        registerBtn.disabled = true;
+        showMessage('Creating your account...');
 
-      if (result.success) {
-        showMessage('Code sent! Check your phone.', false);
-        codeSection.style.display = 'block';
-      } else {
-        showMessage(result.message, true);
-      }
+        const result = await window.AuthAPI.register(email, password, username);
+
+        registerBtn.disabled = false;
+
+        if (result.success) {
+          showMessage(`Welcome, ${username}! Redirecting...`, false);
+          setTimeout(() => {
+            window.location.href = '/IRONCLAD/pages/projects.html';
+          }, 1500);
+        } else {
+          showMessage(result.message || 'Registration failed.', true);
+        }
+      });
+
+      // Login handler
+      loginBtn.addEventListener('click', async () => {
+        const email = loginEmail.value.trim();
+        const password = loginPassword.value;
+
+        if (!email || !password) {
+          showMessage('Please enter email and password.', true);
+          return;
+        }
+
+        loginBtn.disabled = true;
+        showMessage('Signing in...');
+
+        const result = await window.AuthAPI.login(email, password);
+
+        loginBtn.disabled = false;
+
+        if (result.success) {
+          showMessage('Welcome back! Redirecting...', false);
+          setTimeout(() => {
+            window.location.href = '/IRONCLAD/pages/projects.html';
+          }, 1500);
+        } else {
+          showMessage(result.message || 'Login failed.', true);
+        }
+      });
+
+      // Forgot password
+      forgotBtn.addEventListener('click', async () => {
+        const email = loginEmail.value.trim() || prompt('Enter your email:');
+        if (!email) return;
+
+        showMessage('Sending reset link...');
+        const result = await window.AuthAPI.resetPassword(email);
+        showMessage(result.message || 'Check your email.', !result.success);
+      });
+
+      // Simple toggle between login/register (optional UX)
+      switchLink.addEventListener('click', () => {
+        registerSection.style.display = registerSection.style.display === 'none' ? 'block' : 'none';
+        loginSection.style.display = loginSection.style.display === 'none' ? 'block' : 'none';
+      });
+
+      switchLink2.addEventListener('click', () => {
+        registerSection.style.display = registerSection.style.display === 'none' ? 'block' : 'none';
+        loginSection.style.display = loginSection.style.display === 'none' ? 'block' : 'none';
+      });
+
     });
-
-    verifyBtn.addEventListener('click', async () => {
-      const code = codeInput.value.trim();
-      if (!code || code.length !== 6) {
-        showMessage('Please enter the 6-digit code', true);
-        return;
-      }
-
-      verifyBtn.disabled = true;
-      showMessage('Verifying...');
-
-      const result = await window.AuthAPI.verifySmsCode(code);
-
-      verifyBtn.disabled = false;
-
-      if (result.success) {
-        showMessage('Welcome! You are signed in.', false);
-        // Redirect or update UI
-        setTimeout(() => {
-          window.location.href = '/IRONCLAD/pages/projects.html'; // or your main page
-        }, 1500);
-      } else {
-        showMessage(result.message, true);
-      }
-    });
-  });
-</script>
-
-  <script>
-    function login() {
-      const name = document.getElementById('name').value.trim();
-      const password = document.getElementById('password').value;
-
-      // Optional: simple validation (remove or enhance later)
-      if (!name || !password) {
-        alert('Please enter both name and password');
-        return;
-      }
-
-      // Save name for later use (optional)
-      localStorage.setItem('userName', name);
-
-      // Navigate to the real main app
-      goToPage("/home");
-    }
-
-    // Allow pressing Enter to login
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Enter') login();
-    });
-  </script>
-
-
-  <script>
-    localStorage.removeItem("userName")
   </script>
 
 </body>

@@ -1,5 +1,5 @@
 // js/app.js - IRONCLAD CRM PWA - Main Application Logic
-// Expects: modules.js loaded first (provides window.FireDB, window.requestNotificationPermissionAndGetFCMToken)
+// Expects: modules.js loaded first (provides window.FireDB, window.AuthAPI, window.requestNotificationPermission)
 // ===============================================
 
 const REPO_ = "/IRONCLAD";
@@ -26,6 +26,28 @@ window.onload = function () {
   const enableBtn = document.getElementById('enableNotificationsButton');
   if (enableBtn && window.requestNotificationPermission) {
     enableBtn.addEventListener('click', window.requestNotificationPermission);
+  }
+
+  // Auth state listener - protect pages & update UI
+  if (window.AuthAPI) {
+    window.AuthAPI.onAuthChange((user) => {
+      if (!user) {
+        // Not logged in → redirect to login (except on login page itself)
+        if (!window.location.pathname.includes('/login.html')) {
+          console.log('No authenticated user - redirecting to login');
+          window.location.replace(REPO_ + '/login.html');
+        }
+      } else {
+        console.log('Logged in as:', user.email);
+        // Fetch and store username if not already in localStorage
+        window.AuthAPI.getUserProfile(user.uid).then(profile => {
+          if (profile && profile.username) {
+            localStorage.setItem('activeUsername', profile.username);
+            drawUser(); // Refresh UI with username
+          }
+        });
+      }
+    });
   }
 };
 
@@ -248,7 +270,7 @@ function drawUser() {
 }
 
 function getActiveUser() {
-  return localStorage.getItem('userName') || "Guest";
+  return localStorage.getItem('activeUsername') || "Guest";
 }
 
 // ===============================================

@@ -1,19 +1,30 @@
-// js/modules.js - Firebase init, Firestore, FCM (foreground + token handling)
+// js/modules.js - Firebase init, Firestore, Auth, FCM (foreground + token handling)
+// Updated Jan 13, 2026 - added email/password auth + user profile support
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, getDoc } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  onSnapshot, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
+  getDoc,
+  setDoc
+} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
 
-// SMS verification
-//--------------------------------------------------------------------
+// Authentication imports
 import {
   getAuth,
-  signInWithPhoneNumber,
-  RecaptchaVerifier,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
-  signOut
+  sendPasswordResetEmail
 } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
-//--------------------------------------------------------------------
 
 // My web app's Firebase configuration
 const firebaseConfig = {
@@ -29,116 +40,138 @@ const firebaseConfig = {
 const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
 
 const app = initializeApp(firebaseConfig);
+
+// Firestore instance
 const db = getFirestore(app);
+
+// Messaging instance
 const messaging = getMessaging(app);
 
-// [01.13.2026] - NEW
-// -------------------------------------------------------------------------
-// Initialize Auth
+// Auth instance
 const auth = getAuth(app);
 
-// Invisible reCAPTCHA verifier (created once, reused)
-let recaptchaVerifier = null;
+// ───────────────────────────────────────────────
+// Auth API - Wrapped helpers for safe usage
+// ───────────────────────────────────────────────
+const AuthAPI = {
+  // Register new user + save profile
+  register: async (email, password, username) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-// Initialize reCAPTCHA verifier (lazy init on first use)
-function initRecaptchaVerifier() {
-  if (!recaptchaVerifier) {
-    recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      size: 'invisible',
-      callback: (response) => {
-        console.log('reCAPTCHA solved, ready to send code');
-      },
-      'expired-callback': () => {
-        console.warn('reCAPTCHA expired');
-        alert('reCAPTCHA expired. Please try again.');
+      // Save profile to Firestore
+      const profileResult = await AuthAPI.saveUserProfile(user.uid, username, email);
+      if (!profileResult.success) {
+        return { success: false, message: profileResult.message };
       }
-    });
-  }
-  return recaptchaVerifier;
-}
 
-// Global variable to hold confirmation result
-let confirmationResult = null;
-
-// Send SMS verification code
-async function sendPhoneVerificationCode(phoneNumber) {
-  try {
-    initRecaptchaVerifier();
-    // Make sure reCAPTCHA is rendered/verified
-    await recaptchaVerifier.render();
-    confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
-    console.log('SMS code sent successfully');
-    return { success: true, message: 'Code sent! Check your phone.' };
-  } catch (error) {
-    console.error('Error sending SMS code:', error);
-    let message = 'Failed to send code. Please try again.';
-    if (error.code === 'auth/invalid-phone-number') {
-      message = 'Invalid phone number format. Use +1XXXXXXXXXX';
-    } else if (error.code === 'auth/too-many-requests') {
-      message = 'Too many attempts. Try again later.';
-    } else if (error.code === 'auth/missing-recaptcha') {
-      message = 'reCAPTCHA failed. Refresh and try again.';
+      console.log('Registered & profile saved:', user.uid);
+      return { success: true, user };
+    } catch (error) {
+      console.error('Registration failed:', error.code, error.message);
+      let msg = 'Registration failed. Please try again.';
+      if (error.code === 'auth/email-already-in-use') msg = 'This email is already registered.';
+      if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
+      if (error.code === 'auth/weak-password') msg = 'Password should be at least 6 characters.';
+      return { success: false, message: msg };
     }
-    return { success: false, message, error };
-  }
-}
+  },
 
-// Verify the code entered by user
-async function verifySmsCode(code) {
-  if (!confirmationResult) {
-    return { success: false, message: 'No verification in progress. Send code first.' };
-  }
+  // Sign in existing user
+  login: async (email, password) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-  try {
-    const userCredential = await confirmationResult.confirm(code);
-    const user = userCredential.user;
-    console.log('User signed in:', user.uid, user.phoneNumber);
+      // Fetch profile for username
+      const profile = await AuthAPI.getUserProfile(user.uid);
+      if (profile) {
+        localStorage.setItem('activeUsername', profile.username);
+      }
 
-    // Optional: store user info
-    localStorage.setItem('userPhone', user.phoneNumber);
-    localStorage.setItem('userUid', user.uid);
-
-    return { success: true, user, message: 'Login successful!' };
-  } catch (error) {
-    console.error('Code verification failed:', error);
-    let message = 'Invalid or expired code.';
-    if (error.code === 'auth/invalid-verification-code') {
-      message = 'Wrong code. Please check and try again.';
-    } else if (error.code === 'auth/code-expired') {
-      message = 'Code expired. Request a new one.';
+      console.log('Signed in:', user.uid);
+      return { success: true, user };
+    } catch (error) {
+      console.error('Login failed:', error.code, error.message);
+      let msg = 'Login failed. Please check your credentials.';
+      if (error.code === 'auth/user-not-found') msg = 'No account found with this email.';
+      if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
+      if (error.code === 'auth/invalid-email') msg = 'Invalid email format.';
+      return { success: false, message: msg };
     }
-    return { success: false, message, error };
-  }
-}
+  },
 
-// Listen for auth state changes (useful for UI updates)
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log('User is signed in:', user.phoneNumber);
-    // You can update UI, redirect, etc.
-    localStorage.setItem('userPhone', user.phoneNumber);
-    localStorage.setItem('userUid', user.uid);
-    // Optional: call your drawUser() or similar
-  } else {
-    console.log('User is signed out');
-    localStorage.removeItem('userPhone');
-    localStorage.removeItem('userUid');
-  }
-});
+  // Logout
+  logout: async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem('activeUsername');
+      console.log('Signed out');
+      return { success: true };
+    } catch (error) {
+      console.error('Logout failed:', error);
+      return { success: false, message: 'Logout failed. Try again.' };
+    }
+  },
 
-// Logout function
-async function logout() {
-  try {
-    await signOut(auth);
-    console.log('Signed out');
-    localStorage.clear(); // or just remove auth keys
-  } catch (error) {
-    console.error('Logout failed:', error);
-  }
-}
-// -------------------------------------------------------------------------
+  // Password reset
+  resetPassword: async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { success: true, message: 'Password reset email sent!' };
+    } catch (error) {
+      console.error('Reset failed:', error);
+      let msg = 'Failed to send reset email.';
+      if (error.code === 'auth/user-not-found') msg = 'No account found with this email.';
+      return { success: false, message: msg };
+    }
+  },
 
-// Log helper (for settings.html or console)
+  // Save user profile to Firestore
+  saveUserProfile: async (uid, username, email) => {
+    try {
+      const userRef = doc(db, "users", uid);
+      await setDoc(userRef, {
+        username: username.trim(),
+        email: email.trim(),
+        createdAt: new Date()
+      });
+      console.log('User profile saved:', uid);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      return { success: false, message: 'Profile save failed. Contact support.' };
+    }
+  },
+
+  // Get user profile from Firestore
+  getUserProfile: async (uid) => {
+    try {
+      const userRef = doc(db, "users", uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        return userSnap.data();
+      } else {
+        console.warn('No profile found for UID:', uid);
+        return null;
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      return null;
+    }
+  },
+
+  // Current user
+  getCurrentUser: () => auth.currentUser,
+
+  // Auth state listener
+  onAuthChange: (callback) => onAuthStateChanged(auth, callback)
+};
+
+// ───────────────────────────────────────────────
+// FCM & Logging (unchanged from your original)
+// ───────────────────────────────────────────────
 function logMessage(msg) {
   const logEl = document.getElementById('notification-log');
   if (logEl) {
@@ -149,7 +182,6 @@ function logMessage(msg) {
   }
 }
 
-// Request permission and get FCM token
 async function requestNotificationPermission() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
     logMessage('Notifications or SW not supported in this browser.');
@@ -157,7 +189,7 @@ async function requestNotificationPermission() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready; // assumes sw.js registered
+    const registration = await navigator.serviceWorker.ready;
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       logMessage('Notification permission denied.');
@@ -172,7 +204,7 @@ async function requestNotificationPermission() {
 
     if (token) {
       logMessage(`FCM Token: ${token}`);
-      // TODO: Send token to your server / save to Firestore user doc
+      // TODO: Send token to server / save to Firestore user doc
       return token;
     } else {
       logMessage('No registration token available.');
@@ -184,7 +216,6 @@ async function requestNotificationPermission() {
   }
 }
 
-// Foreground message handler
 onMessage(messaging, (payload) => {
   logMessage('Foreground FCM message received: ' + JSON.stringify(payload));
   const title = payload.notification?.title || 'IRONCLAD Update';
@@ -195,19 +226,11 @@ onMessage(messaging, (payload) => {
   new Notification(title, options);
 });
 
-// Export for use in other files (or attach to window if no modules)
+// ───────────────────────────────────────────────
+// Exports
+// ───────────────────────────────────────────────
 window.FireDB = db;
+window.AuthAPI = AuthAPI;
 window.requestNotificationPermission = requestNotificationPermission;
 
-// Example usage in settings.html: document.getElementById('enable-btn').addEventListener('click', requestNotificationPermission);
-
-
-// Export: SMS Authorization
-window.AuthAPI = {
-  sendPhoneVerificationCode,
-  verifySmsCode,
-  logout,
-  getCurrentUser: () => auth.currentUser
-};
-
-console.log('Auth module loaded');
+console.log('modules.js fully loaded – FireDB, AuthAPI, and FCM ready');

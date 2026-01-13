@@ -35,7 +35,7 @@
     </header>
 
     <main>
-        <button id="openProjectModal" onclick="showProjectFormWithNextProject();">New Project</button>
+        <button id="openProjectModal" onclick="showProjectFormWithNextProject();" class="wide-button">New Project</button>
         <br>
         <div id="projects-list" class="pseudo-table">
             <div class="row header">
@@ -57,7 +57,7 @@
 
     <footer>
         <div class="button-space">
-            <button onclick="location.href='home.html'">Home</button>
+            <button onclick="location.href='home.html'" class="wide-button">Home</button>
         </div>
     </footer>
 
@@ -87,6 +87,9 @@
     <!-- Link JavaScript -->
     <script type="module" src="../js/modules.js"></script>
     <script type="module" src="../js/projects.js"></script>
+    
+    <!-- Required for Authentication -->
+    <script type="module" src="../js/app.js"></script>
 </body>
 
 </html>

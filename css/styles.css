@@ -220,7 +220,7 @@ form input {
 }
 
 form button {
-    min-width: 300px;
+    min-width: 150px; /* [01.13.2026] Previously 300px*/
 }
 
 
@@ -667,9 +667,14 @@ span#username {
 }
 
 .button-space {
+    /*display: flex;
+    flex-direction: column;
+    min-height: clamp(50px, 25dvh, 100%);*/
     display: flex;
     flex-direction: column;
     min-height: clamp(50px, 25dvh, 100%);
+    flex-wrap: nowrap;
+    justify-content: space-evenly;
 }
 
 button, .button {
@@ -682,12 +687,19 @@ button, .button {
     border-radius: 999px;
     transition:all .2s;
     border: 2px solid var(--btn3);
-    line-height: 1.6rem;
+    line-height: 1.4rem;
     text-align: center;
-    min-width: clamp(50px, 70dvw, 80%);
+
+    /* This causes too many problems, use ".wide-button" where needed */
+    /*min-width: clamp(50px, 70dvw, 80%);*/
     width: -webkit-fit-content;
     margin: 0 auto;
     white-space: nowrap;
+}
+
+.wide-button {
+    width: -webkit-fill-available;
+    margin: 0 15%;
 }
 
 
