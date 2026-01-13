@@ -1,0 +1,44 @@
+{
+  "name": "IRONCLAD CRM",
+  "id": "/IRONCLAD/",
+  "short_name": "IRONCLAD",
+  "description": "Roofing Estimator",
+  "start_url": "/IRONCLAD/",
+  "scope": "/IRONCLAD/",
+  "display": "standalone",
+  "background_color": "#033c77",
+  "theme_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "lang": "en-US",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/IRONCLAD/img/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/IRONCLAD/img/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/IRONCLAD/img/splash/splash-2048x2732.png",
+      "sizes": "2048x2732",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "IRONCLAD CRM Homescreen"
+    },
+    {
+      "src": "/IRONCLAD/img/splash/splash-2048x2732.png",
+      "sizes": "2048x2732",
+      "type": "image/png",
+      "label": "IRONCLAD CRM Homescreen"
+    }
+  ],
+  "gcm_sender_id": "57257280088"
+}

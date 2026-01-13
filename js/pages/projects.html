@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.1, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="IRONCLAD CRM">
+  <meta name="apple-mobile-web-app-status-bar" content="#ffffff">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+
+  <!-- Apple Splash Screens (iPad portrait) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../img/splash/splash-2048x2732.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../img/splash/splash-1668x2388.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="../img/splash/splash-1536x2048.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="../favicon.png">
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <link rel="shortcut icon" href="../favicon.png">
+
+  <link rel="manifest" href="../manifest.json">
+  <link rel="apple-touch-icon" href="../img/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../css/styles.css">
+
+  <title>IRONCLAD CRM</title>
+</head>
+<body>
+
+    <header>
+        <img src="../img/icons/logo.png">
+        <h2>My Projects</h2>
+    </header>
+
+    <main>
+        <!--
+        <h2>Add New Project</h2>
+        <form class="pseudo-table">
+            <input type="text" id="projectNumber" placeholder="Project Number">
+            <input type="text" id="customerName" placeholder="Customer Name">
+            <input type="text" id="application" placeholder="Application">
+            <input type="text" id="owner" placeholder="Owner">
+            <input type="text" id="lead" placeholder="Lead">
+            <input type="text" id="status" placeholder="Status">
+            <input type="text" id="price" placeholder="Price">
+            <div class="button-space"><button id="addProjectButton" >+</button></div>
+        </form>
+        -->
+
+        <button id="openProjectModal" onclick="showProjectFormWithNextProject();">New Project</button>
+        <br>
+        <div id="projects-list" class="pseudo-table">
+            <div class="row header">
+                <span>Project #</span>
+                <span>Customer Name</span>
+                <span>Application</span>
+                <span>Owner</span>
+                <span>Lead</span>
+                <span>Status</span>
+                <span>Price</span>
+                <span class="icon-column"></span>
+                <span class="icon-column"></span>
+            </div>
+            <span id="loading-message">Loading projects...</span>
+        </div>
+
+        
+    </main>
+
+    <footer>
+        <div class="button-space">
+            <button onclick="location.href='home.html'">Home</button>
+        </div>
+    </footer>
+
+    <!-- Modal Dialog  -->
+
+        <div id="projectModal" class="project-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"
+            style="display: none;">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <form id="projectForm">
+                    <button class="close-btn" type="button" aria-label="Close">✕</button>
+                    <h2>Add New Project</h2>
+                    <input type="text" id="projectNumber" placeholder="Project Number" required>
+                    <input type="text" id="customerName" placeholder="Customer Name" required>
+                    <input type="text" id="application" placeholder="Application">
+                    <input type="text" id="owner" placeholder="Owner">
+                    <input type="text" id="lead" placeholder="Lead">
+                    <input type="text" id="status" placeholder="Status">
+                    <input type="text" id="price" placeholder="$ Price">
+                    <div class="button-space">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    <!-- Link JavaScript -->
+    <!-- <script type='module' src="../js/firebase-services.js"></script> -->
+    <script type='module' src="../js/projects.js"></script>
+</body>
+
+</html>

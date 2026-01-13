@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Push Notifications Test</title>
+    <link rel="manifest" href="../manifest.json"> <!-- Important for PWA features -->
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+        #log { margin-top: 20px; text-align: left; background: #f0f0f0; padding: 10px; border-radius: 5px; max-height: 300px; overflow-y: auto; }
+        button { padding: 10px 15px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        .message-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #e0f7fa;
+            border-radius: 4px;
+        }
+        .message-title { font-weight: bold; }
+        .message-body { font-size: 0.9em; color: #333; }
+    </style>
+</head>
+<body>
+    <h1>Firebase Push Notifications Test</h1>
+    <p>This PWA demonstrates receiving push notifications.</p>
+
+    <button id="requestPermissionButton">Request Notification Permission</button>
+
+    <div id="log">
+        <p><strong>Console Log:</strong></p>
+    </div>
+
+    <div id="messages">
+        <p><strong>Received Messages (Foreground):</strong></p>
+    </div>
+
+    <!-- The main app script -->
+    <script type="module" src="/IRONCLAD/js/app.js"></script>
+</body>
+</html>
