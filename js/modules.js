@@ -1,20 +1,8 @@
 // js/modules.js - Firebase init, Firestore, FCM (foreground + token handling)
-// Downgraded to stable v10.14.1; uses enableIndexedDbPersistence for offline caching
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  getDocs, 
-  onSnapshot, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
-  getDoc,
-  enableIndexedDbPersistence  // Correct for v10.x modular
-} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
+import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, getDoc } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
 
 // My web app's Firebase configuration
 const firebaseConfig = {
@@ -31,22 +19,6 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-// Enable offline persistence (IndexedDB cache for snapshots/queries)
-enableIndexedDbPersistence(db, { synchronizeTabs: false })  // synchronizeTabs: false for single-tab/standalone PWA
-  .then(() => {
-    console.log('Firestore offline persistence enabled successfully (stable v10.x)');
-  })
-  .catch((err) => {
-    console.error('Error enabling persistence:', err);
-    if (err.code === 'failed-precondition') {
-      console.warn('Persistence failed: Multiple tabs open (unlikely in standalone PWA)');
-    } else if (err.code === 'unimplemented') {
-      console.warn('Persistence not supported in this browser/environment');
-    }
-    // App continues online-only
-  });
-
 const messaging = getMessaging(app);
 
 // Log helper (for settings.html or console)
