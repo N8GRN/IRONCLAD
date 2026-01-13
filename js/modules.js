@@ -1,4 +1,6 @@
 // js/modules.js - Firebase init, Firestore, FCM (foreground + token handling)
+// Uses modern initializeFirestore + persistentLocalCache for offline persistence
+// With fallback and error handling to avoid initialization issues
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
 import { 
@@ -6,6 +8,7 @@ import {
   persistentLocalCache,               // Enables IndexedDB persistence
   persistentSingleTabManager,         // Single-tab manager (perfect for standalone PWA)
   CACHE_SIZE_UNLIMITED,               // Optional: no cache size limit
+  getFirestore,                       // Fallback if initializeFirestore fails
   collection, 
   addDoc, 
   getDocs, 
@@ -33,18 +36,24 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore with offline persistence enabled (IndexedDB cache via persistentLocalCache)
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    // Single-tab mode (ideal for standalone PWA → no multi-tab conflicts)
-    tabManager: persistentSingleTabManager(),
-    
-    // Optional: unlimited cache size (default is ~40MB; set to CACHE_SIZE_UNLIMITED for no limit)
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED
-  })
-});
-
-console.log('Firestore initialized with modern offline persistence (persistentLocalCache)');
-
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      // Single-tab mode (ideal for standalone PWA → no multi-tab conflicts)
+      tabManager: persistentSingleTabManager(),
+      
+      // Optional: unlimited cache size (default is ~40MB; set to CACHE_SIZE_UNLIMITED for no limit)
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED
+    })
+  });
+  console.log('Firestore initialized with modern offline persistence (persistentLocalCache)');
+} catch (err) {
+  console.error('Error initializing Firestore with persistence:', err);
+  // Fallback to basic Firestore without persistence
+  db = getFirestore(app);
+  console.log('Fallback: Firestore initialized without persistence');
+}
 
 const messaging = getMessaging(app);
 
@@ -67,7 +76,7 @@ async function requestNotificationPermission() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready; // assumes sw.js registered
+    const registration = await navigator.serviceWorker.ready;
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       logMessage('Notification permission denied.');
@@ -105,7 +114,7 @@ onMessage(messaging, (payload) => {
   new Notification(title, options);
 });
 
-// Export for use in other files (or attach to window if no modules)
+// Export for use in other files
 window.FireDB = db;
 window.requestNotificationPermission = requestNotificationPermission;
 
