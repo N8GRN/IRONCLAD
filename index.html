@@ -98,6 +98,54 @@
       goToPage('/home');
     }, 600);
 
+    
+  /*if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/IRONCLAD/sw.js')
+        .then(reg => {
+          console.log('Service Worker registered with scope:', reg.scope);
+        })
+        .catch(err => {
+          console.error('Service Worker registration failed:', err);
+        });
+    });
+  }*/
+    // Safe Service Worker registration – works locally AND in production
+
+    
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/IRONCLAD/sw.js')
+          .then(reg => {
+            console.log('Service Worker registered!', reg);
+
+            // Optional: nice update prompt
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  /*if (confirm('New version available! Reload to update?')) {
+                    window.location.reload();
+                  }*/
+                }
+              });
+            });
+          })
+          .catch(err => {
+            console.warn('Service Worker registration failed:', err);
+            // This is expected when opening file:// or on insecure origins
+          });
+      });
+    } else {
+      console.warn('Service Workers are not supported in this browser');
+    }
+    
+
+    // Redirect to login if not already there
+    //if (!location.pathname.includes('login.html')) {
+
   </script>
 </body>
 
