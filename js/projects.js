@@ -1,7 +1,7 @@
 // /js/app.js - For the page that manages 'projects'
 
 // Import specific functions from your firebase-service
-//import { addDocument, getCollectionData, updateDocument, deleteDocument, getDocumentById } from './firebase-service.js';
+import { addDocument, getCollectionData, updateDocument, deleteDocument, getDocumentById } from './firebase-service.js';
 
 
 
@@ -156,11 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addProjectButton) {
         addProjectButton.addEventListener('click', addNewProject);
     }
-
     displayProjects(); // Initial load
-
-    // Need to add listener for complete or use this as a callback funcion when displayProjects() is complete
-    //setTimeout(function(){sortByField(0)}, 2000); // Initial sort
 });
 
 // Next Project Number
