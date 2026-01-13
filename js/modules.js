@@ -10,7 +10,7 @@
 // Core app + Firestore imports (modular style)
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
 import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
+//import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
 
 
 // --- Firebase Configuration ---
@@ -27,10 +27,10 @@ const firebaseConfig = {
 // Initialize Firebase App, Firestore, and Firebase Cloud Messaging
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const messaging = getMessaging(app);
+//const messaging = getMessaging(app);
 
 // VAPID key from Firebase Console > Project settings > Cloud Messaging
-const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
+//const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
 
 
 /////////////////////////////////////   MESSAGING   ////////////////////////////////////
