@@ -669,7 +669,7 @@ button, .button {
     color:white;
     padding:1rem 2rem; 
     text-decoration:none; 
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     border-radius: 999px;
     transition:all .2s;
     border: 2px solid var(--btn3);
