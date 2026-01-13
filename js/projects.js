@@ -1,393 +1,365 @@
-// /js/app.js - For the page that manages 'projects'
+// js/projects.js - Project Management Page Logic
+// Uses centralized FireDB from modules.js + direct Firestore imports
 
-// Import specific functions from your firebase-service
-import { addDocument, getCollectionData, updateDocument, deleteDocument, getDocumentById } from './firebase-service.js';
+import {
+  collection,
+  onSnapshot,
+  getDoc,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-
+const db = window.FireDB; // ← Critical: comes from modules.js
 
 const addProjectButton = document.getElementById('addProjectButton');
 const projectsListDiv = document.getElementById('projects-list');
-var initialLoad = true;
+let initialLoad = true;
 
-// Function to add a new project
+// Add a new project
 async function addNewProject() {
+  const projectNumberEl = document.getElementById('projectNumber');
+  const customerEl     = document.getElementById('customerName');
+  const applicationEl  = document.getElementById('application');
+  const ownerEl        = document.getElementById('owner');
+  const leadEl         = document.getElementById('lead');
+  const statusEl       = document.getElementById('status');
+  const priceEl        = document.getElementById('price');
 
-    const projectNumber = document.getElementById('projectNumber');
-    const customer = document.getElementById('customerName');
-    const application = document.getElementById('application');
-    const owner = document.getElementById('owner');
-    const lead = document.getElementById('lead');
-    const status = document.getElementById('status');
-    const price = document.getElementById('price');
-    const project = projectNumber.value.trim();
+  const projectNum = projectNumberEl.value.trim();
 
-    if (project === "") {
-        alert("Project Number cannot be empty!");
-        return;
-    }
+  if (!projectNum) {
+    alert("Project Number cannot be empty!");
+    return;
+  }
 
-    try {
-        // Use the generic addDocument function, specifying 'projects' collection
-        await addDocument("projects", {
-            project: projectNumber.value.trim(),
-            application: application.value.trim(),
-            customer: customer.value.trim(),
-            owner: owner.value.trim(),
-            lead: lead.value.trim(),
-            status: status.value.trim(),
-            price: price.value.trim()
-        });
-        //project.value = ""; // Clear input field  // <-- come back to this
-        displayProjects(); // Refresh the list
-    } catch (e) {
-        alert("Error adding project: " + e.message);
+  try {
+    await addDoc(collection(db, "projects"), {
+      project: projectNum,
+      application: applicationEl.value.trim(),
+      customer: customerEl.value.trim(),
+      owner: ownerEl.value.trim(),
+      lead: leadEl.value.trim(),
+      status: statusEl.value.trim(),
+      price: priceEl.value.trim(),
+      createdAt: new Date()
+    });
 
-    }
+    // Optional: clear form fields after add
+    // projectNumberEl.value = "";
+    // customerEl.value = "";
+    // etc.
+
+    // No need to refresh manually - onSnapshot will handle
+  } catch (e) {
+    console.error("Error adding project:", e);
+    alert("Error adding project: " + e.message);
+  }
 }
 
 function clearProjectList() {
-    var projectList = document.getElementById("projects-list");
-    var projects = projectList.querySelectorAll(".row");
-    for (let i = 1; i < projects.length; i++) {
-        projects[i].parentNode.removeChild(projects[i]);
-    }
+  const projectList = document.getElementById("projects-list");
+  const rows = projectList.querySelectorAll(".row:not(.header)"); // Skip header
+  rows.forEach(row => row.remove());
 }
 
-// Function to display existing projects
-async function displayProjects() {
-    clearProjectList();
+// Display all projects with real-time updates using onSnapshot
+function displayProjects() {
+  // Clear initial list
+  clearProjectList();
+  projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>'; // Preserve header if needed
+
+  // Set up real-time listener
+  onSnapshot(collection(db, "projects"), (querySnapshot) => {
     try {
-        const projects = await getCollectionData("projects");
+      const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (projects.length === 0) {
-            projectsListDiv.innerHTML = '<p>No projects found. Add one above!</p>';
-            return;
-        }
-        
-        let loadingMessage = document.getElementById("loading-message");
-        if(loadingMessage){loadingMessage.parentElement.removeChild(loadingMessage);}
-        let projectsHtml = projectsListDiv.innerHTML; // Keeps the header row
+      clearProjectList(); // Clear before rebuild
 
-        projects.forEach((project) => {
-            projectsHtml += `
-                <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
-                    <span class="project-number">${project.project}</span>
-                    <span>${project.customer}</span>
-                    <span>${project.application}</span>
-                    <span>${project.owner}</span>
-                    <span>${project.lead}</span>
-                    <span>${project.status}</span>
-                    <span>${project.price}</span>
-                    <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}')"></div>
-                    <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}')"></div>
-                </div>
-            `;
-        });
+      if (projects.length === 0) {
+        projectsListDiv.insertAdjacentHTML('beforeend', '<p>No projects found. Add one above!</p>');
+        return;
+      }
 
-        projectsHtml += '<span id="loading-message"></span>';
-        projectsListDiv.innerHTML = projectsHtml;
+      // Remove any stale loading message
+      document.getElementById("loading-message")?.remove();
 
-        // CRITICAL: Attach sort listeners ONLY AFTER the table is fully rendered
-        addSortListeners();
+      let projectsHtml = '';
 
-        // This may result in the sort-direction changing if a sort is already applied
-        // sortByField(document.body.getAttribute("data-softIndex") || 0);
-        
-        if (initialLoad === true) {    
-            sortByField(0);
-            initialLoad = false;
-        } else {
-            // Do twice to keep sort direction from inverting
-            sortByField(parseInt(document.body.getAttribute("data-sortIndex")) || 0);
-            sortByField(parseInt(document.body.getAttribute("data-sortIndex")) || 0);
-        }
+      projects.forEach(project => {
+        projectsHtml += `
+          <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
+            <span class="project-number">${project.project || '—'}</span>
+            <span>${project.customer || '—'}</span>
+            <span>${project.application || '—'}</span>
+            <span>${project.owner || '—'}</span>
+            <span>${project.lead || '—'}</span>
+            <span>${project.status || '—'}</span>
+            <span>${project.price || '—'}</span>
+            <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}'); event.stopPropagation();"></div>
+            <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}'); event.stopPropagation();"></div>
+          </div>
+        `;
+      });
+
+      projectsListDiv.insertAdjacentHTML('beforeend', projectsHtml + '<span id="loading-message"></span>');
+
+      // Attach sort listeners after render
+      addSortListeners();
+
+      if (initialLoad) {
+        sortByField(0);
+        initialLoad = false;
+      } else {
+        const sortIndex = parseInt(document.body.getAttribute("data-sortIndex")) || 0;
+        sortByField(sortIndex);
+        sortByField(sortIndex); // Toggle twice to preserve direction
+      }
 
     } catch (e) {
-        projectsListDiv.innerHTML = '<p style="color: red;">Error loading projects: ' + e.message + '</p>';
+      console.error("Error in real-time projects update:", e);
+      projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Error loading projects: ${e.message}</p>`);
     }
+  }, (error) => {
+    console.error("Snapshot listener error:", error);
+    projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Real-time updates failed: ${error.message}</p>`);
+  });
 }
 
-// Example edit and delete functions
+// Update existing project
 window.editProject = async (id) => {
-    const projectNumber = document.getElementById('projectNumber');
-    const customer = document.getElementById('customerName');
-    const application = document.getElementById('application');
-    const owner = document.getElementById('owner');
-    const lead = document.getElementById('lead');
-    const status = document.getElementById('status');
-    const price = document.getElementById('price');
+  if (!id) return;
 
-    if (id) { // An existing document ID was passes, try updating before creating a new document
-        try {
-            // Use the generic addDocument function, specifying 'projects' collection
-            // HERE
-            await updateDocument("projects", id, {
-                project: projectNumber.value.trim(),
-                application: application.value.trim(),
-                customer: customer.value.trim(),
-                owner: owner.value.trim(),
-                lead: lead.value.trim(),
-                status: status.value.trim(),
-                price: price.value.trim()
-            });
-            displayProjects();
-            return;
-        } catch (e) {
-            alert("Error updating project: " + e.message);
-        }
-    }
+  try {
+    const projectRef = doc(db, "projects", id);
+    await updateDoc(projectRef, {
+      project: document.getElementById('projectNumber')?.value.trim() || '',
+      application: document.getElementById('application')?.value.trim() || '',
+      customer: document.getElementById('customerName')?.value.trim() || '',
+      owner: document.getElementById('owner')?.value.trim() || '',
+      lead: document.getElementById('lead')?.value.trim() || '',
+      status: document.getElementById('status')?.value.trim() || '',
+      price: document.getElementById('price')?.value.trim() || '',
+      updatedAt: new Date()
+    });
 
+    // No need to refresh - onSnapshot will handle
+  } catch (e) {
+    console.error("Error updating project:", e);
+    alert("Error updating project: " + e.message);
+  }
 };
 
+// Delete project
 window.deleteProject = async (id) => {
-    if (confirm("Are you sure you want to delete this project?")) {
-        try {
-            await deleteDocument("projects", id);
-            displayProjects(); // Refresh list
-        } catch (e) {
-            alert("Error deleting project: " + e.message);
-        }
-    }
+  if (!confirm("Are you sure you want to delete this project?")) return;
+
+  try {
+    await deleteDoc(doc(db, "projects", id));
+    // onSnapshot will auto-refresh
+  } catch (e) {
+    console.error("Error deleting project:", e);
+    alert("Error deleting project: " + e.message);
+  }
 };
 
-
-// Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-    if (addProjectButton) {
-        addProjectButton.addEventListener('click', addNewProject);
+// Load single project for editing/view
+window.loadThisProject = async (projectId) => {
+  try {
+    const projectSnap = await getDoc(doc(db, "projects", projectId));
+    if (projectSnap.exists()) {
+      const project = { id: projectSnap.id, ...projectSnap.data() };
+      showProjectForm();
+      populateProjectForm(project);
+    } else {
+      console.log(`Project with ID ${projectId} not found`);
     }
+  } catch (e) {
+    console.error("Error fetching project details:", e);
+  }
+};
 
-    displayProjects(); // Initial load
+// Form population (made safer)
+window.populateProjectForm = function (project = {}) {
+  const form = document.getElementById('projectForm');
+  if (!form) return;
 
-    // Need to add listener for complete or use this as a callback funcion when displayProjects() is complete
-    //setTimeout(function(){sortByField(0)}, 2000); // Initial sort
-});
-
-// Next Project Number
-const getNextProjectNumber = function () {
-    var projects = document.querySelectorAll(".project-number");
-    var highestExisting = 10000; //lowest possible
-
-    projects.forEach((project) => {
-        let thisNumber = parseInt(project.innerText);
-        if (thisNumber > highestExisting) {
-            highestExisting = thisNumber;
-        }
-    })
-    
-    return highestExisting + 1;
-}
-
-window.loadThisProject = async function (projectId) {
-    //const doc1 = await getCollectionData("projects").getDoc("SJZub3KroSz6OLnsNonB")
-    try {
-        let project = await getDocumentById("projects", projectId); // Use the generic function!
-        let obj = {};
-
-        if (project) {
-            showProjectForm();
-            populateProjectForm(project);
-        } else {
-            console.log(">Project with ID ${projectId} not found");
-        }
-    } catch (e) {
-        console.error("Error fetching project details: ${e.message}");
-    }
-}
-
-//loadThisProject(); // Removed 2025.12.11
-
+  form.projectNumber.value   = project.project   || getNextProjectNumber().toString();
+  form.customerName.value    = project.customer  || "";
+  form.application.value     = project.application || "";
+  form.owner.value           = project.owner     || "";
+  form.lead.value            = project.lead      || "";
+  form.status.value          = project.status    || "";
+  form.price.value           = project.price     || "";
+};
 
 // Modal Form
 const modal = document.getElementById('projectModal');
-//const openButton = document.getElementById('openProjectModal');
 const closeButton = modal.querySelector('.close-btn');
 const cancelButton = modal.querySelector('.cancel-btn');
 const form = document.getElementById('projectForm');
 
 window.showProjectForm = function (id) {
-    modal.style.display = 'flex'; // Or 'block'
-    form.reset();
-    modal.focus(); // For accessibility
+  modal.style.display = 'flex'; // Or 'block'
+  form.reset();
+  modal.focus(); // For accessibility
 };
 
 window.showProjectFormWithNextProject = function () {
-    showProjectForm();
-    populateProjectForm({ project: getNextProjectNumber().toString() })
-}
+  showProjectForm();
+  populateProjectForm({ project: getNextProjectNumber().toString() });
+};
 
-window.showFormAndPopulateProject = function(id){
-    showProjectForm();
-    populateProjectForm();
-    // Change Button Function
-    let submitBtn = form.querySelector("[type=submit]");
-    submitBtn.innerText = "Update"
-    submitBtn.setAttribute("data-id", id)
-}
-
-window.populateProjectForm = function (args) {
-    try {
-        //console.log("project:", args.project);
-    } catch {
-        //console.log("No project found");
-    }
-    try {
-        form.projectNumber.value = args.project;
-    } catch {
-        form.projectNumber.value = getNextProjectNumber().toString();
-    }
-    try {
-        form.customerName.value = args.customer || "";
-    } catch {
-        // do nothing
-    }
-    try {
-        form.application.value = args.application || "";
-    } catch {
-        // do nothing
-    }
-    try {
-        form.owner.value = args.owner || "";
-    } catch {
-        // do nothing
-    }
-    try {
-        form.lead.value = args.lead || "";
-    } catch {
-        // do nothing
-    }
-    try {
-        form.status.value = args.status || "";
-    } catch {
-        // do nothing
-    }
-    try {
-        form.price.value = args.price || "";
-    } catch {
-        // do nothing
-    }
-}
-
-//openButton.addEventListener('click', showProjectForm);
+window.showFormAndPopulateProject = function(id) {
+  showProjectForm();
+  loadThisProject(id); // Fetch and populate
+  // Change Button Function
+  let submitBtn = form.querySelector("[type=submit]");
+  submitBtn.innerText = "Update";
+  submitBtn.setAttribute("data-id", id);
+};
 
 const closeModal = () => {
-    modal.style.display = 'none';
+  modal.style.display = 'none';
 };
 
 closeButton.addEventListener('click', closeModal);
 cancelButton.addEventListener('click', closeModal);
-modal.querySelector('.modal-backdrop').addEventListener('click', closeModal); // Close on backdrop click
+modal.querySelector('.modal-backdrop')?.addEventListener('click', closeModal); // Close on backdrop click
 
 // Escape key close
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+  if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
 });
 
 form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    let btnSubmit = e.submitter;
-    
-    if (btnSubmit.innerText === "Save") {
-        addNewProject(); // <-- Save New Document
-    } else {
-        let id = btnSubmit.getAttribute('data-id');
-        editProject(id); // <-- Update existing Document
-    }
-    
-    const projectData = Object.fromEntries(new FormData(form));
-    console.log('Saving project:', projectData);
+  e.preventDefault();
+  let btnSubmit = e.submitter;
+  
+  if (btnSubmit.innerText === "Save") {
+    addNewProject(); // <-- Save New Document
+  } else {
+    let id = btnSubmit.getAttribute('data-id');
+    editProject(id); // <-- Update existing Document
+  }
+  
+  const projectData = Object.fromEntries(new FormData(form));
+  console.log('Saving project:', projectData);
 
-    btnSubmit.innerText = "Save";
-    btnSubmit.setAttribute("data-id", "");
-    closeModal();
+  btnSubmit.innerText = "Save";
+  btnSubmit.setAttribute("data-id", "");
+  closeModal();
 });
 
+// Next Project Number
+const getNextProjectNumber = function () {
+  const projects = document.querySelectorAll(".project-number");
+  let highestExisting = 10000; // lowest possible
+
+  projects.forEach((project) => {
+    let thisNumber = parseInt(project.innerText);
+    if (thisNumber > highestExisting) {
+      highestExisting = thisNumber;
+    }
+  });
+  
+  return highestExisting + 1;
+};
 
 // Sorting Algorithm
 let lastSortColumn = -1;
 let lastSortDirection = 1; // 1 = ascending, -1 = descending
 
 window.sortByField = function(columnIndex) {
-    const projectList = document.getElementById("projects-list");
-    const rows = Array.from(projectList.querySelectorAll(".row")); // Convert to array
+  const projectList = document.getElementById("projects-list");
+  const rows = Array.from(projectList.querySelectorAll(".row")); // Convert to array
 
-    // Separate header (first row) and data rows
-    const header = rows[0];
-    const dataRows = rows.slice(1);
+  // Separate header (first row) and data rows
+  const header = rows[0];
+  const dataRows = rows.slice(1);
 
-    // Add columnIndex to body to auto-soft when documents are added/removed/changed
-    document.body.setAttribute("data-sortIndex", columnIndex)
+  // Add columnIndex to body to auto-sort when documents are added/removed/changed
+  document.body.setAttribute("data-sortIndex", columnIndex);
 
-    // Determine sort direction: toggle if same column, otherwise default to ascending
-    let direction = 1;
-    if (lastSortColumn === columnIndex) {
-        direction = lastSortDirection * -1; // toggle
+  // Determine sort direction: toggle if same column, otherwise default to ascending
+  let direction = 1;
+  if (lastSortColumn === columnIndex) {
+    direction = lastSortDirection * -1; // toggle
+  }
+  lastSortColumn = columnIndex;
+  lastSortDirection = direction;
+
+  // Sort the data rows
+  dataRows.sort((a, b) => {
+    // Get the cell elements at the specified column index
+    const cellA = a.children[columnIndex];
+    const cellB = b.children[columnIndex];
+
+    let valueA = cellA ? cellA.textContent.trim() : "";
+    let valueB = cellB ? cellB.textContent.trim() : "";
+
+    // Special handling for numeric columns
+    if (columnIndex === 0) { // Project # (class="project-number")
+      valueA = parseInt(valueA) || 0;
+      valueB = parseInt(valueB) || 0;
+    } else if (columnIndex === 6) { // Price column
+      // Remove $ and commas, then parse as float
+      valueA = parseFloat(valueA.replace(/[$,]/g, '')) || 0;
+      valueB = parseFloat(valueB.replace(/[$,]/g, '')) || 0;
     }
-    lastSortColumn = columnIndex;
-    lastSortDirection = direction;
+    // For other columns (strings), use localeCompare for proper alphabetical sorting
 
-    // Sort the data rows
-    dataRows.sort((a, b) => {
-        // Get the cell elements at the specified column index
-        const cellA = a.children[columnIndex];
-        const cellB = b.children[columnIndex];
+    let comparison = 0;
+    if (typeof valueA === 'number' && typeof valueB === 'number') {
+      comparison = valueA - valueB;
+    } else {
+      comparison = valueA.localeCompare(valueB);
+    }
 
-        let valueA = cellA ? cellA.textContent.trim() : "";
-        let valueB = cellB ? cellB.textContent.trim() : "";
+    return comparison * direction;
+  });
 
-        // Special handling for numeric columns
-        if (columnIndex === 0) { // Project # (class="project-number")
-            valueA = parseInt(valueA) || 0;
-            valueB = parseInt(valueB) || 0;
-        } else if (columnIndex === 6) { // Price column
-            // Remove $ and commas, then parse as float
-            valueA = parseFloat(valueA.replace(/[$,]/g, '')) || 0;
-            valueB = parseFloat(valueB.replace(/[$,]/g, '')) || 0;
-        }
-        // For other columns (strings), use localeCompare for proper alphabetical sorting
+  // Re-append in sorted order: header first, then sorted data rows
+  projectList.innerHTML = ''; // Clear
+  projectList.appendChild(header);
+  dataRows.forEach(row => projectList.appendChild(row));
 
-        let comparison = 0;
-        if (typeof valueA === 'number' && typeof valueB === 'number') {
-            comparison = valueA - valueB;
-        } else {
-            comparison = valueA.localeCompare(valueB);
-        }
-
-        return comparison * direction;
-    });
-
-    // Re-append in sorted order: header first, then sorted data rows
-    projectList.innerHTML = ''; // Clear
-    projectList.appendChild(header);
-    dataRows.forEach(row => projectList.appendChild(row));
-
-    // Optional: Visual feedback — add a class to the header to show sort direction
-    const headerSpans = header.querySelectorAll("span");
-    headerSpans.forEach((span, i) => {
-        span.classList.remove("sorted-asc", "sorted-desc");
-        if (i === columnIndex) {
-            span.classList.add(direction === 1 ? "sorted-asc" : "sorted-desc");
-        }
-    });
-}
+  // Optional: Visual feedback — add a class to the header to show sort direction
+  const headerSpans = header.querySelectorAll("span");
+  headerSpans.forEach((span, i) => {
+    span.classList.remove("sorted-asc", "sorted-desc");
+    if (i === columnIndex) {
+      span.classList.add(direction === 1 ? "sorted-asc" : "sorted-desc");
+    }
+  });
+};
 
 window.addSortListeners = function() {
-    const headerRow = document.querySelector("#projects-list .row.header");
-    if (!headerRow) return;
+  const headerRow = document.querySelector("#projects-list .row.header");
+  if (!headerRow) return;
 
-    const headerColumns = headerRow.querySelectorAll("span:not(.icon-column)");
+  const headerColumns = headerRow.querySelectorAll("span:not(.icon-column)");
 
-    headerColumns.forEach((span, index) => {
-        // Clean up old listener if exists
-        if (span._sortHandler) {
-            span.removeEventListener("click", span._sortHandler);
-        }
+  headerColumns.forEach((span, index) => {
+    // Clean up old listener if exists
+    if (span._sortHandler) {
+      span.removeEventListener("click", span._sortHandler);
+    }
 
-        const handler = () => sortByField(index);
-        span._sortHandler = handler;
+    const handler = () => sortByField(index);
+    span._sortHandler = handler;
 
-        span.addEventListener("click", handler);
-        span.style.cursor = "pointer";
-        span.title = `Click to sort by ${span.innerText.trim()}`;
-    });
-}
+    span.addEventListener("click", handler);
+    span.style.cursor = "pointer";
+    span.title = `Click to sort by ${span.innerText.trim()}`;
+  });
+};
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+  if (addProjectButton) {
+    addProjectButton.addEventListener('click', addNewProject);
+  }
+  displayProjects(); // Initial load and setup real-time listener
+});

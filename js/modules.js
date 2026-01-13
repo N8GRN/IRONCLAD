@@ -1,19 +1,22 @@
-/*
-    Name: modules.js
-    Description: Attempt to load all used Firebase libraries (e.g., Firestore, Messaging, Authorization, etc.) for Global use
+// js/modules.js - Firebase init, Firestore, FCM (foreground + token handling)
+// Downgraded to stable v10.14.1; uses enableIndexedDbPersistence for offline caching
 
-    Author: Nathan Green
-    Version: v2.0
-    Last Update: 01.12.2026
-*/
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  onSnapshot, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
+  getDoc,
+  enableIndexedDbPersistence  // Correct for v10.x modular
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js';
 
-// Core app + Firestore imports (modular style)
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js';
-import { getFirestore, collection, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
-//import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging.js'; // Ensure this version matches your SW
-
-
-// --- Firebase Configuration ---
+// My web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
   authDomain: "ironclad-127a5.firebaseapp.com",
@@ -24,101 +27,87 @@ const firebaseConfig = {
   measurementId: "G-6RG40RW2YZ"
 };
 
-// Initialize Firebase App, Firestore, and Firebase Cloud Messaging
+const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-//const messaging = getMessaging(app);
 
-// VAPID key from Firebase Console > Project settings > Cloud Messaging
-//const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
-
-
-/////////////////////////////////////   MESSAGING   ////////////////////////////////////
-// --- FCM Specific Functions ---
-
-/**
- * Requests notification permission and retrieves the FCM registration token.
- * @param {function(string): void} successCallback - Callback to execute on success with the token.
- * @param {function(Error): void} errorCallback - Callback to execute on error.
- */
-
-/* [01.12.2026] Deleted to prevent duplicate Push */
-/*async function requestNotificationPermissionAndGetFCMToken(successCallback, errorCallback) {
-    if (!('Notification' in window)) {
-        const error = new Error('This browser does not support notifications.');
-        console.error(error);
-        if (errorCallback) errorCallback(error);
-        return;
+// Enable offline persistence (IndexedDB cache for snapshots/queries)
+enableIndexedDbPersistence(db, { synchronizeTabs: false })  // synchronizeTabs: false for single-tab/standalone PWA
+  .then(() => {
+    console.log('Firestore offline persistence enabled successfully (stable v10.x)');
+  })
+  .catch((err) => {
+    console.error('Error enabling persistence:', err);
+    if (err.code === 'failed-precondition') {
+      console.warn('Persistence failed: Multiple tabs open (unlikely in standalone PWA)');
+    } else if (err.code === 'unimplemented') {
+      console.warn('Persistence not supported in this browser/environment');
     }
+    // App continues online-only
+  });
 
-    try {
-        const currentToken = await getToken(messaging, { vapidKey: VAPID_PUBLIC_KEY });
-        if (currentToken) {
-            console.log(`FCM Registration Token: ${currentToken}`);
-            if (successCallback) successCallback(currentToken);
-        } else {
-            const error = new Error('No FCM registration token available. User denied permission or browser does not support.');
-            console.warn(error);
-            if (errorCallback) errorCallback(error);
-        }
-    } catch (error) {
-        if (error.code === 'messaging/permission-denied') {
-            console.warn('Notification permission denied by the user. Please enable it in browser settings.');
-        } else {
-            console.error('Error getting FCM token:', error);
-        }
-        if (errorCallback) errorCallback(error);
-    }
-}*/
+const messaging = getMessaging(app);
 
-////////////////////////////////////////////////////////////////////////////////////////////
-
-
-// Example usage: Fetch docs from a collection
-async function loadData(col) {
-  try {
-    const querySnapshot = await getDocs(collection(db, col));
-    querySnapshot.forEach((doc) => {
-      console.log(`${doc.id} → ${doc.data()}`);
-    });
-  } catch (error) {
-    console.error('Firestore error:', error);
+// Log helper (for settings.html or console)
+function logMessage(msg) {
+  const logEl = document.getElementById('notification-log');
+  if (logEl) {
+    logEl.innerHTML += `<p>${new Date().toLocaleTimeString()} - ${msg}</p>`;
+    logEl.scrollTop = logEl.scrollHeight;
+  } else {
+    console.log(msg);
   }
 }
 
-// Example: Real-time listener (use onSnapshot, not snapshot)
-function watchCollection(col) {
-  onSnapshot(collection(db, col), (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === 'added') {
-        console.log('New doc:', change.doc.data());
-      }
+// Request permission and get FCM token
+async function requestNotificationPermission() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    logMessage('Notifications or SW not supported in this browser.');
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready; // assumes sw.js registered
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      logMessage('Notification permission denied.');
+      return null;
+    }
+
+    logMessage('Notification permission granted.');
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: registration
     });
-  });
+
+    if (token) {
+      logMessage(`FCM Token: ${token}`);
+      // TODO: Send token to your server / save to Firestore user doc
+      return token;
+    } else {
+      logMessage('No registration token available.');
+      return null;
+    }
+  } catch (err) {
+    logMessage(`Error getting FCM token: ${err.message}`);
+    return null;
+  }
 }
 
+// Foreground message handler
+onMessage(messaging, (payload) => {
+  logMessage('Foreground FCM message received: ' + JSON.stringify(payload));
+  const title = payload.notification?.title || 'IRONCLAD Update';
+  const options = {
+    body: payload.notification?.body || 'Check your projects!',
+    icon: '/IRONCLAD/img/icons/icon-192x192.png'
+  };
+  new Notification(title, options);
+});
 
-
-// Call project functions (e.g., on page load)
-/*
-loadData('projects');
-watchCollection('projects');
-*/
-
-window.firebaseConfig = firebaseConfig;
-window.initializeApp = initializeApp;
-window.getFirestore = getFirestore;
-window.collection = collection;
-window.getDocs = getDocs;
-window.onSnapshot = onSnapshot;
-window.app = app;
+// Export for use in other files (or attach to window if no modules)
 window.FireDB = db;
-window.loadData = loadData;
-window.watchCollection = watchCollection;
+window.requestNotificationPermission = requestNotificationPermission;
 
-// Export FCM related objects and functions
-//window.getMessaging = getMessaging; // For direct access if needed
-//window.messaging = messaging;       // The initialized messaging instance
-//window.getToken = getToken;         // Explicitly expose getToken for app.js
-//window.onMessage = onMessage;       // Explicitly expose onMessage for app.js (crucial for app.js)
-//window.requestNotificationPermissionAndGetFCMToken = requestNotificationPermissionAndGetFCMToken;
+// Example usage in settings.html: document.getElementById('enable-btn').addEventListener('click', requestNotificationPermission);

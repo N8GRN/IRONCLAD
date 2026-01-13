@@ -1,44 +1,56 @@
 {
   "name": "IRONCLAD CRM",
-  "id": "/IRONCLAD/",
   "short_name": "IRONCLAD",
-  "description": "Roofing Estimator",
+  "description": "Roofing Project Estimator & CRM",
   "start_url": "/IRONCLAD/",
   "scope": "/IRONCLAD/",
+  "id": "/IRONCLAD/",
   "display": "standalone",
   "background_color": "#033c77",
   "theme_color": "#ffffff",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "lang": "en-US",
-  "categories": ["business", "productivity"],
   "icons": [
+    {
+      "src": "/IRONCLAD/img/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/IRONCLAD/img/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/IRONCLAD/img/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     },
     {
       "src": "/IRONCLAD/img/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "/IRONCLAD/img/splash/splash-2048x2732.png",
-      "sizes": "2048x2732",
+      "src": "/IRONCLAD/img/screenshots/screenshot1.png",
+      "sizes": "1280x800",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "IRONCLAD CRM Homescreen"
+      "label": "Project Dashboard View"
     },
     {
-      "src": "/IRONCLAD/img/splash/splash-2048x2732.png",
-      "sizes": "2048x2732",
+      "src": "/IRONCLAD/img/screenshots/screenshot2.png",
+      "sizes": "750x1334",
       "type": "image/png",
-      "label": "IRONCLAD CRM Homescreen"
+      "form_factor": "narrow",
+      "label": "Mobile Add Project Screen"
     }
   ],
-  "gcm_sender_id": "57257280088"
+  "categories": ["business", "productivity", "utilities"]
 }

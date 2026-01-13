@@ -41,42 +41,12 @@
   <img src="/IRONCLAD/img/icon.png" alt="IRONCLAD CRM Logo" class="loader">
   <h2>Loading…</h2>
 
-  <!-- Firestore Setup -->
-  <!--<script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
-    import { getAuth } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
-    import { getFirestore } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDUFtZly3OhRSbK1HEItBWwIHpOtzwyvTk",
-      authDomain: "ironclad-127a5.firebaseapp.com",
-      projectId: "ironclad-127a5",
-      storageBucket: "ironclad-127a5.firebasestorage.app",
-      messagingSenderId: "57257280088",
-      appId: "1:57257280088:web:189e4db32d7ae28523402d",
-      measurementId: "G-6RG40RW2YZ"
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-
-    // Access Firebase services
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // You can now use 'auth' and 'db' for Firebase operations
-    // For example, to get a reference to the database:
-    // const database = getDatabase(app);
-  </script> -->
-
-
+  <!-- NEW -->
+  <script type="module" src="/IRONCLAD/js/modules.js"></script>
+  
   <!-- Your main application script, using type="module" -->
   <script type="module" src="/IRONCLAD/js/app.js"></script>
-  <!--
-  -- loaded in firebase-messaging-sw.js via app.js 
-  <script type="module" src="/IRONCLAD/js/msgApp.js"></script> -->
-  
-  <script type="module" src="/IRONCLAD/js/modules.js"></script>
 
 
   <!-- Messaging -->
@@ -99,21 +69,7 @@
       goToPage('/home');
     }, 600);
 
-    /*
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/IRONCLAD/sw.js')
-        .then(reg => {
-          console.log('Service Worker registered with scope:', reg.scope);
-        })
-        .catch(err => {
-          console.error('Service Worker registration failed:', err);
-        });
-    });
-  }*/
-    // Safe Service Worker registration – works locally AND in production
-
-    /*
+    
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/IRONCLAD/sw.js')
@@ -142,7 +98,7 @@
     } else {
       console.warn('Service Workers are not supported in this browser');
     }
-    */
+    
 
     // Redirect to login if not already there
     //if (!location.pathname.includes('login.html')) {

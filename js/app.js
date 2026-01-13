@@ -1,278 +1,250 @@
-// This script expects modules.js to be loaded before it,
-// making window.requestNotificationPermissionAndGetFCMToken available.
-// ===============================================
-// FIREBASE - Notifications
+// js/app.js - IRONCLAD CRM PWA - Main Application Logic
+// Expects: modules.js loaded first (provides window.FireDB, window.requestNotificationPermissionAndGetFCMToken)
 // ===============================================
 
-
-
-
-// ===============================================
-// FIREBASE - Import library
-// ===============================================
-// // Import the functions you need from the SDKs you need
-
-// This is done at the page level
-
-
-// ===============================================
-// IRONCLAD CRM PWA - Main Application Logic
-// ===============================================
-
-//const REPO = "/IRONCLAD/"; // ← Declared in sw.js
 const REPO_ = "/IRONCLAD";
-const PAGES_ = "/pages"; // "/pages";
+const PAGES_ = "/pages";
+
 const db = (() => {
-  if (localStorage.getItem("TestMode") == "true") {
-    // Test Mode
-    console.log("Test Mode")
-    return window.GrokDB;
+  if (localStorage.getItem("TestMode") === "true") {
+    console.log("Test Mode active");
+    return window.GrokDB; // Your mock/local DB
   } else {
-    // Live Mode
-    console.log("Live Mode");
-    return window.FireDB;
-    //return window.dbFirestore;
+    console.log("Live Mode active");
+    return window.FireDB; // Real Firestore from modules.js
   }
-})()
+})();
 
-
-
+// ===============================================
+// Initialization & Redirect
+// ===============================================
 window.onload = function () {
   drawUser();
+  maybeRedirectToLogin();
+
+  // Optional: If on a settings/notifications page with enable button
+  const enableBtn = document.getElementById('enableNotificationsButton');
+  if (enableBtn && window.requestNotificationPermission) {
+    enableBtn.addEventListener('click', window.requestNotificationPermission);
+  }
 };
 
-
-// Only redirect to login if currently on the root landing page (index.html or /IRONCLAD/)
 function maybeRedirectToLogin() {
   const path = window.location.pathname.toLowerCase();
 
-  // These are the landing page URLs on your GitHub Pages site
-  const isOnLandingPage =
+  const isLandingPage =
     path === '/' ||
     path === REPO_ ||
+    path === REPO_ + '/' ||
     path === REPO_ + '/index.html' ||
     path.endsWith('/index.html');
 
-  if (isOnLandingPage) {
+  if (isLandingPage) {
+    // Small delay to allow PWA install prompt / analytics if needed
     setTimeout(() => {
-      window.location.href = REPO_ + '/login.html';
-    }, 600);
+      window.location.replace(REPO_ + '/login.html'); // replace to avoid history clutter
+    }, 800);
   }
 }
 
-
-
 // ===============================================
-// Userforms
+// Roof Facets - Applications Page
 // ===============================================
-// saving data
 const roofForm = document.querySelector('#roof-form') || null;
-const facetForm = document.querySelector('#facet-form') || null;
 
 function renderRoof(doc) {
-  let li = document.createElement('li');
-  let structure = document.createElement('span');
-  let facet = document.createElement('span');
-  let cross = document.createElement('div');
+  const li = document.createElement('li');
+  const structureSpan = document.createElement('span');
+  const facetSpan = document.createElement('span');
+  const cross = document.createElement('div');
 
   li.setAttribute('data-id', doc.id);
-  structure.textContent = doc.data().structure;
-  facet.textContent = doc.data().facet;
-  cross.textContent = '-';
+  structureSpan.textContent = doc.data().structure || 'House';
+  facetSpan.textContent = doc.data().facet || 'Unnamed Facet';
+  cross.textContent = '×';
   cross.className = "close";
 
-  li.appendChild(structure);
-  li.appendChild(facet);
-  li.appendChild(cross);
+  li.append(structureSpan, facetSpan, cross);
+  roofForm?.appendChild(li);
 
-  roofForm.appendChild(li);
-
-  // deleting data
   cross.addEventListener('click', (e) => {
     e.stopPropagation();
-    let id = e.target.parentElement.getAttribute('data-id');
-    db.collection('roof_facets').doc(id).delete();
-  });
-}
-
-// getting data
-// db.collection('roof_facets').orderBy('facet').get().then(snapshot => {
-//     snapshot.docs.forEach(doc => {
-//         renderRoof(doc);
-//     });
-// });
-
-// saving data
-if (roofForm !== null) {
-  roofForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    let structure = roofForm.structure.value || "House";
-    let facet = roofForm.facet.value || "Facet #" + parseInt(roofForm.querySelectorAll('li').length + 1);
-
-    db.collection('roof_facets').add({
-      structure: structure,
-      facet: facet
+    const id = e.target.parentElement.getAttribute('data-id');
+    db.collection('roof_facets').doc(id).delete().catch(err => {
+      console.error('Delete failed:', err);
+      alert('Failed to delete facet. Check connection.');
     });
-    roofForm.structure.value = '';
-    roofForm.facet.value = '';
   });
 }
 
-
-// STRUCTURE RENDER
-function renderStructure(doc) {
-
-  let structure = facetForm.querySelector("#structure");
-  let facet = facetForm.querySelector("#facet");
-
-  let type = facetForm.category;
-  let pitch = facetForm.pitch;
-  let layers = facetForm.layers;
-  let sheathing = facetForm.sheathing;
-
-  db.collection('roof_facets').onSnapshot(snapshot => {
-    let changes = snapshot.docChanges();
-    let y = changes.length;
-    let data = localStorage.getItem("progress") || null;
-    let x = 0;
-
-    if (data) {
-      x = JSON.parse(localStorage.getItem("progress")).x;
-    }
-
-    console.log(x + 1, "of", y);
-
-    if (x === y - 1) {
-      x = 0;
-    } else {
-      x++;
-    }
-
-    // Update Form
-    structure.textContent = changes[x].doc.data().structure;
-    facet.textContent = changes[x].doc.data().facet;
-
-    // Capture ID
-    let id = changes[x].doc.id;
-    console.log(id);
-
-
-    let str = JSON.stringify({ "x": x, "y": y })
-    localStorage.setItem("progress", str)
-
-    console.log("Before", changes[x].doc.data());
-    db.collection('roof_facets').doc(id).update({
-      type: type.value,
-      pitch: pitch.value,
-      layers: layers.value,
-      sheathing: sheathing.value
-    });
-
-    console.log("After", changes[x].doc.data());
-
-
-  });
-}
-
-
-// STRUCTURE PAGE
-if (facetForm !== null) {
-  renderStructure();
-  facetForm.addEventListener('submit', (e) => {
-
-    let btn = e.submitter;
-    console.log(btn)
+if (roofForm) {
+  roofForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    try {
+      const structure = roofForm.structure.value.trim() || "House";
+      const facet = roofForm.facet.value.trim() || `Facet #${roofForm.querySelectorAll('li').length + 1}`;
 
-    // add delay to prevent user from going too fast
-    btn.setAttribute("disabled", "disabled");
-    setTimeout(function () { btn.removeAttribute("disabled") }, 3000);
+      await db.collection('roof_facets').add({
+        structure,
+        facet,
+        createdAt: new Date()
+      });
 
-    renderStructure();
-
+      roofForm.reset();
+    } catch (err) {
+      console.error('Error adding roof facet:', err);
+      alert('Could not save facet — are you online?');
+    }
   });
-}
 
-// APPLICATIONS PAGE
-if (roofForm !== null) {
-  //db.collection('roof_facets').orderBy('facet').onSnapshot(snapshot => {
+  // Real-time listener with error handling
   db.collection('roof_facets').onSnapshot(snapshot => {
-    //var facetList = roofForm.querySelectorAll("li");
-
-    //console.log(snapshot);
-    let changes = snapshot.docChanges();
-
-    changes.forEach(change => {
-      if (change.type == 'added') {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added') {
         renderRoof(change.doc);
-      } else if (change.type == 'removed') {
-        let li = roofForm.querySelector('[data-id=' + change.doc.id + ']');
-        roofForm.removeChild(li);
+      } else if (change.type === 'removed') {
+        const li = roofForm.querySelector(`[data-id="${change.doc.id}"]`);
+        if (li) roofForm.removeChild(li);
       }
+      // You can handle 'modified' if needed later
     });
+  }, err => {
+    console.error('Roof facets snapshot error:', err);
   });
 }
 
+// ===============================================
+// Facet Details - Structure Page
+// ===============================================
+const facetForm = document.querySelector('#facet-form') || null;
+
+function renderStructure() {
+  if (!facetForm) return;
+
+  const structureEl = facetForm.querySelector("#structure");
+  const facetEl = facetForm.querySelector("#facet");
+  const typeEl = facetForm.querySelector("[name='type']");     // assuming <select name="type">
+  const pitchEl = facetForm.querySelector("[name='pitch']");
+  const layersEl = facetForm.querySelector("[name='layers']");
+  const sheathingEl = facetForm.querySelector("[name='sheathing']");
+
+  let progress = JSON.parse(localStorage.getItem("progress") || '{"x":0,"y":0}');
+  let currentIndex = progress.x;
+
+  db.collection('roof_facets').onSnapshot(snapshot => {
+    try {
+      const docs = snapshot.docs;
+      const total = docs.length;
+      if (total === 0) return;
+
+      // Cycle through facets
+      currentIndex = (currentIndex + 1) % total;
+      const currentDoc = docs[currentIndex];
+      const data = currentDoc.data();
+
+      structureEl.textContent = data.structure || 'Unknown';
+      facetEl.textContent = data.facet || 'Unnamed';
+
+      // Pre-fill form with existing values if any
+      typeEl.value = data.type || '';
+      pitchEl.value = data.pitch || '';
+      layersEl.value = data.layers || '';
+      sheathingEl.value = data.sheathing || '';
+
+      localStorage.setItem("progress", JSON.stringify({ x: currentIndex, y: total }));
+    } catch (err) {
+      console.error('Error in renderStructure snapshot:', err);
+    }
+  }, err => console.error('Structure snapshot failed:', err));
+}
+
+if (facetForm) {
+  renderStructure();
+
+  facetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = e.submitter;
+    if (!submitBtn) return;
+
+    submitBtn.disabled = true;
+    setTimeout(() => { submitBtn.disabled = false; }, 3000); // rate limit
+
+    try {
+      // Assuming you store the current facet ID somewhere, e.g. data-current-id on form
+      const currentId = facetForm.dataset.currentId || null; // Add logic to set this if needed
+      if (!currentId) {
+        console.warn('No current facet ID set');
+        return;
+      }
+
+      await db.collection('roof_facets').doc(currentId).update({
+        type: facetForm.type?.value || '',
+        pitch: facetForm.pitch?.value || '',
+        layers: facetForm.layers?.value || '',
+        sheathing: facetForm.sheathing?.value || '',
+        updatedAt: new Date()
+      });
+
+      console.log('Facet updated successfully');
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert('Failed to save facet details.');
+    }
+  });
+}
 
 // ===============================================
-// UI & Interaction Logic
+// Global UI Interactions
 // ===============================================
+const isTableRow = el => !!el.closest("table tr");
 
-const isTableEl = el => !!el.closest("table");
-
-document.body.addEventListener('click', function (event) {
-  const inputElements = ['input', 'textarea', 'select', 'button'];
+document.body.addEventListener('click', (event) => {
   const el = event.target;
   const tag = el.tagName.toLowerCase();
+  const inputTags = ['input', 'textarea', 'select', 'button'];
 
-  if (document.activeElement && inputElements.indexOf(tag) === -1) {
+  // Blur active inputs if clicking elsewhere
+  if (!inputTags.includes(tag) && document.activeElement) {
     document.activeElement.blur();
   }
 
-  document.querySelectorAll('tr.active-row').forEach(row => {
-    row.classList.remove('active-row');
-  });
-
-  if (isTableEl(el)) {
-    el.closest('tr')?.classList.add('active-row');
+  // Highlight clicked table row
+  document.querySelectorAll('tr.active-row').forEach(row => row.classList.remove('active-row'));
+  if (isTableRow(el)) {
+    el.closest('tr').classList.add('active-row');
   }
 });
 
-// Scroll shadow on <main>
+// Scroll shadow on main content
 const main = document.querySelector("main");
 if (main) {
   main.addEventListener('scroll', () => {
     main.classList.toggle('scrolled', main.scrollTop > 0);
-  });
+  }, { passive: true });
 }
 
+// Navigation helper
 window.goToPage = function(pageName) {
-  if (!pageName.endsWith(".html")) { pageName = pageName + ".html" }; // add '.html' if missing
-  // if(!pageName.startsWith("/")){pageName = "/" + pageName}; // add '/' page name if missing
+  if (!pageName.endsWith(".html")) pageName += ".html";
 
-  if (pageName.startsWith("/")) {
-    location.href = REPO_ + PAGES_ + pageName;  // pages
-  } else {
-    location.href = REPO_ + "/" + pageName;  // root
-  }
-
-}
+  let url = pageName.startsWith("/") ? REPO_ + PAGES_ + pageName : REPO_ + "/" + pageName;
+  window.location.href = url;
+};
 
 // ===============================================
-// User Display
+// User Display & Auth
 // ===============================================
-
 function drawUser() {
-  const div = document.createElement("div");
-  const a = document.createElement("a");
+  const container = document.createElement("div");
+  container.classList.add("active-user");
 
-  a.id = "username";
-  a.href = REPO_ + PAGES_ + "/login.html";
-  a.textContent = getActiveUser();
+  const link = document.createElement("a");
+  link.id = "username";
+  link.href = REPO_ + PAGES_ + "/login.html";
+  link.textContent = getActiveUser();
 
-  div.classList.add("active-user");
-  div.appendChild(a);
-  document.body.appendChild(div);
+  container.appendChild(link);
+  document.body.appendChild(container);
 }
 
 function getActiveUser() {
@@ -280,74 +252,48 @@ function getActiveUser() {
 }
 
 // ===============================================
-// Offline/Online Indicators (optional)
+// Offline/Online Handling
 // ===============================================
-
 window.addEventListener('online', () => {
   console.log('Back online');
   document.body.classList.remove('offline-mode');
+  // Optional: trigger sync if you have queued items
 });
 
 window.addEventListener('offline', () => {
-  console.log('Working offline');
+  console.log('Offline mode');
   document.body.classList.add('offline-mode');
+  notifyOffline();
 });
 
-function userMessage(title, message, callback) {
-  var div = document.createElement("div");
-  var titleEl = document.createElement("h3")
-  var content = document.createElement("div");
-  var btn = document.createElement("button");
-
-  div.id = "user-message";
-
-  content.innerText = message//.replace(/\n/g, "<br>");
-  content.innerHTML = message.replace(/\n/g, "<br>")
-  titleEl.innerText = title;
-  btn.innerText = "Ok";
-
-
-  div.appendChild(titleEl);
-  div.appendChild(content);
-  div.appendChild(btn);
-  document.body.appendChild(div);
-
-  btn.onclick = function () { callback() }
-
-  // Style
-  div.style.cssText = "display:block;position:absolute;background:rgba(0, 0, 0, 0.7);top:25%;left:20%;width:60%;color:white;padding:1rem;border-radius:1.5rem;"
-  btn.style.cssText = "background:gray;border:white;width:auto;float:right;padding:0.5rem;min-width:120px;font-size:1.2rem;";
-}
-
-function closeUserMessage() {
-  var div = document.getElementById("user-message");
-  if (div) { div.parentNode.removeChild(div) };
-}
-
 function notifyOffline() {
-  userMessage("Offline Mode", "You’re currently offline. Most features will work, but you’ll need an internet connection to sync changes.\n\nReconnect when possible.", closeUserMessage)
+  // Simple non-blocking toast (you can style better with CSS)
+  const toast = document.createElement('div');
+  toast.textContent = "Offline Mode – Changes will sync when reconnected.";
+  toast.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;";
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
 }
 
 // ===============================================
-// Dev-only file read/write (blocked in production)
+// Dev Helpers (local only)
 // ===============================================
-
 const isDev = ['localhost', '127.0.0.1', '192.168.0.18'].includes(location.hostname);
 
-const read = (file = 'story.txt') => {
-  if (!isDev) return console.warn('read() blocked outside dev');
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', `http://192.168.0.18:8000/data/${encodeURIComponent(file)}`, true);
-  xhr.onload = () => console.log(xhr.status === 200 ? 'Read success' : 'Read failed:', xhr.status);
-  xhr.onerror = () => console.error('Network error reading', file);
-  xhr.send();
-};
+if (isDev) {
+  window.readLocal = (file = 'story.txt') => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `http://192.168.0.18:8000/data/${encodeURIComponent(file)}`);
+    xhr.onload = () => console.log(xhr.status === 200 ? xhr.responseText : 'Read failed');
+    xhr.onerror = () => console.error('Read error');
+    xhr.send();
+  };
 
-const write = (file = 'story.txt', text = '') => {
-  if (!isDev) return console.warn('write() blocked outside dev');
-  const xhr = new XMLHttpRequest();
-  xhr.open('POST', `http://192.168.0.18:8000/data/${encodeURIComponent(file)}`, true);
-  xhr.onload = () => console.log(xhr.status === 200 ? 'Write success' : 'Write failed:', xhr.status);
-  xhr.onerror = () => console.error('Network error writing', file);
-  xhr.send(text);
-};
+  window.writeLocal = (file = 'story.txt', text = '') => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `http://192.168.0.18:8000/data/${encodeURIComponent(file)}`);
+    xhr.onload = () => console.log(xhr.status === 200 ? 'Write OK' : 'Write failed');
+    xhr.onerror = () => console.error('Write error');
+    xhr.send(text);
+  };
+}
