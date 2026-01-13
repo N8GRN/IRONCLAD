@@ -18,26 +18,19 @@ const firebaseConfig = {
 const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const messaging = getMessaging(app);
 
-
-// === Enable Firestore Offline Persistence (caches snapshots/queries in IndexedDB) ===
-try {
-  await db.enablePersistence();
-  console.log('Firestore offline persistence enabled successfully');
-} catch (err) {
-  if (err.code === 'failed-precondition') {
-    // Multiple tabs open at once — but since standalone mode prevents this, this shouldn't happen
-    console.warn('Persistence failed: Multiple tabs open (unlikely in standalone PWA)');
-  } else if (err.code === 'unimplemented') {
-    // Browser doesn't support persistence (e.g., private mode or very old browser)
-    console.warn('Persistence not supported in this browser/environment');
-  } else {
-    console.error('Error enabling Firestore persistence:', err);
+// Initialize Firestore **with persistence enabled** right from the start
+const db = initializeFirestore(app, {
+  localCache: {
+    kind: 'persistent',               // Enables IndexedDB persistence
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED  // Optional: no size limit (default is ~40MB)
   }
-  // App continues to work online-only — no crash
-}
+});
+
+console.log('Firestore initialized with offline persistence enabled');
+
+
+const messaging = getMessaging(app);
 
 // Log helper (for settings.html or console)
 function logMessage(msg) {
