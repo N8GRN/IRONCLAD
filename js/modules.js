@@ -1,7 +1,7 @@
 // js/modules.js - Firebase init, Firestore, FCM (foreground + token handling)
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-import { getFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, getDoc, enablePersistence } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import { initializeFirestore, collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, getDoc, enablePersistence } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
 
 // My web app's Firebase configuration
