@@ -108,6 +108,28 @@
 
 <body>
 
+  <!-- Phone Auth Form -->
+<div id="phone-auth-section">
+  <h2>Sign in with Phone Number</h2>
+
+  <!-- Hidden container for invisible reCAPTCHA -->
+  <div id="recaptcha-container" style="display: none;"></div>
+
+  <label for="phoneNumber">Phone Number (with country code, e.g. +17651234567):</label>
+  <input type="tel" id="phoneNumber" placeholder="+1XXXXXXXXXX" required />
+
+  <button id="sendCodeBtn">Send Verification Code</button>
+
+  <div id="code-section" style="display: none; margin-top: 1rem;">
+    <label for="verificationCode">Enter the code you received:</label>
+    <input type="text" id="verificationCode" placeholder="123456" maxlength="6" required />
+    <button id="verifyCodeBtn">Verify & Sign In</button>
+  </div>
+
+  <p id="auth-message" style="color: #d32f2f; min-height: 1.5rem;"></p>
+</div>
+<!--   
+/////////// --- OLD --- //////////////
   <div class="login-container">
     <img src="../img/icons/user.png" alt="App Logo" class="logo">
     <h1>Welcome Back</h1>
@@ -117,6 +139,7 @@
 
     <button class="login-btn" onclick="login()">Login</button>
   </div>
+-->
 
   <!-- Firestore Database ("Live") -->
   <script type="module" src="/IRONCLAD/js/modules.js"></script>
@@ -126,6 +149,70 @@
   
   <!-- Link JavaScript -->
   <script src="/IRONCLAD/js/app.js"></script>
+
+  <script type="module">
+  // Wait for DOM and modules
+  document.addEventListener('DOMContentLoaded', () => {
+    const phoneInput = document.getElementById('phoneNumber');
+    const sendBtn = document.getElementById('sendCodeBtn');
+    const codeSection = document.getElementById('code-section');
+    const codeInput = document.getElementById('verificationCode');
+    const verifyBtn = document.getElementById('verifyCodeBtn');
+    const messageEl = document.getElementById('auth-message');
+
+    function showMessage(text, isError = false) {
+      messageEl.textContent = text;
+      messageEl.style.color = isError ? '#d32f2f' : '#2e7d32';
+    }
+
+    sendBtn.addEventListener('click', async () => {
+      const phone = phoneInput.value.trim();
+      if (!phone || !phone.startsWith('+')) {
+        showMessage('Please enter a valid phone number with country code (+1...)', true);
+        return;
+      }
+
+      sendBtn.disabled = true;
+      showMessage('Sending code...');
+
+      const result = await window.AuthAPI.sendPhoneVerificationCode(phone);
+
+      sendBtn.disabled = false;
+
+      if (result.success) {
+        showMessage('Code sent! Check your phone.', false);
+        codeSection.style.display = 'block';
+      } else {
+        showMessage(result.message, true);
+      }
+    });
+
+    verifyBtn.addEventListener('click', async () => {
+      const code = codeInput.value.trim();
+      if (!code || code.length !== 6) {
+        showMessage('Please enter the 6-digit code', true);
+        return;
+      }
+
+      verifyBtn.disabled = true;
+      showMessage('Verifying...');
+
+      const result = await window.AuthAPI.verifySmsCode(code);
+
+      verifyBtn.disabled = false;
+
+      if (result.success) {
+        showMessage('Welcome! You are signed in.', false);
+        // Redirect or update UI
+        setTimeout(() => {
+          window.location.href = '/IRONCLAD/pages/projects.html'; // or your main page
+        }, 1500);
+      } else {
+        showMessage(result.message, true);
+      }
+    });
+  });
+</script>
 
   <script>
     function login() {
