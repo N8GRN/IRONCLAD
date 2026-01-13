@@ -80,12 +80,6 @@ header {
     margin:auto;
     width:-webkit-fill-available;
     white-space: nowrap;
-    /*height: auto;*/
-    /*min-height: 20dvh;
-    max-height: 60dvh;
-    display:flex;
-    flex-wrap: wrap;
-    flex-direction: column;*/
 }
 
 header * {

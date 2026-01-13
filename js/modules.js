@@ -1,14 +1,9 @@
 // js/modules.js - Firebase init, Firestore, FCM (foreground + token handling)
-// Uses modern initializeFirestore + persistentLocalCache for offline persistence
-// With fallback and error handling to avoid initialization issues
+// Downgraded to stable v10.14.1; uses enableIndexedDbPersistence for offline caching
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { 
-  initializeFirestore,                // Required for custom settings like localCache
-  persistentLocalCache,               // Enables IndexedDB persistence
-  persistentSingleTabManager,         // Single-tab manager (perfect for standalone PWA)
-  CACHE_SIZE_UNLIMITED,               // Optional: no cache size limit
-  getFirestore,                       // Fallback if initializeFirestore fails
+  getFirestore, 
   collection, 
   addDoc, 
   getDocs, 
@@ -16,9 +11,10 @@ import {
   doc, 
   updateDoc, 
   deleteDoc, 
-  getDoc
-} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
+  getDoc,
+  enableIndexedDbPersistence  // Correct for v10.x modular
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js';
 
 // My web app's Firebase configuration
 const firebaseConfig = {
@@ -34,26 +30,22 @@ const firebaseConfig = {
 const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4';
 
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// Initialize Firestore with offline persistence enabled (IndexedDB cache via persistentLocalCache)
-let db;
-try {
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      // Single-tab mode (ideal for standalone PWA → no multi-tab conflicts)
-      tabManager: persistentSingleTabManager(),
-      
-      // Optional: unlimited cache size (default is ~40MB; set to CACHE_SIZE_UNLIMITED for no limit)
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED
-    })
+// Enable offline persistence (IndexedDB cache for snapshots/queries)
+enableIndexedDbPersistence(db, { synchronizeTabs: false })  // synchronizeTabs: false for single-tab/standalone PWA
+  .then(() => {
+    console.log('Firestore offline persistence enabled successfully (stable v10.x)');
+  })
+  .catch((err) => {
+    console.error('Error enabling persistence:', err);
+    if (err.code === 'failed-precondition') {
+      console.warn('Persistence failed: Multiple tabs open (unlikely in standalone PWA)');
+    } else if (err.code === 'unimplemented') {
+      console.warn('Persistence not supported in this browser/environment');
+    }
+    // App continues online-only
   });
-  console.log('Firestore initialized with modern offline persistence (persistentLocalCache)');
-} catch (err) {
-  console.error('Error initializing Firestore with persistence:', err);
-  // Fallback to basic Firestore without persistence
-  db = getFirestore(app);
-  console.log('Fallback: Firestore initialized without persistence');
-}
 
 const messaging = getMessaging(app);
 
@@ -76,7 +68,7 @@ async function requestNotificationPermission() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.ready; // assumes sw.js registered
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       logMessage('Notification permission denied.');
@@ -114,7 +106,7 @@ onMessage(messaging, (payload) => {
   new Notification(title, options);
 });
 
-// Export for use in other files
+// Export for use in other files (or attach to window if no modules)
 window.FireDB = db;
 window.requestNotificationPermission = requestNotificationPermission;
 
