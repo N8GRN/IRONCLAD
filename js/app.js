@@ -35,7 +35,7 @@ window.onload = function () {
         // Not logged in → redirect to login (except on login page itself)
         if (!window.location.pathname.includes('/login.html')) {
           console.log('No authenticated user - redirecting to login');
-          window.location.replace(REPO_ + '/login.html');
+          window.location.replace(REPO_ + PAGES_ + '/login.html');
         }
       } else {
         console.log('Logged in as:', user.email);
