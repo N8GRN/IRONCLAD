@@ -48,31 +48,31 @@ function maybeRedirectToLogin() {
 }
 
 // ===============================================
-// Roof Facets - Applications Page
+// Roof Sections - Applications Page
 // ===============================================
 const roofForm = document.querySelector('#roof-form') || null;
 
 function renderRoof(doc) {
   const li = document.createElement('li');
   const structureSpan = document.createElement('span');
-  const facetSpan = document.createElement('span');
+  const sectionSpan = document.createElement('span');
   const cross = document.createElement('div');
 
   li.setAttribute('data-id', doc.id);
   structureSpan.textContent = doc.data().structure || 'House';
-  facetSpan.textContent = doc.data().facet || 'Unnamed Facet';
+  sectionSpan.textContent = doc.data().section || 'Unnamed Section';
   cross.textContent = '×';
   cross.className = "close";
 
-  li.append(structureSpan, facetSpan, cross);
+  li.append(structureSpan, sectionSpan, cross);
   roofForm?.appendChild(li);
 
   cross.addEventListener('click', (e) => {
     e.stopPropagation();
     const id = e.target.parentElement.getAttribute('data-id');
-    db.collection('roof_facets').doc(id).delete().catch(err => {
+    db.collection('roof_sections').doc(id).delete().catch(err => {
       console.error('Delete failed:', err);
-      alert('Failed to delete facet. Check connection.');
+      alert('Failed to delete section. Check connection.');
     });
   });
 }
@@ -82,23 +82,23 @@ if (roofForm) {
     e.preventDefault();
     try {
       const structure = roofForm.structure.value.trim() || "House";
-      const facet = roofForm.facet.value.trim() || `Facet #${roofForm.querySelectorAll('li').length + 1}`;
+      const section = roofForm.section.value.trim() || `Section #${roofForm.querySelectorAll('li').length + 1}`;
 
-      await db.collection('roof_facets').add({
+      await db.collection('roof_sections').add({
         structure,
-        facet,
+        section,
         createdAt: new Date()
       });
 
       roofForm.reset();
     } catch (err) {
-      console.error('Error adding roof facet:', err);
-      alert('Could not save facet — are you online?');
+      console.error('Error adding roof section:', err);
+      alert('Could not save section — are you online?');
     }
   });
 
   // Real-time listener with error handling
-  db.collection('roof_facets').onSnapshot(snapshot => {
+  db.collection('roof_sections').onSnapshot(snapshot => {
     snapshot.docChanges().forEach(change => {
       if (change.type === 'added') {
         renderRoof(change.doc);
@@ -109,41 +109,41 @@ if (roofForm) {
       // You can handle 'modified' if needed later
     });
   }, err => {
-    console.error('Roof facets snapshot error:', err);
+    console.error('Roof sections snapshot error:', err);
   });
 }
 
 // ===============================================
-// Facet Details - Structure Page
+// Section Details - Structure Page
 // ===============================================
-const facetForm = document.querySelector('#facet-form') || null;
+const sectionForm = document.querySelector('#section-form') || null;
 
 function renderStructure() {
-  if (!facetForm) return;
+  if (!sectionForm) return;
 
-  const structureEl = facetForm.querySelector("#structure");
-  const facetEl = facetForm.querySelector("#facet");
-  const typeEl = facetForm.querySelector("[name='type']");     // assuming <select name="type">
-  const pitchEl = facetForm.querySelector("[name='pitch']");
-  const layersEl = facetForm.querySelector("[name='layers']");
-  const sheathingEl = facetForm.querySelector("[name='sheathing']");
+  const structureEl = sectionForm.querySelector("#structure");
+  const sectionEl = sectionForm.querySelector("#section");
+  const typeEl = sectionForm.querySelector("[name='type']");     // assuming <select name="type">
+  const pitchEl = sectionForm.querySelector("[name='pitch']");
+  const layersEl = sectionForm.querySelector("[name='layers']");
+  const sheathingEl = sectionForm.querySelector("[name='sheathing']");
 
   let progress = JSON.parse(localStorage.getItem("progress") || '{"x":0,"y":0}');
   let currentIndex = progress.x;
 
-  db.collection('roof_facets').onSnapshot(snapshot => {
+  db.collection('roof_sections').onSnapshot(snapshot => {
     try {
       const docs = snapshot.docs;
       const total = docs.length;
       if (total === 0) return;
 
-      // Cycle through facets
+      // Cycle through sections
       currentIndex = (currentIndex + 1) % total;
       const currentDoc = docs[currentIndex];
       const data = currentDoc.data();
 
       structureEl.textContent = data.structure || 'Unknown';
-      facetEl.textContent = data.facet || 'Unnamed';
+      sectionEl.textContent = data.section || 'Unnamed';
 
       // Pre-fill form with existing values if any
       typeEl.value = data.type || '';
@@ -158,10 +158,10 @@ function renderStructure() {
   }, err => console.error('Structure snapshot failed:', err));
 }
 
-if (facetForm) {
+if (sectionForm) {
   renderStructure();
 
-  facetForm.addEventListener('submit', async (e) => {
+  sectionForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const submitBtn = e.submitter;
     if (!submitBtn) return;
@@ -170,25 +170,25 @@ if (facetForm) {
     setTimeout(() => { submitBtn.disabled = false; }, 3000); // rate limit
 
     try {
-      // Assuming you store the current facet ID somewhere, e.g. data-current-id on form
-      const currentId = facetForm.dataset.currentId || null; // Add logic to set this if needed
+      // Assuming you store the current section ID somewhere, e.g. data-current-id on form
+      const currentId = sectionForm.dataset.currentId || null; // Add logic to set this if needed
       if (!currentId) {
-        console.warn('No current facet ID set');
+        console.warn('No current section ID set');
         return;
       }
 
-      await db.collection('roof_facets').doc(currentId).update({
-        type: facetForm.type?.value || '',
-        pitch: facetForm.pitch?.value || '',
-        layers: facetForm.layers?.value || '',
-        sheathing: facetForm.sheathing?.value || '',
+      await db.collection('roof_sections').doc(currentId).update({
+        type: sectionForm.type?.value || '',
+        pitch: sectionForm.pitch?.value || '',
+        layers: sectionForm.layers?.value || '',
+        sheathing: sectionForm.sheathing?.value || '',
         updatedAt: new Date()
       });
 
-      console.log('Facet updated successfully');
+      console.log('Section updated successfully');
     } catch (err) {
       console.error('Update failed:', err);
-      alert('Failed to save facet details.');
+      alert('Failed to save section details.');
     }
   });
 }

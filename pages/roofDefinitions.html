@@ -50,7 +50,7 @@
                     <tdata>
                         <tr>
                             <th><span id="structure">Structure</span></th>
-                            <th><span id="facet">Facet</span></th>
+                            <th><span id="section">Section</span></th>
                         </tr>
                         <tr>
                             <td><span>Type</span></td>
@@ -105,13 +105,13 @@
                         </tr>
                     </tdata>
                 </table>
-                <!--<button>Next Facet</button>-->
+                <!--<button>Next Section</button>-->
             </form>
             <br>
             <br>
         </div>
 
-        <p style="color: rgb(100, 100, 100);">Use the form(s) below to configure each of the structures/facets defined in the previous screen</p>
+        <p style="color: rgb(100, 100, 100);">Use the form(s) below to configure each of the structures/sections defined in the previous screen</p>
     </main>
 
     <footer>
@@ -141,7 +141,7 @@
         const originalForm = document.querySelector('#template').parentElement;
         
         // Clone table form
-        function cloneForm(name, structure, facet) {
+        function cloneForm(name, structure, section) {
             // 3. Clone the element deeply (with children)
             const clonedForm = originalForm.cloneNode(true);
 
@@ -149,20 +149,20 @@
             clonedForm.id = name;
             var headers = clonedForm.querySelectorAll('th');
             headers[0].innerText = structure;
-            headers[1].innerText = facet;
+            headers[1].innerText = section;
 
             // 5. Insert the clone into the DOM (append to the list)
             div.appendChild(clonedForm);
         }
 
         
-        db.collection('roof_facets').onSnapshot(snapshot => {
+        db.collection('roof_sections').onSnapshot(snapshot => {
             //console.log(snapshot);
             let changes = snapshot.docChanges();
             var x = 0;
             
             changes.forEach(change => {
-                cloneForm(change.doc.id, change.doc.data().structure, change.doc.data().facet);
+                cloneForm(change.doc.id, change.doc.data().structure, change.doc.data().section);
                 x = x + 1;
             });
             
