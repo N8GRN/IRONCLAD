@@ -327,12 +327,27 @@ div.bottom-nav > button {
 }
 
 .project-modal .button-space {
-    display: inline-block;
+    /*display: inline-block;
     position: relative;
     margin: auto;
     gap: 12px;
     justify-content: flex-end;
+    margin-top: 10px;*/
+    justify-content: right;
+    white-space: nowrap;
     margin-top: 10px;
+    width: -webkit-fill-available;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+.project-modal .button-space button {
+    max-width: 150px;
+    min-width: 50px !important;
+    margin: 0;
+    flex-grow: 1;
+    box-sizing: border-box;
 }
 
 .project-modal .cancel-btn {
