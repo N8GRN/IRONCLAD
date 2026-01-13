@@ -31,7 +31,7 @@ const firebaseConfig = {
 // Initialize Firebase App, Firestore, and Firebase Cloud Messaging
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-//const messaging = getMessaging(app);
+const messaging = getMessaging(app); // [01.12.2026] New!
 
 // [01.12.2026] NEW (from msgApp.js)
 // -----------------------------------------------------------------------------------------
