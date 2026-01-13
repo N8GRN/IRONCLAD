@@ -681,7 +681,7 @@ button, .button {
     display:inline-block;
     background-color: var(--btn3);
     color:white;
-    padding:1rem 2rem; 
+    padding:1rem 0rem; 
     text-decoration:none; 
     font-size: 1.4rem;
     border-radius: 999px;
@@ -699,7 +699,7 @@ button, .button {
 
 .wide-button {
     width: -webkit-fill-available;
-    margin: 0 15%;
+    margin: 0 12%;
 }
 
 
