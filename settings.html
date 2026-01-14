@@ -127,7 +127,7 @@
                 // Optional: show message to user
                 return;
             } else {
-                alert("Notification sw active");
+                // Notifications are supported by this browser and the script is running
             }
 
             const permission = Notification.permission;
@@ -143,6 +143,7 @@
                     break;
                 case 'denied':
                     msgStatus.innerText = "DENIED";
+                    msgStatus.style.color = "rgb(255, 0, 0)";
                     statusText = 'Push notifications are BLOCKED (user denied permission)';
                     break;
                 case 'default':
