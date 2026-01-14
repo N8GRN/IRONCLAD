@@ -24,7 +24,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail
-} from 'https://www.gstatic.com/firebasejs/10.14.1firebase-auth.js';
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 
 // My web app's Firebase configuration
 const firebaseConfig = {
