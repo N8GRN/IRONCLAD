@@ -260,10 +260,30 @@ function drawUser() {
   const container = document.createElement("div");
   container.classList.add("active-user");
 
+  const username = getActiveUser();
+
   const link = document.createElement("a");
   link.id = "username";
-  link.href = REPO_ + PAGES_ + "/login.html";
-  link.textContent = getActiveUser();
+  link.href = "#";  // No real navigation – we'll handle click below
+  link.textContent = username;
+  link.style.cursor = "pointer";  // Make it look clickable
+  link.title = "Click to logout";
+
+  // Add click handler for logout confirmation
+  link.addEventListener("click", (e) => {
+    e.preventDefault(); // Prevent default link behavior
+
+    if (confirm(`Are you sure you want to log out, ${username}?`)) {
+      window.AuthAPI.logout()
+        .then(() => {
+          console.log("Logout successful");
+          window.location.replace(REPO_ + '/pages/login.html');
+        })
+        .catch(() => {
+          alert("Logout failed. Please try again.");
+        });
+    }
+  });
 
   container.appendChild(link);
   document.body.appendChild(container);

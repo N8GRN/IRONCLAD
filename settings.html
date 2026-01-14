@@ -87,12 +87,6 @@
     </footer>
 
 
-
-
-    <!-- This script will request Push Notifications 
-    <script type="module" src="/IRONCLAD/js/msgApp.js"></script>
-    -->
-
     <script type="module" src="/IRONCLAD/js/modules.js"></script>
 
     <!-- Main application script, using type="module" -->
@@ -101,8 +95,71 @@
     <!-- Local Database ("Test Mode") -->
     <script src="/IRONCLAD/js/db.js"></script>
 
+    <!-- Page specific JavaScript -->
     <script>
-        // Page specific JavaScript here
+
+        // Add this in app.js or a debug section (runs on page load)
+        document.addEventListener('DOMContentLoaded', async () => {
+
+            var msg = document.querySelector("#featureMessage");
+            var msgStatus = msg.querySelector("strong");
+
+            if (!('Notification' in window)) {
+                console.log('Push notifications: Not supported in this browser');
+                // Optional: show message to user
+                return;
+            }
+
+            const permission = Notification.permission;
+            console.log('Current notification permission status:', permission);
+
+            // Human-readable status
+            let statusText = '';
+            switch (permission) {
+                case 'granted':
+                    msgStatus.innerText = "ENABLED";
+                    statusText = 'Push notifications are ENABLED';
+                    break;
+                case 'denied':
+                    msgStatus.innerText = "DENIED";
+                    statusText = 'Push notifications are BLOCKED (user denied permission)';
+                    break;
+                case 'default':
+                    msgStatus.innerText = "WAITING";
+                    statusText = 'Push notifications are NOT YET ASKED (still prompting)';
+                    break;
+                default:
+                    msgStatus.innerText = "UNKNOWN";
+                    statusText = 'Unknown status';
+            }
+
+            console.log(statusText);
+
+            // Optional: show on screen (e.g. in settings page)
+            const statusEl = document.getElementById('notification-status');
+            if (statusEl) {
+                statusEl.textContent = statusText;
+                statusEl.style.color = permission === 'granted' ? '#2e7d32' : '#d32f2f';
+            }
+
+            // Bonus: Check if FCM token exists (means registration worked)
+            if (permission === 'granted') {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const token = await window.requestNotificationPermission(); // your existing function
+                    if (token) {
+                        
+
+                        msgStatus.innerText = "Enabled"
+                        console.log('FCM token exists → fully enabled and registered:', token);
+                    } else {
+                        console.warn('Permission granted but no FCM token — registration may have failed');
+                    }
+                } catch (err) {
+                    console.error('Error checking token:', err);
+                }
+            }
+        });
     </script>
 
 </body>
