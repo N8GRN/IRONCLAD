@@ -34,7 +34,7 @@
 <body>
     <header>
         <a href="../settings.html" class="settings"></a>
-        <img src="../img/icons/logo.png"  onclick="savePageAsPDF()">
+        <img src="../img/icons/logo.png">
         <h2>Project Manager</h2>
     </header>
 
@@ -47,7 +47,16 @@
       <img src="../img/background.png" alt="Background" style="margin:auto;">
       <!-- Add more images from your img/ folder -->
 
-        <p style="color: rgb(100, 100, 100);">Version 1.0 • Updated November 2025<br>Written by Nathan Green</p>
+        <p style="color: rgb(100, 100, 100);">Version 4.1 • Updated January 2026<br>Written by Nathan Green</p>
+        <img src="/IRONCLAD/img/icons/print.png" id="print-icon" onclick="savePageAsPDF()" style="
+            height: 50px;
+            width: 50px;
+            right: 50px;
+            display: block;
+            position: absolute;
+            bottom: 0;
+            display: none;
+        ">
     </main>
 
     <footer>
@@ -81,12 +90,15 @@
         const toggle = document.getElementById('featureToggle');
         const status = document.getElementById('status');
         const message = document.getElementById('featureMessage');
+        const printIco = document.getElementById('print-icon');
 
         // Load saved state (if any)
         if (localStorage.getItem('TestMode') === 'true') {
             toggle.checked = true;
             status.textContent = 'On';
-            message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';            
+            message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
+            
+            printIco.style.display = "block";
         }
 
         // Listen for changes
@@ -96,11 +108,15 @@
                 status.textContent = 'On';
                 message.innerHTML = 'The experimental feature is currently <strong style="color:green">enabled</strong>.';
                 document.body.classList.toggle("tron-mode", true);
+
+                printIco.style.display = "block";
             } else {
                 localStorage.setItem('TestMode', 'false');
                 status.textContent = 'Off';
                 message.innerHTML = 'The experimental feature is currently <strong>disabled</strong>.';
                 document.body.classList.toggle("tron-mode", false);
+
+                printIco.style.display = "none";
             }
         });
     </script>
@@ -111,6 +127,8 @@
         async function savePageAsPDF() {
             const element = document.body;
             var fileName = window.prompt("What do you want to call this file?");
+            if (!fileName) {return};
+            
             const opt = {
                 margin: 0.5,                       // inches
                 filename: fileName/*'my-page.pdf'*/,
