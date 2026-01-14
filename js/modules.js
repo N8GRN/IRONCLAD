@@ -192,7 +192,8 @@ async function requestNotificationPermission() {
     const registration = await navigator.serviceWorker.ready;
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      logMessage('Notification permission denied.');
+      //logMessage('Notification permission denied.');
+      logMessage('Notification permission:' + permission);
       return null;
     }
 
