@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.0-20260114';
+const APP_VERSION = 'v4.0-20260114-fix';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -127,7 +127,7 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // Install event - precache
-self.addEventListener('install', (event) => {
+/*self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -135,6 +135,34 @@ self.addEventListener('install', (event) => {
         return cache.addAll(PRECACHE_URLS);
       })
       .then(() => self.skipWaiting())
+  );
+});*/
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(async (cache) => {
+        console.log('[SW] Starting precache... Attempting to cache:', PRECACHE_URLS);
+
+        for (const url of PRECACHE_URLS) {
+          try {
+            const response = await fetch(url, { cache: 'reload' });
+            if (!response.ok) {
+              console.error(`[SW] Failed to cache ${url} - Status: ${response.status}`);
+            } else {
+              await cache.put(url, response);
+              console.log(`[SW] Successfully cached: ${url}`);
+            }
+          } catch (err) {
+            console.error(`[SW] Fetch error for ${url}:`, err);
+          }
+        }
+
+        console.log('[SW] Precaching complete');
+        return self.skipWaiting();
+      })
+      .catch(err => {
+        console.error('[SW] Cache open failed:', err);
+      })
   );
 });
 
