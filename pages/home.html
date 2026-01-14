@@ -24,6 +24,9 @@
   <link rel="manifest" href="../manifest.json">
   <link rel="apple-touch-icon" href="../img/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="../css/styles.css">
+  
+  <!-- Print to PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <title>IRONCLAD CRM</title>
 </head>
@@ -31,15 +34,14 @@
 <body>
     <header>
         <a href="../settings.html" class="settings"></a>
-        <img src="../img/icons/logo.png">
+        <img src="../img/icons/logo.png"  onclick="savePageAsPDF()">
         <h2>Project Manager</h2>
     </header>
 
     <main>
         <div class="button-space">
-            <button class="wide-button" onclick="goToPage('/projects.html')" class="wide-button">My Projects</button>
-            <button class="wide-button" onclick="goToPage('/newProject.html')" class="wide-button">New Project</button>
-            <button class="wide-button" onclick="saveScreenAsPdf()" class="wide-button">Print</button>
+            <button class="wide-button" onclick="goToPage('/projects.html')">My Projects</button>
+            <button class="wide-button" onclick="goToPage('/newProject.html')">New Project</button>
         </div>
 
       <img src="../img/background.png" alt="Background" style="margin:auto;">
@@ -101,6 +103,33 @@
                 document.body.classList.toggle("tron-mode", false);
             }
         });
+    </script>
+
+    <!-- Print Screen to PDF -->
+    <script>
+        // Very clean usage
+        async function savePageAsPDF() {
+            const element = document.body;
+            var fileName = window.prompt("What do you want to call this file?");
+            const opt = {
+                margin: 0.5,                       // inches
+                filename: fileName/*'my-page.pdf'*/,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true }, // better quality + external images
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            try {
+                await html2pdf().set(opt).from(element).save();
+                console.log('PDF saved successfully');
+            } catch (err) {
+                console.error('PDF generation failed:', err);
+            }
+        }
+
+        // Usage: button click, etc.
+        document.getElementById('savePdfBtn').addEventListener('click', savePageAsPDF);
     </script>
 
 </body>
