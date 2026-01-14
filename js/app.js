@@ -334,6 +334,14 @@ function notifyOffline() {
   setTimeout(() => toast.remove(), 6000);
 }
 
+
+// ===============================================
+// Save Screen as PDF
+// ===============================================
+window.saveScreenAsPdf = function() {
+  window.print();
+}
+
 // ===============================================
 // Dev Helpers (local only)
 // ===============================================
