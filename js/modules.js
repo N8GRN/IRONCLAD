@@ -173,7 +173,7 @@ const AuthAPI = {
 // FCM & Logging (unchanged from your original)
 // ───────────────────────────────────────────────
 function logMessage(msg) {
-  const logEl = document.getElementById('notification-log');
+  const logEl = document.getElementById('log');
   if (logEl) {
     logEl.innerHTML += `<p>${new Date().toLocaleTimeString()} - ${msg}</p>`;
     logEl.scrollTop = logEl.scrollHeight;
