@@ -118,7 +118,7 @@
 
         // Add this in app.js or a debug section (runs on page load)
         document.addEventListener('DOMContentLoaded', async () => {
-
+            var log = document.querySelector("#log");
             var msg = document.querySelector("#featureMessage");
             var msgStatus = msg.querySelector("strong");
 
@@ -126,6 +126,8 @@
                 console.log('Push notifications: Not supported in this browser');
                 // Optional: show message to user
                 return;
+            } else {
+                alert("Notification sw active");
             }
 
             const permission = Notification.permission;
@@ -167,9 +169,6 @@
                     const registration = await navigator.serviceWorker.ready;
                     const token = await window.requestNotificationPermission(); // your existing function
                     if (token) {
-                        
-
-                        msgStatus.innerText = "Enabled"
                         console.log('FCM token exists → fully enabled and registered:', token);
                     } else {
                         console.warn('Permission granted but no FCM token — registration may have failed');
