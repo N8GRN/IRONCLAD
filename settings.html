@@ -138,12 +138,12 @@
             switch (permission) {
                 case 'granted':
                     msgStatus.innerText = "ENABLED";
-                    msgStatus.style.color = "rgb(0, 255, 0)";
+                    msgStatus.style.color = "green";
                     statusText = 'Push notifications are ENABLED';
                     break;
                 case 'denied':
                     msgStatus.innerText = "DENIED";
-                    msgStatus.style.color = "rgb(255, 0, 0)";
+                    msgStatus.style.color = "red";
                     statusText = 'Push notifications are BLOCKED (user denied permission)';
                     break;
                 case 'default':
