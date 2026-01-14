@@ -25,7 +25,10 @@ window.onload = function () {
   // Optional: If on a settings/notifications page with enable button
   const enableBtn = document.getElementById('enableNotificationsButton');
   if (enableBtn && window.requestNotificationPermission) {
-    enableBtn.addEventListener('click', window.requestNotificationPermission);
+    enableBtn.addEventListener('click', function(){
+      window.requestNotificationPermission;
+      alert("request made");
+  });
   }
 
   // Auth state listener - protect pages & update UI
