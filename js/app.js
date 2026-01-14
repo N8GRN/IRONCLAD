@@ -19,7 +19,7 @@ const db = (() => {
 // Initialization & Redirect
 // ===============================================
 window.onload = function () {
-  drawUser();
+  //drawUser();
   maybeRedirectToLogin();
 
   // Optional: If on a settings/notifications page with enable button
