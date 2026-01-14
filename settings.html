@@ -137,21 +137,21 @@
             let statusText = '';
             switch (permission) {
                 case 'granted':
-                    msgStatus.innerText = "ENABLED";
+                    msgStatus.innerText = "enabled";
                     msgStatus.style.color = "green";
                     statusText = 'Push notifications are ENABLED';
                     break;
                 case 'denied':
-                    msgStatus.innerText = "DENIED";
+                    msgStatus.innerText = "denied";
                     msgStatus.style.color = "red";
                     statusText = 'Push notifications are BLOCKED (user denied permission)';
                     break;
                 case 'default':
-                    msgStatus.innerText = "WAITING";
+                    msgStatus.innerText = "waiting";
                     statusText = 'Push notifications are NOT YET ASKED (still prompting)';
                     break;
                 default:
-                    msgStatus.innerText = "UNKNOWN";
+                    msgStatus.innerText = "unknown";
                     statusText = 'Unknown status';
             }
 
