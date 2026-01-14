@@ -22,12 +22,26 @@ window.onload = function () {
   //drawUser();
   maybeRedirectToLogin();
 
+  // Delay SW registration until after potential redirect (give page time to settle)
+  setTimeout(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/IRONCLAD/sw.js', { scope: '/IRONCLAD/' })
+        .then(reg => console.log('SW registered late:', reg.scope))
+        .catch(err => console.error('Late SW reg failed:', err));
+
+      // Also delay notification button listener
+      const enableBtn = document.getElementById('enableNotificationsButton');
+      if (enableBtn && window.requestNotificationPermission) {
+        enableBtn.addEventListener('click', window.requestNotificationPermission);
+      }
+    }
+  }, 1500); // 1.5s delay – adjust if needed
+
   // Optional: If on a settings/notifications page with enable button
   const enableBtn = document.getElementById('enableNotificationsButton');
   if (enableBtn && window.requestNotificationPermission) {
     enableBtn.addEventListener('click', function(){
       window.requestNotificationPermission;
-      alert("request made");
   });
   }
 

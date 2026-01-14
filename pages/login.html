@@ -276,6 +276,10 @@
       });
 
     });
+
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg) reg.update(); // Force check for new SW
+    });
   </script>
 
 </body>

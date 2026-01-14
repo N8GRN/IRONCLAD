@@ -1,20 +1,20 @@
 // js/modules.js - Firebase init, Firestore, Auth, FCM (foreground + token handling)
 // Updated Jan 13, 2026 - added email/password auth + user profile support
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  onSnapshot, 
+  doc, 
+  updateDoc, 
+  deleteDoc, 
   getDoc,
   setDoc
-} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js';
+} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
 
 // Authentication imports
 import {
@@ -24,7 +24,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail
-} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
 
 // My web app's Firebase configuration
 const firebaseConfig = {
@@ -197,12 +197,10 @@ async function requestNotificationPermission() {
     }
 
     logMessage('Notification permission granted.');
-    const token = await getToken(messaging, { vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: registration });
-    if (token) {
-      logMessage(`Token obtained: ${token.substring(0, 20)}...`, 'info');
-    } else {
-      logMessage('No token - check VAPID key or SW registration', 'error');
-    }
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: registration
+    });
 
     if (token) {
       logMessage(`FCM Token: ${token}`);
