@@ -64,7 +64,7 @@ function maybeRedirectToLogin() {
   if (isLandingPage) {
     // Small delay to allow PWA install prompt / analytics if needed
     setTimeout(() => {
-      window.location.replace(REPO_ + '/login.html'); // replace to avoid history clutter
+      window.location.replace(REPO_ + PAGES_ + '/login.html'); // replace to avoid history clutter
     }, 800);
   }
 }
