@@ -1,25 +1,62 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.0-20260114-push-fix';
+const APP_VERSION = 'v4.0-20260114';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
 // Files to precache (static assets - expand as needed from your img/css/js)
 const PRECACHE_URLS = [
+  REPO,
   REPO + 'index.html',
-  REPO + 'login.html',
-  REPO + 'settings.html',
   REPO + 'offline.html',
   REPO + 'manifest.json',
   REPO + 'favicon.ico',
   REPO + 'favicon.png',
+
+  // Core CSS
   REPO + 'css/styles.css',
+
+  // Data (JSON)
+  REPO + 'data/material.json',
+  REPO + 'data/project_status.json',
+  REPO + 'data/shingle_options.json',
+
+  // Core JS
   REPO + 'js/app.js',
+  REPO + 'js/db.js',
   REPO + 'js/modules.js',
-  REPO + 'js/projects.js',
+  REPO + 'js/project.js',
+
+  // Images
+  REPO + 'img/logo.png',
+  REPO + 'img/icon.png',
+  REPO + 'img/background.png',
+
+  // Images / Icons
+  REPO + 'img/icons/apple-touch-icon.png',
+  REPO + 'img/icons/gear.png',
+  REPO + 'img/icons/icon-72x72.png',
   REPO + 'img/icons/icon-192x192.png',
   REPO + 'img/icons/icon-512x512.png',
-  // Add more from your img/ and css/ folders
+  REPO + 'img/icons/icon-edit.png',
+  REPO + 'img/icons/icon-trash.png',
+  REPO + 'img/icons/logo.png',
+  REPO + 'img/icons/settings.png',
+  REPO + 'img/icons/user.png',
+  
+  // Images / Splash
+  REPO + 'img/splash/splash-1536x2048.png',
+  REPO + 'img/splash/splash-1668x2388.png',
+  REPO + 'img/splash/splash-2048x2732.png',
+  
+  // Pages
+  REPO + 'pages/application.html',
+  REPO + 'pages/calculator.html',
+  REPO + 'pages/home.html',
+  REPO + 'pages/login.html',
+  REPO + 'pages/newProject.html',
+  REPO + 'pages/projects.html',
+  REPO + 'pages/roofDefinitions.html'
 ];
 
 // Firebase imports (compat for service worker)
