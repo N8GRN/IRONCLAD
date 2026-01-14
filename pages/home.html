@@ -126,9 +126,9 @@
         // Very clean usage
         async function savePageAsPDF() {
             const element = document.body;
-            var fileName = window.prompt("What do you want to call this file?");
+            var fileName = window.prompt("Save file as:");
             if (!fileName) {return};
-            
+
             const opt = {
                 margin: 0.5,                       // inches
                 filename: fileName/*'my-page.pdf'*/,
