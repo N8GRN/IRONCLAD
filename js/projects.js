@@ -363,3 +363,47 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   displayProjects(); // Initial load and setup real-time listener
 });
+
+
+
+
+
+// [01.14.2026] Toggle between forms
+// ------------------------------------------------------------------------------
+/*const modalContent = document.querySelector('.modal-content');*/
+window.showForm = function (el, formId) {
+    const modalContent = document.querySelector('.modal-content');
+    var forms = modalContent.querySelectorAll('form');
+
+    showActiveElement(el);
+    forms.forEach(form => {
+        if (form.id !== formId) {
+            form.style.display = 'none';
+        } else {
+            form.style.display = 'flex';
+            form.style.justifyContent = 'center';
+        }
+    });
+
+}
+
+// make calling element active
+var showActiveElement = function(el){
+    if (el) {
+        const siblings = Array.from(el.parentElement.children);
+
+        siblings.forEach(sibling => {
+            sibling.classList.toggle("active", false);
+        });
+
+        el.classList.toggle("active", true);
+    }
+}
+
+window.toggleRibbonView = function (el) {
+    showActiveElement(el);
+    
+    el.parentElement.classList.toggle("alt")
+}
+
+// ------------------------------------------------------------------------------

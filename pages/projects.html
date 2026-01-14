@@ -62,25 +62,59 @@
     </footer>
 
     <!-- Modal Dialog  -->
-    <div id="projectModal" class="project-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"
-        tabindex="-1" style="display: none;">
+    <div id="projectModal" class="project-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"
+        style="display: none;">
         <div class="modal-backdrop"></div>
         <div class="modal-content">
-            <form id="projectForm">
-                <button class="close-btn" type="button" aria-label="Close">✕</button>
-                <h2>Add New Project</h2>
-                <input type="text" id="projectNumber" placeholder="Project Number" required>
-                <input type="text" id="customerName" placeholder="Customer Name" required>
-                <input type="text" id="application" placeholder="Application">
-                <input type="text" id="owner" placeholder="Owner">
-                <input type="text" id="lead" placeholder="Lead">
-                <input type="text" id="status" placeholder="Status">
-                <input type="text" id="price" placeholder="$ Price">
-                <div class="button-space">
-                    <button type="button" class="cancel-btn">Cancel</button>
-                    <button type="submit">Save</button>
+            <div id="projectForms" class="navigation-ribbon">
+                <span class="active" onclick="showForm(this, 'projectForm')">General</span><span onclick="showForm(this, 'contactForm')">Contact</span><span onclick="showForm(this, 'calculatorForm')">Calculator</span><span onclick="toggleRibbonView(this)">↕</span>
                 </div>
-            </form>
+    
+                <!-- Project General -->
+                <form id="projectForm" style="display:flex">
+                    <button class="close-btn" type="button" aria-label="Close">✕</button>
+                    <h2>Add New Project</h2>
+                    <input type="text" id="projectNumber" placeholder="Project Number" required>
+                    <input type="text" id="customerName" placeholder="Customer Name" required>
+                    <input type="text" id="application" placeholder="Application">
+                    <input type="text" id="owner" placeholder="Owner">
+                    <input type="text" id="lead" placeholder="Lead">
+                    <input type="text" id="status" placeholder="Status">
+                    <input type="text" id="price" placeholder="$ Price">
+                    <div class="button-space">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit">Save</button>
+                    </div>
+                </form>
+
+                <!-- Customer Information -->
+                <form id="contactForm" style="display:none">
+                    <button class="close-btn" type="button" aria-label="Close">✕</button>
+                    <h2>Customer Information</h2>
+                    <input type="text" id="projectNumber" placeholder="Project Number" required>
+                    <input type="text" id="customerName" placeholder="Customer Name" required>
+                    <input type="text" id="application" placeholder="Application">
+
+                    <div class="button-space">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit">Save</button>
+                    </div>
+                </form>
+
+                <!-- Calculator -->
+                <form id="calculatorForm" style="display:none">
+                    <button class="close-btn" type="button" aria-label="Close">✕</button>
+                    <h2>Calculator</h2>
+                    <input type="text" id="projectNumber" placeholder="Project Number" required>
+                    <input type="text" id="customerName" placeholder="Customer Name" required>
+                    <input type="text" id="application" placeholder="Application">
+
+                    <div class="button-space">
+                        <button type="button" class="cancel-btn">Cancel</button>
+                        <button type="submit">Save</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
