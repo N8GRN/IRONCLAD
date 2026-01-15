@@ -428,7 +428,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (addProjectButton) {
     addProjectButton.addEventListener('click', addNewProject);
   }
-  displayProjects(); // Initial load and setup real-time listener
+
+  // Wait for FirestoreAPI to be ready before loading data
+  function waitForFirestoreAPI(callback, maxAttempts = 50, interval = 100) {
+    if (window.FirestoreAPI) {
+      console.log('FirestoreAPI ready – starting projects load');
+      callback();
+    } else if (maxAttempts > 0) {
+      console.log('Waiting for FirestoreAPI... attempts left:', maxAttempts);
+      setTimeout(() => waitForFirestoreAPI(callback, maxAttempts - 1, interval), interval);
+    } else {
+      console.error('FirestoreAPI never loaded – check modules.js load order or network');
+      // Fallback: show error message
+      projectsListDiv.innerHTML = '<p style="color: red;">Error loading data – please refresh the page.</p>';
+    }
+  }
+
+  waitForFirestoreAPI(displayProjects);
 });
 
 
