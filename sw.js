@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.1-20260115';
+const APP_VERSION = 'v4.1-20260115.0';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -167,16 +167,50 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate - clean old caches
+// Activate - clean old caches and notify clients of new version
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    }).then(() => self.clients.claim())
+    (async () => {
+      try {
+        // 1. Clean up old caches
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames
+            .filter(name => name !== CACHE_NAME)
+            .map(name => caches.delete(name))
+        );
+        console.log('[SW] Old caches deleted');
+
+        // 2. Take control of all open pages immediately
+        await self.clients.claim();
+        console.log('[SW] Clients claimed - now controlling all pages');
+
+        // 3. Notify all open windows/tabs of the current version
+        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_VERSION_UPDATE',
+            version: APP_VERSION  // e.g. 'v4.1.0-20260115'
+          });
+        });
+        console.log(`[SW] Version broadcast sent to ${clients.length} client(s): ${APP_VERSION}`);
+
+      } catch (err) {
+        console.error('[SW] Activate event failed:', err);
+      }
+    })()
   );
+});
+
+// Listen for messages from clients
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'REQUEST_SW_VERSION') {
+    event.source.postMessage({
+      type: 'SW_VERSION_UPDATE',
+      version: APP_VERSION
+    });
+    console.log('[SW] Sent version on request:', APP_VERSION);
+  }
 });
 
 // Fetch - network-first for HTML, cache-first for assets, fallback to offline.html

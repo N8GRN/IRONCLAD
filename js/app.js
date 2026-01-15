@@ -15,6 +15,32 @@ const db = (() => {
   }
 })();
 
+
+// ===============================================
+// Software Version - Request SW version
+// ===============================================
+document.addEventListener('DOMContentLoaded', () => {
+  const versionEl = document.getElementById('sw-version');
+
+  if (!versionEl) return;
+
+  versionEl.textContent = 'Checking SW version...';
+
+  // Listen for SW messages
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'SW_VERSION_UPDATE') {
+      const version = event.data.version;
+      versionEl.textContent = version;
+      console.log('SW version updated in UI:', version);
+    }
+  });
+
+  // Optional: Ask the SW for version immediately if already active
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: 'REQUEST_SW_VERSION' });
+  }
+});
+
 // ===============================================
 // Initialization & Redirect
 // ===============================================
