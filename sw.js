@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.1-20260115.0';
+const APP_VERSION = 'v4.1-20260115';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -141,6 +141,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(async (cache) => {
+        console.log('[SW]', APP_VERSION);
         console.log('[SW] Starting precache... Attempting to cache:', PRECACHE_URLS);
 
         for (const url of PRECACHE_URLS) {
