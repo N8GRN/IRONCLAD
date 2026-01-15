@@ -131,13 +131,13 @@ function clearProjectList() {
 }*/
 
 function displayProjects() {
+  // Clear initial list
   clearProjectList();
-  projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>';
+  projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>'; // Preserve header if needed
 
-  // Delay attachment slightly to ensure IndexedDB is ready on iPad
-  setTimeout(() => {
-    window.FirestoreAPI.onSnapshot("projects", (querySnapshot) => {
-      try {
+  // Set up real-time listener
+  onSnapshot(collection(db, "projects"), (querySnapshot) => {
+    try {
       const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       clearProjectList(); // Clear before rebuild
@@ -182,14 +182,14 @@ function displayProjects() {
         sortByField(sortIndex); // Toggle twice to preserve direction
       }
 
-    console.log('onSnapshot fired on iPad:', querySnapshot.metadata.fromCache ? 'from cache' : 'from server');
-      } catch (e) {
-        console.error("Snapshot processing error:", e);
-      }
-    }, (error) => {
-      console.error("Snapshot listener error:", error);
-    });
-  }, 100); // 100ms delay – adjust to 0 or 300 if needed
+    } catch (e) {
+      console.error("Error in real-time projects update:", e);
+      projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Error loading projects: ${e.message}</p>`);
+    }
+  }, (error) => {
+    console.error("Snapshot listener error:", error);
+    projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Real-time updates failed: ${error.message}</p>`);
+  });
 }
 
 
@@ -428,23 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (addProjectButton) {
     addProjectButton.addEventListener('click', addNewProject);
   }
-
-  // Wait for FirestoreAPI to be ready before loading data
-  function waitForFirestoreAPI(callback, maxAttempts = 50, interval = 100) {
-    if (window.FirestoreAPI) {
-      console.log('FirestoreAPI ready – starting projects load');
-      callback();
-    } else if (maxAttempts > 0) {
-      console.log('Waiting for FirestoreAPI... attempts left:', maxAttempts);
-      setTimeout(() => waitForFirestoreAPI(callback, maxAttempts - 1, interval), interval);
-    } else {
-      console.error('FirestoreAPI never loaded – check modules.js load order or network');
-      // Fallback: show error message
-      projectsListDiv.innerHTML = '<p style="color: red;">Error loading data – please refresh the page.</p>';
-    }
-  }
-
-  waitForFirestoreAPI(displayProjects);
+  displayProjects(); // Initial load and setup real-time listener
 });
 
 
