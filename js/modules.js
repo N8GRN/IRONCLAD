@@ -7,9 +7,9 @@ import {
   // [01.15.2026] Removed
   // enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
   initializeFirestore, // Import initializeFirestore
-  /*persistentLocalCache, // Import persistentLocalCache
+  persistentLocalCache, // Import persistentLocalCache
   persistentMultipleTabManager, // Optional: for multi-tab support
-  persistentSingleTabManager, // Optional: for single-tab support*/
+  persistentSingleTabManager, // Optional: for single-tab support
   memoryLocalCache,
   collection,
   addDoc,
@@ -62,12 +62,16 @@ const auth = getAuth(app);
 // ───────────────────────────────────────────────
 let db;
 
+/*
 try {
-  /*db = initializeFirestore(app, {
+  // Does not work on iPad
+  db = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentSingleTabManager() //persistentMultipleTabManager() // Or persistentSingleTabManager()
     })
-  });*/
+  });
+
+  // Working!
   db = initializeFirestore(app, {
       localCache: memoryLocalCache() // Data will only persist as long as the tab is open
     });
@@ -84,6 +88,29 @@ try {
 
 // After Firestore is initialized with persistence, you can proceed with your operations.
 console.log("Firestore initialized with persistent local cache!");
+*/
+
+try {
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager() // Or persistentSingleTabManager()
+        })
+      });
+      console.log("Firestore initialized with persistent local cache successfully!");
+    } catch (err) {
+      if (err.code === 'failed-precondition') {
+          // This can still happen if, for example, iOS/iPadOS is preventing
+          // IndexedDB access due to storage restrictions, or if a "reset website data" occurred.
+          console.warn("Firestore persistence failed: Likely due to browser environment restriction (e.g., storage limits, privacy settings).", err);
+      } else if (err.code === 'unimplemented') {
+          console.warn("Firestore persistence failed: The current browser/environment does not support all required features for persistence.", err);
+      } else {
+          console.error("Firestore initialization with persistence failed for an unknown reason:", err);
+      }
+      // You could potentially initialize with memoryLocalCache here as a fallback
+      // db = initializeFirestore(app, { localCache: memoryLocalCache() });
+      // console.warn("Falling back to memory-only cache.");
+    }
 
 
 // ───────────────────────────────────────────────

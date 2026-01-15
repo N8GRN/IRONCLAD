@@ -114,21 +114,18 @@ h2 {
     text-align: center;
     font-size: 2.5em;
     font-weight: 300;
-    /*margin: 1em;*/
     white-space: nowrap;
 }
 
 main {
     width:-webkit-fill-available;
     margin:0 auto; 
-    /*padding: 0 2em;*/
     padding: 0 5%;
     overflow-x:hidden; 
     overflow-y:auto;
     flex-grow: 1;
     display:flex;
     flex-direction: column;
-    /*justify-content: center;*/
     scrollbar-width: none;
     position:relative;
     height:auto;
@@ -203,11 +200,6 @@ form li span {
     flex:auto;
 }
 
-/*form div {
-    display:flex;
-    width: -webkit-fill-available;
-}*/
-
 form div input, form div span {
     display: inline;
     margin-left:auto;
@@ -228,8 +220,6 @@ form button {
     min-width: 150px; /* [01.13.2026] Previously 300px*/
 }
 
-
-/* header { background:#000; color:white; padding:2rem; text-align:center; } */
 
 nav { background:#333; padding:1rem; text-align:center; }
 nav a { color:white; margin:0 1rem; text-decoration:none; font-weight:bold; }
@@ -283,7 +273,6 @@ div.bottom-nav > button {
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 
-/* Rest of your styles... */
 
 .project-modal h2 {
   margin-top: 0;
@@ -332,12 +321,6 @@ div.bottom-nav > button {
 }
 
 .project-modal .button-space {
-    /*display: inline-block;
-    position: relative;
-    margin: auto;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 10px;*/
     justify-content: right;
     white-space: nowrap;
     margin-top: 10px;
@@ -664,26 +647,14 @@ span#username {
 
 .full {
     display:block;
-    /*height: 60px;*/
     width: 60%;
     min-width: 330px;
     margin: auto auto;
     line-height: 1em;
 }
 
-.navigation-ribbon {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-evenly;
-    background: lightgray;
-    height: 24px;
-    vertical-align: middle;
-    width: -webkit-fill-available;
-}
 
-/* Alternative layout */
-/* Sets ribbon below heading */
-.navigation-ribbon.alt {
+.navigation-ribbon {
     display: flex;
     flex-direction: row;
     justify-content: space-evenly;
@@ -710,9 +681,6 @@ span#username {
 }
 
 .button-space {
-    /*display: flex;
-    flex-direction: column;
-    min-height: clamp(50px, 25dvh, 100%);*/
     display: flex;
     flex-direction: column;
     min-height: clamp(50px, 25dvh, 100%);
