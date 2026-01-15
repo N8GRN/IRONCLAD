@@ -189,7 +189,7 @@ function displayProjects() {
     }, (error) => {
       console.error("Snapshot listener error:", error);
     });
-  }, 100); // 100ms delay – adjust to 0 or 300 if needed
+  }, 300); // 100ms delay – adjust to 0 or 300 if needed
 }
 
 
