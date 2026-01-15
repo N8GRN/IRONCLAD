@@ -2,21 +2,21 @@
 // Updated Jan 13, 2026 - added email/password auth + user profile support
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
-import { 
-  getFirestore, 
+import {
+  getFirestore,
   // [01.15.2026] Removed
   // enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
   initializeFirestore, // Import initializeFirestore
   persistentLocalCache, // Import persistentLocalCache
   persistentMultipleTabManager, // Optional: for multi-tab support
   persistentSingleTabManager, // Optional: for single-tab support
-  collection, 
-  addDoc, 
-  getDocs, 
-  onSnapshot, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
+  collection,
+  addDoc,
+  getDocs,
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc,
   getDoc,
   setDoc
 } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
@@ -78,15 +78,28 @@ const auth = getAuth(app);
           console.error("Firestore persistence failed for an unknown reason:", err);
       }
   });*/
-  const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    // Optional: Configure tab manager for multi-tab synchronization
-    // For single-tab persistence (default if not specified or using persistentSingleTabManager())
-    tabManager: persistentSingleTabManager(), 
-    // For multi-tab persistence
-    // tabManager: persistentMultipleTabManager() 
-  })
-});
+let db;
+
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager() // Or persistentSingleTabManager()
+    })
+  });
+  console.log("Firestore initialized with persistent local cache successfully!");
+  alert("Firestore initialized with persistent local cache successfully!");
+} catch (err) {
+  if (err.code === 'failed-precondition') {
+    console.warn("Firestore persistence failed: Multiple tabs open, or browser environment restriction. Persistence can only be enabled in one tab at a time, or may be disabled by browser settings (e.g., Private Browsing).", err);
+    alert("Firestore persistence failed: Multiple tabs open, or browser environment restriction. Persistence can only be enabled in one tab at a time, or may be disabled by browser settings (e.g., Private Browsing).", err);
+  } else if (err.code === 'unimplemented') {
+    console.warn("Firestore persistence failed: The current browser/environment does not support all required features for persistence (e.g., older browser, or specific iOS/iPadOS settings).", err);
+    alert("Firestore persistence failed: The current browser/environment does not support all required features for persistence (e.g., older browser, or specific iOS/iPadOS settings).", err);
+  } else {
+    console.error("Firestore initialization with persistence failed for an unknown reason:", err);
+    alert("Firestore initialization with persistence failed for an unknown reason:", err);
+  }
+}
 
 // After Firestore is initialized with persistence, you can proceed with your operations.
 console.log("Firestore initialized with persistent local cache!");
