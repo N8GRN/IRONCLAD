@@ -7,9 +7,10 @@ import {
   // [01.15.2026] Removed
   // enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
   initializeFirestore, // Import initializeFirestore
-  persistentLocalCache, // Import persistentLocalCache
+  /*persistentLocalCache, // Import persistentLocalCache
   persistentMultipleTabManager, // Optional: for multi-tab support
-  persistentSingleTabManager, // Optional: for single-tab support
+  persistentSingleTabManager, // Optional: for single-tab support*/
+  memoryLocalCache,
   collection,
   addDoc,
   getDocs,
@@ -62,11 +63,14 @@ const auth = getAuth(app);
 let db;
 
 try {
-  db = initializeFirestore(app, {
+  /*db = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentSingleTabManager() //persistentMultipleTabManager() // Or persistentSingleTabManager()
     })
-  });
+  });*/
+  db = initializeFirestore(app, {
+      localCache: memoryLocalCache() // Data will only persist as long as the tab is open
+    });
   console.log("Firestore initialized with persistent local cache successfully!");
 } catch (err) {
   if (err.code === 'failed-precondition') {
