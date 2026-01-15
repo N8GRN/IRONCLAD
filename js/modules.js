@@ -4,7 +4,12 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
 import { 
   getFirestore, 
-  enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
+  // [01.15.2026] Removed
+  // enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
+  initializeFirestore, // Import initializeFirestore
+  persistentLocalCache, // Import persistentLocalCache
+  persistentMultipleTabManager, // Optional: for multi-tab support
+  persistentSingleTabManager, // Optional: for single-tab support
   collection, 
   addDoc, 
   getDocs, 
@@ -43,7 +48,7 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
 const app = initializeApp(firebaseConfig);
 
 // Firestore instance
-const db = getFirestore(app);
+//const db = getFirestore(app);
 
 // Messaging instance
 const messaging = getMessaging(app);
@@ -54,7 +59,7 @@ const auth = getAuth(app);
 // ───────────────────────────────────────────────
 // Offline - Enable offline persistence
 // ───────────────────────────────────────────────
-enableIndexedDbPersistence(db)
+/*enableIndexedDbPersistence(db)
   .then(() => {
     // Offline persistence is now enabled.
     // You can now proceed with your Firestore operations.
@@ -72,7 +77,20 @@ enableIndexedDbPersistence(db)
       } else {
           console.error("Firestore persistence failed for an unknown reason:", err);
       }
-  });
+  });*/
+  const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    // Optional: Configure tab manager for multi-tab synchronization
+    // For single-tab persistence (default if not specified or using persistentSingleTabManager())
+    tabManager: persistentSingleTabManager(), 
+    // For multi-tab persistence
+    // tabManager: persistentMultipleTabManager() 
+  })
+});
+
+// After Firestore is initialized with persistence, you can proceed with your operations.
+console.log("Firestore initialized with persistent local cache!");
+
 
 // ───────────────────────────────────────────────
 // Auth API - Wrapped helpers for safe usage
