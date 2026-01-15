@@ -90,7 +90,7 @@ try {
 console.log("Firestore initialized with persistent local cache!");
 */
 const isIPad = /iPad/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-if (isIpad){alert("iPad")};
+if (isIPad){alert("iPad")};
 try {
   db = initializeFirestore(app, {
     localCache: persistentLocalCache({
