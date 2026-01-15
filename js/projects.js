@@ -65,7 +65,10 @@ function clearProjectList() {
 }
 
 // Display all projects with real-time updates using onSnapshot
-function displayProjects() {
+// [01.15.2026] Fails on iPad because...
+// See rewrite below with 'setTimeout()'
+
+/*function displayProjects() {
   // Clear initial list
   clearProjectList();
   projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>'; // Preserve header if needed
@@ -125,7 +128,71 @@ function displayProjects() {
     console.error("Snapshot listener error:", error);
     projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Real-time updates failed: ${error.message}</p>`);
   });
+}*/
+
+function displayProjects() {
+  clearProjectList();
+  projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>';
+
+  // Delay attachment slightly to ensure IndexedDB is ready on iPad
+  setTimeout(() => {
+    window.FirestoreAPI.onSnapshot("projects", (querySnapshot) => {
+      try {
+      const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      clearProjectList(); // Clear before rebuild
+
+      if (projects.length === 0) {
+        projectsListDiv.insertAdjacentHTML('beforeend', '<p>No projects found. Add one above!</p>');
+        return;
+      }
+
+      // Remove any stale loading message
+      document.getElementById("loading-message")?.remove();
+
+      let projectsHtml = '';
+
+      projects.forEach(project => {
+        projectsHtml += `
+          <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
+            <span class="project-number">${project.project || '—'}</span>
+            <span>${project.customer || '—'}</span>
+            <span>${project.application || '—'}</span>
+            <span>${project.owner || '—'}</span>
+            <span>${project.lead || '—'}</span>
+            <span>${project.status || '—'}</span>
+            <span>${project.price || '—'}</span>
+            <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}'); event.stopPropagation();"></div>
+            <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}'); event.stopPropagation();"></div>
+          </div>
+        `;
+      });
+
+      projectsListDiv.insertAdjacentHTML('beforeend', projectsHtml + '<span id="loading-message"></span>');
+
+      // Attach sort listeners after render
+      addSortListeners();
+
+      if (initialLoad) {
+        sortByField(0);
+        initialLoad = false;
+      } else {
+        const sortIndex = parseInt(document.body.getAttribute("data-sortIndex")) || 0;
+        sortByField(sortIndex);
+        sortByField(sortIndex); // Toggle twice to preserve direction
+      }
+
+    console.log('onSnapshot fired on iPad:', querySnapshot.metadata.fromCache ? 'from cache' : 'from server');
+      } catch (e) {
+        console.error("Snapshot processing error:", e);
+      }
+    }, (error) => {
+      console.error("Snapshot listener error:", error);
+    });
+  }, 100); // 100ms delay – adjust to 0 or 300 if needed
 }
+
+
 
 // Update existing project
 window.editProject = async (id) => {
