@@ -8,7 +8,7 @@ import {
   // enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
   initializeFirestore, // Import initializeFirestore
   persistentLocalCache, // Import persistentLocalCache
-  persistentMultipleTabManager, // Optional: for multi-tab support
+  // persistentMultipleTabManager, // Optional: for multi-tab support
   persistentSingleTabManager, // Optional: for single-tab support
   memoryLocalCache,
   collection,
@@ -93,7 +93,7 @@ console.log("Firestore initialized with persistent local cache!");
 try {
       db = initializeFirestore(app, {
         localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager() // Or persistentSingleTabManager()
+          tabManager: persistentSingleTabManager() // Or persistentMultipleTabManager()
         })
       });
       console.log("Firestore initialized with persistent local cache successfully!");
