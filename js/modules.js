@@ -4,6 +4,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js';
 import { 
   getFirestore, 
+  enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
   collection, 
   addDoc, 
   getDocs, 
@@ -49,6 +50,29 @@ const messaging = getMessaging(app);
 
 // Auth instance
 const auth = getAuth(app);
+
+// ───────────────────────────────────────────────
+// Offline - Enable offline persistence
+// ───────────────────────────────────────────────
+enableIndexedDbPersistence(db)
+  .then(() => {
+    // Offline persistence is now enabled.
+    // You can now proceed with your Firestore operations.
+    console.log("Firestore offline persistence enabled successfully!");
+  })
+  .catch((err) => {
+      if (err.code == 'failed-precondition') {
+          // Multiple tabs open, persistence can only be enabled
+          // in one tab at a time. Handle this gracefully.
+          console.warn("Firestore persistence failed: Multiple tabs open. Persistence can only be enabled in one tab at a time.");
+      } else if (err.code == 'unimplemented') {
+          // The current browser does not support all of the
+          // features required to enable persistence (e.g., older browsers).
+          console.warn("Firestore persistence failed: The current browser does not support all required features.");
+      } else {
+          console.error("Firestore persistence failed for an unknown reason:", err);
+      }
+  });
 
 // ───────────────────────────────────────────────
 // Auth API - Wrapped helpers for safe usage
