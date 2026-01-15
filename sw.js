@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.1-20260115.6';
+const APP_VERSION = 'v4.1-20260115.8';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -61,6 +61,7 @@ const PRECACHE_URLS = [
 
 // Firebase imports (compat for service worker)
 importScripts('https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js'); // [01.15.2026] NEW
 importScripts('https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging-compat.js');
 
 // Your Firebase config - REPLACE WITH YOUR REAL VALUES
