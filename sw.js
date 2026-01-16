@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.2-20260116.1';
+const APP_VERSION = 'v4.2-20260116.2';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -126,6 +126,15 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 */
+
+// Handle background FCM messages
+// IMPORTANT: REMOVE the call to self.registration.showNotification() here
+// as FCM will automatically display a notification from the 'notification' payload.
+messaging.onBackgroundMessage((payload) => {
+  console.log('[sw.js] Received background message (FCM auto-displayed notification)', payload);
+  // You can still process custom data here if needed, but do NOT call
+  // self.registration.showNotification() as it will create a duplicate.
+});
 
 
 // Handle notification click
