@@ -61,7 +61,6 @@ const PRECACHE_URLS = [
 
 // Firebase imports (compat for service worker)
 importScripts('https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js');
-//importScripts('https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js'); // [01.15.2026] Tested, does not work
 importScripts('https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging-compat.js');
 
 // Your Firebase config - REPLACE WITH YOUR REAL VALUES
@@ -80,6 +79,7 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Handle background FCM messages
+/* [01.16.2026] Keyword "notification" changed to "data" to prevent duplicate messages from FCM
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
@@ -99,12 +99,38 @@ messaging.onBackgroundMessage((payload) => {
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
+*/
+
+// Handle background FCM messages
+messaging.onBackgroundMessage((payload) => {
+  console.log('[sw.js] Received background message ', payload);
+
+  // Use payload.data for notification content, as you will be sending only data messages
+  const notificationTitle = payload.data?.title || 'IRONCLAD Notification';
+  const notificationOptions = {
+    body: payload.data?.body || 'You have a new update in your roofing CRM.',
+    icon: payload.data?.icon || REPO + 'img/icons/icon-192x192.png',
+    badge: REPO + 'img/badge.png', // optional
+    data: {
+      url: payload.data?.url || REPO + 'pages/projects.html' // fallback for click action
+    },
+    actions: [
+      { action: 'open', title: 'Open App' },
+      { action: 'close', title: 'Close' }
+    ]
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
 
 // Handle notification click
+// [01.16.2026] Target URL modified and client URL comparison changed for inclusivity
+/*
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const action = event.action;
-  let url = event.notification.data?.url || REPO + 'index.html';
+  let url = event.notification.data?.url || REPO + 'index.html'; 
 
   if (action === 'open') {
     url = REPO + 'pages/projects.html'; // or wherever you want
@@ -126,18 +152,45 @@ self.addEventListener('notificationclick', (event) => {
       })
   );
 });
+*/
+
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const action = event.action;
+
+  // Prioritize the URL from notification data. Default to projects.html if no URL is provided.
+  let targetUrl = event.notification.data?.url || REPO + 'pages/projects.html';
+
+  if (action === 'open') {
+    // If 'open' action is clicked, use the targetUrl defined above,
+    // or you could choose to force it to a specific page if that's always desired for "Open App"
+    // For now, let's make it consistent with the targetUrl
+  } else if (action === 'close') {
+    return; // Do nothing if the 'close' action was clicked
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          // Check if the client is already open and on the target URL
+          if (client.url.includes(targetUrl) && 'focus' in client) { // Use .includes() for more flexibility
+            return client.focus();
+          }
+        }
+        // If no matching client, or client is not focused, open a new window
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
+});
+
+
 
 // Install event - precache
-/*self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[sw.js] Pre-caching files');
-        return cache.addAll(PRECACHE_URLS);
-      })
-      .then(() => self.skipWaiting())
-  );
-});*/
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
