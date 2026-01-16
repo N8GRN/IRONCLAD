@@ -19,7 +19,8 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  setDoc
+  setDoc,
+  serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
 import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-messaging.js';
 
@@ -32,6 +33,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail
 } from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js';
+
 
 // My web app's Firebase configuration
 const firebaseConfig = {
@@ -56,6 +58,48 @@ const messaging = getMessaging(app);
 
 // Auth instance
 const auth = getAuth(app);
+
+
+// [01.16.2026] - Dynamic Push Notifications
+// Send user push notifications dynamically
+// --------------------------------------------------
+// Get FCM registration token and save it to Firestore
+async function saveMessagingDeviceToken() {
+  try {
+    const currentToken = await getToken(messaging, {
+      vapidKey: VAPID_PUBLIC_KEY,
+    });
+    if (currentToken) {
+      console.log('FCM registration token:', currentToken);
+      // Save the token to Firestore
+      await setDoc(doc(db, 'fcmTokens', currentToken), {
+        // You can associate it with a user ID if your app has user authentication
+        // userId: firebase.auth().currentUser?.uid || null,
+        timestamp: serverTimestamp(),
+      });
+      console.log('FCM token saved to Firestore.');
+    } else {
+      console.log('No FCM registration token available. Request permission to generate one.');
+      // Handle the case where permission is denied or not granted
+      // You might show a UI prompt here
+    }
+  } catch (error) {
+    console.error('Unable to get Firebase Messaging token or save to Firestore:', error);
+  }
+}
+
+// Call this function when your app starts and the user is logged in (if applicable)
+// or when you want to ensure the token is registered.
+saveMessagingDeviceToken();
+
+// Optional: Handle token refresh
+messaging.onTokenRefresh(() => {
+  saveMessagingDeviceToken();
+});
+
+// --------------------------------------------------
+
+
 
 // ───────────────────────────────────────────────
 // Offline - Enable offline persistence

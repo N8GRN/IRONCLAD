@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.2-20260116.2';
+const APP_VERSION = 'v4.2-20260116.3';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -168,7 +168,8 @@ self.addEventListener('notificationclick', (event) => {
 */
 
 
-// [01.16.2026] This works perfectly as an alternative message, but disabled for now to test a 
+// [01.16.2026] Method #2
+// This works perfectly as an alternative message, but disabled for now to test a 
 // different message handles (see next function)
 /*
 // Handle notification click
@@ -204,7 +205,8 @@ self.addEventListener('notificationclick', (event) => {
   );
 });*/
 
-// [01.16.2026] Method #3 - attempt to hijack the default FCM notification
+// [01.16.2026] Method #3
+// Hijacks the default FCM notification, but cannot force a target URL
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -213,7 +215,7 @@ self.addEventListener('notificationclick', (event) => {
   // 1. Prioritize 'click_action' which comes from the Firebase Console's "Landing page (optional)"
   // 2. Fallback to 'url' from 'Custom data' payload
   // 3. Final fallback to a default page
-  let targetUrl = /*event.notification.click_action || */event.notification.data?.url || REPO + 'pages/projects.html';
+  let targetUrl = /*event.notification.click_action || */event.notification.data?.url || REPO + 'pages/home.html';
 
   // Handle action buttons
   if (action === 'open') {
