@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.2-20260116.0';
+const APP_VERSION = 'v4.2-20260116.1';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -101,7 +101,10 @@ messaging.onBackgroundMessage((payload) => {
 });
 */
 
-// Handle background FCM messages
+// Handle background FCM messages [01.16.2026] This works perfectly by using data pairs instead of Notification information
+// However, the user still receives 2 messages because the Notification information is required by the Firebase Console
+// Removed to test with just 1 message
+/*
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
@@ -122,6 +125,7 @@ messaging.onBackgroundMessage((payload) => {
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
+*/
 
 
 // Handle notification click
@@ -155,6 +159,9 @@ self.addEventListener('notificationclick', (event) => {
 */
 
 
+// [01.16.2026] This works perfectly as an alternative message, but disabled for now to test a 
+// different message handles (see next function)
+/*
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -177,6 +184,43 @@ self.addEventListener('notificationclick', (event) => {
         for (const client of clientList) {
           // Check if the client is already open and on the target URL
           if (client.url.includes(targetUrl) && 'focus' in client) { // Use .includes() for more flexibility
+            return client.focus();
+          }
+        }
+        // If no matching client, or client is not focused, open a new window
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
+});*/
+
+// [01.16.2026] Method #3 - attempt to hijack the default FCM notification
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const action = event.action;
+
+  // 1. Prioritize 'click_action' which comes from the Firebase Console's "Landing page (optional)"
+  // 2. Fallback to 'url' from 'Custom data' payload
+  // 3. Final fallback to a default page
+  let targetUrl = /*event.notification.click_action || */event.notification.data?.url || REPO + 'pages/projects.html';
+
+  // Handle action buttons
+  if (action === 'open') {
+    // If "Open App" is clicked, we'll use the targetUrl determined above.
+    // If you want "Open App" to *always* go to a specific, static page,
+    // you could override targetUrl here, e.g., targetUrl = REPO + 'pages/dashboard.html';
+  } else if (action === 'close') {
+    return; // Do nothing if the 'close' action was clicked
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          // Check if a client is already open and on a URL that includes our target path
+          if (client.url.includes(targetUrl.split('?')[0]) && 'focus' in client) { // split to ignore query params for existing tab
             return client.focus();
           }
         }
