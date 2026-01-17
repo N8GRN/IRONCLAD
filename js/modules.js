@@ -51,7 +51,7 @@ const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-6
 const app = initializeApp(firebaseConfig);
 
 // Firestore instance
-//const db = getFirestore(app);
+// const db = getFirestore(app);
 
 // Messaging instance
 const messaging = getMessaging(app);
@@ -104,9 +104,9 @@ messaging.onTokenRefresh(() => {
 // ───────────────────────────────────────────────
 // Offline - Enable offline persistence
 // ───────────────────────────────────────────────
-let db;
+// let db; // [01.17.2026] revert to no cache until fixed
 
-/*
+
 try {
   // Does not work on iPad
   db = initializeFirestore(app, {
@@ -132,8 +132,9 @@ try {
 
 // After Firestore is initialized with persistence, you can proceed with your operations.
 console.log("Firestore initialized with persistent local cache!");
-*/
 
+
+/*
 try {
       db = initializeFirestore(app, {
         localCache: persistentLocalCache({
@@ -155,7 +156,7 @@ try {
       // db = initializeFirestore(app, { localCache: memoryLocalCache() });
       // console.warn("Falling back to memory-only cache.");
     }
-
+*/
 
 // ───────────────────────────────────────────────
 // Auth API - Wrapped helpers for safe usage
