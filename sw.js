@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.2-20260117.1';
+const APP_VERSION = 'v4.2-20260117.2';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/IRONCLAD/'; // Adjust if deployed to root
 
@@ -80,7 +80,7 @@ const messaging = firebase.messaging();
 
 // Handle background FCM messages
 /* [01.16.2026] Keyword "notification" changed to "data" to prevent duplicate messages from FCM */
-messaging.onBackgroundMessage((payload) => {
+/* messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
   const notificationTitle = payload.notification?.title || 'IRONCLAD Notification';
@@ -98,13 +98,13 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
-});
+});*/
 
 
 // Handle background FCM messages [01.16.2026] This works perfectly by using data pairs instead of Notification information
 // However, the user still receives 2 messages because the Notification information is required by the Firebase Console
 // Removed to test with just 1 message
-/*
+
 messaging.onBackgroundMessage((payload) => {
   console.log('[sw.js] Received background message ', payload);
 
@@ -125,7 +125,7 @@ messaging.onBackgroundMessage((payload) => {
 
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
-*/
+
 
 // [01.17.2026] disabled temporarily, until bigs fixed
 // Handle background FCM messages
