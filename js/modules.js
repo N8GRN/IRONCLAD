@@ -9,8 +9,8 @@ import {
   // initializeFirestore, // Import initializeFirestore
   // persistentLocalCache, // Import persistentLocalCache
   // persistentMultipleTabManager, // Optional: for multi-tab support
-  persistentSingleTabManager, // Optional: for single-tab support
-  memoryLocalCache,
+  // persistentSingleTabManager, // Optional: for single-tab support
+  // memoryLocalCache,
   collection,
   addDoc,
   getDocs,
