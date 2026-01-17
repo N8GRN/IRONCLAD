@@ -6,8 +6,8 @@ import {
   getFirestore,
   // [01.15.2026] Removed
   // enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
-  initializeFirestore, // Import initializeFirestore
-  persistentLocalCache, // Import persistentLocalCache
+  // initializeFirestore, // Import initializeFirestore
+  // persistentLocalCache, // Import persistentLocalCache
   // persistentMultipleTabManager, // Optional: for multi-tab support
   persistentSingleTabManager, // Optional: for single-tab support
   memoryLocalCache,
