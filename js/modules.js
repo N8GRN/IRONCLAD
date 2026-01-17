@@ -5,12 +5,12 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.7.0/firebas
 import {
   getFirestore,
   // [01.15.2026] Removed
-  // enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
-  // initializeFirestore, // Import initializeFirestore
-  // persistentLocalCache, // Import persistentLocalCache
-  // persistentMultipleTabManager, // Optional: for multi-tab support
-  // persistentSingleTabManager, // Optional: for single-tab support
-  // memoryLocalCache,
+  enableIndexedDbPersistence, // Correct import for modular SDK (Previously: enabpePersistence)
+  initializeFirestore, // Import initializeFirestore
+  persistentLocalCache, // Import persistentLocalCache
+  persistentMultipleTabManager, // Optional: for multi-tab support
+  persistentSingleTabManager, // Optional: for single-tab support
+  memoryLocalCache,
   collection,
   addDoc,
   getDocs,
