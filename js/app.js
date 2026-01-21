@@ -1,19 +1,32 @@
-// js/app.js - Main App Logic for IRONCLAD CRM
-// Global functions for navigation, test mode, PDF print
+// js/app.js - Main app logic for IRONCLAD CRM
 
 console.log('[app.js] app.js loaded');
 
 // ───────────────────────────────────────────────
-// Global Navigation Helpers (for onclicks in HTML)
- // ───────────────────────────────────────────────
+// Auth State Listener (wait for AuthAPI)
+// ───────────────────────────────────────────────
 
-window.goToPage = function(page) {
-  window.navigate(page.replace('.html', ''));
-};
+function initAuthListener() {
+  if (window.AuthAPI && typeof window.AuthAPI.onAuthStateChanged === 'function') {
+    console.log('[app.js] AuthAPI ready - attaching onAuthStateChanged');
+    window.AuthAPI.onAuthStateChanged((user) => {
+      console.log('[app.js] Auth state changed:', user ? user.email : 'Logged out');
+      if (user) {
+        window.saveMessagingDeviceToken();
+      }
+      // Optional: redirect logic here if needed
+    });
+  } else {
+    console.log('[app.js] Waiting for AuthAPI...');
+    setTimeout(initAuthListener, 100);
+  }
+}
+
+initAuthListener();
 
 // ───────────────────────────────────────────────
 // Test Mode Toggle (called from home page)
- // ───────────────────────────────────────────────
+// ───────────────────────────────────────────────
 
 window.initToggleSwitch = function() {
   console.log('[app.js] initToggleSwitch called');
@@ -50,10 +63,11 @@ window.initToggleSwitch = function() {
   });
 };
 
-// ───────────────────────────────────────────────
- // PDF Print Function (called from print icon)
- // ───────────────────────────────────────────────
 
+
+// ───────────────────────────────────────────────
+// Save as PDF
+// ───────────────────────────────────────────────
 window.savePageAsPDF = async function() {
   console.log('[app.js] savePageAsPDF called');
 
@@ -77,32 +91,13 @@ window.savePageAsPDF = async function() {
   }
 };
 
+// ───────────────────────────────────────────────
+// Print Icon
+// ───────────────────────────────────────────────
+
 window.initPrintIcon = function() {
   const printIcon = document.getElementById('print-icon');
   if (printIcon) {
-    printIcon.addEventListener('click', window.savePageAsPDF);
+    printIcon.addEventListener('click', savePageAsPDF);
   }
 };
-
-// ───────────────────────────────────────────────
-// Auth State Listener (save FCM token on login)
-// ───────────────────────────────────────────────
-function initAuthListeners() {
-  if (window.AuthAPI && window.AuthAPI.onAuthStateChanged) {
-    window.AuthAPI.onAuthStateChanged((user) => {
-      console.log('[app.js] Auth state changed:', user ? 'Logged in' : 'Logged out');
-      if (user) {
-        window.saveMessagingDeviceToken();
-      } else {
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
-          console.log('[app.js] User logged out - redirecting to login');
-          window.navigate('/login');
-        }
-      }
-    });
-  } else {
-    console.warn('[app.js] AuthAPI not ready yet - retrying in 500ms');
-    setTimeout(initAuthListeners, 500);
-  }
-}
-initAuthListeners();  // Call it

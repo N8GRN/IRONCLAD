@@ -1,6 +1,6 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.1-20260120.0';
+const APP_VERSION = 'v4.1-20260120.01';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
 const REPO = '/'; // Adjust if deployed to root
 
@@ -318,3 +318,4 @@ async function syncPendingProjects() {
     }
   }
 }
+

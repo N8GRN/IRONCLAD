@@ -670,6 +670,24 @@ function cloneForm(name, structure, section) {
   document.querySelector('main').appendChild(clonedForm);
 }
 
+// Update SW version display when broadcast received from service worker
+function updateSWVersion() {
+  const swVersionEl = document.getElementById('sw-version');
+  if (!swVersionEl) {
+    console.log('[router.js] #sw-version element not found - skipping version listener');
+    return;
+  }
+
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'SW_VERSION_UPDATE') {
+      swVersionEl.textContent = event.data.version;
+      console.log('[router.js] SW version updated to:', event.data.version);
+    }
+  });
+
+  console.log('[router.js] updateSWVersion listener attached');
+}
+
 // Render Calculator View (full content from your calculator.html)
 function renderCalculator() {
   const root = document.getElementById('app-root');

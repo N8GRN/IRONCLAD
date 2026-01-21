@@ -104,7 +104,7 @@ const FirestoreAPI = {
 };
 
 // VAPID Key for FCM (from your repo)
-const VAPID_PUBLIC_KEY = 'BDFpO1v8y0D1qR9qG0u2X3z4Y5v6w7x8y9z0A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6'; // Replace with your actual key if different
+const VAPID_PUBLIC_KEY = 'BOWyxNYRhDij8-RqU4hcMxrBjbhWo9HaOkcjF5gdkfvrZ1DH-NP1-64Nur0o6uQ-5-kcQiiLlBUVL13wwXimpC4'; // Replace with your actual key if different
 
 // Save FCM token (called on login)
 async function saveMessagingDeviceToken() {
