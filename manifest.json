@@ -2,9 +2,9 @@
   "name": "IRONCLAD CRM",
   "short_name": "IRONCLAD",
   "description": "Roofing Project Estimator & CRM",
-  "start_url": "/IRONCLAD/",
-  "scope": "/IRONCLAD/",
-  "id": "/IRONCLAD/",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#033c77",
   "theme_color": "#ffffff",
@@ -12,25 +12,25 @@
   "lang": "en-US",
   "icons": [
     {
-      "src": "/IRONCLAD/img/icons/icon-72x72.png",
+      "src": "img/icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/IRONCLAD/img/icons/icon-96x96.png",
+      "src": "img/icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/IRONCLAD/img/icons/icon-192x192.png",
+      "src": "img/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/IRONCLAD/img/icons/icon-512x512.png",
+      "src": "img/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -38,19 +38,35 @@
   ],
   "screenshots": [
     {
-      "src": "/IRONCLAD/img/screenshots/screenshot1.png",
+      "src": "img/screenshots/screenshot1.png",
       "sizes": "1280x800",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Project Dashboard View"
     },
     {
-      "src": "/IRONCLAD/img/screenshots/screenshot2.png",
+      "src": "img/screenshots/screenshot2.png",
       "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Mobile Add Project Screen"
     }
   ],
-  "categories": ["business", "productivity", "utilities"]
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Projects",
+      "short_name": "Projects",
+      "description": "View and manage roofing projects",
+      "url": "/projects.html",
+      "icons": [{ "src": "img/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "App settings & notifications",
+      "url": "/settings.html",
+      "icons": [{ "src": "img/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
 }

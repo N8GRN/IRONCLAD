@@ -1,14 +1,13 @@
 // sw.js - Ironclad CRM Service Worker (merged FCM + caching + sync queue)
 // Version bump on major changes
-const APP_VERSION = 'v4.1-20260115.18';
+const APP_VERSION = 'v4.1-20260120.0';
 const CACHE_NAME = `ironclad-cache-${APP_VERSION}`;
-const REPO = '/IRONCLAD/'; // Adjust if deployed to root
+const REPO = '/'; // Adjust if deployed to root
 
 // Files to precache (static assets - expand as needed from your img/css/js)
 const PRECACHE_URLS = [
   REPO,
   REPO + 'index.html',
-  REPO + 'offline.html',
   REPO + 'manifest.json',
   REPO + 'favicon.ico',
   REPO + 'favicon.png',
@@ -22,6 +21,7 @@ const PRECACHE_URLS = [
   REPO + 'data/shingle_options.json',
 
   // Core JS
+  REPO + 'js/router.js',
   REPO + 'js/app.js',
   REPO + 'js/db.js',
   REPO + 'js/modules.js',
@@ -47,16 +47,16 @@ const PRECACHE_URLS = [
   // Images / Splash
   REPO + 'img/splash/splash-1536x2048.png',
   REPO + 'img/splash/splash-1668x2388.png',
-  REPO + 'img/splash/splash-2048x2732.png',
+  REPO + 'img/splash/splash-2048x2732.png'
   
   // Pages
-  REPO + 'pages/application.html',
+  /*REPO + 'pages/application.html',
   REPO + 'pages/calculator.html',
   REPO + 'pages/home.html',
   REPO + 'pages/login.html',
   REPO + 'pages/newProject.html',
   REPO + 'pages/projects.html',
-  REPO + 'pages/roofDefinitions.html'
+  REPO + 'pages/roofDefinitions.html'*/
 ];
 
 // Firebase imports (compat for service worker)

@@ -1,31 +1,29 @@
 // js/projects.js - Project Management Page Logic
-// Uses centralized FireDB from modules.js + direct Firestore imports
+// Called by router.js when /projects is rendered
+// Uses window.FirestoreAPI from modules.js
 
-import {
-  collection,
-  onSnapshot,
-  getDoc,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc
-} from 'https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js';
+console.log('[projects.js] projects.js loaded');
 
-const db = window.FireDB; // ← Critical: comes from modules.js
+// ───────────────────────────────────────────────
+// Global Functions (exposed on window for router.js and HTML onclick)
+ // ───────────────────────────────────────────────
 
-const addProjectButton = document.getElementById('addProjectButton');
-const projectsListDiv = document.getElementById('projects-list');
-let initialLoad = true;
+window.addNewProject = async function() {
+  console.log('[projects.js] addNewProject called');
 
-// Add a new project
-async function addNewProject() {
   const projectNumberEl = document.getElementById('projectNumber');
-  const customerEl     = document.getElementById('customerName');
-  const applicationEl  = document.getElementById('application');
-  const ownerEl        = document.getElementById('owner');
-  const leadEl         = document.getElementById('lead');
-  const statusEl       = document.getElementById('status');
-  const priceEl        = document.getElementById('price');
+  const customerEl      = document.getElementById('customerName');
+  const applicationEl   = document.getElementById('application');
+  const ownerEl         = document.getElementById('owner');
+  const leadEl          = document.getElementById('lead');
+  const statusEl        = document.getElementById('status');
+  const priceEl         = document.getElementById('price');
+
+  if (!projectNumberEl) {
+    console.error('Project form fields not found');
+    alert('Form not loaded properly. Please refresh.');
+    return;
+  }
 
   const projectNum = projectNumberEl.value.trim();
 
@@ -35,172 +33,31 @@ async function addNewProject() {
   }
 
   try {
-    await addDoc(collection(db, "projects"), {
+    await window.FirestoreAPI.addDoc(window.FirestoreAPI.collection(window.FirestoreAPI.db, "projects"), {
       project: projectNum,
-      application: applicationEl.value.trim(),
-      customer: customerEl.value.trim(),
-      owner: ownerEl.value.trim(),
-      lead: leadEl.value.trim(),
-      status: statusEl.value.trim(),
-      price: priceEl.value.trim(),
+      application: applicationEl?.value.trim() || '',
+      customer: customerEl?.value.trim() || '',
+      owner: ownerEl?.value.trim() || '',
+      lead: leadEl?.value.trim() || '',
+      status: statusEl?.value.trim() || '',
+      price: priceEl?.value.trim() || '',
       createdAt: new Date()
     });
 
-    // Optional: clear form fields after add
-    // projectNumberEl.value = "";
-    // customerEl.value = "";
-    // etc.
-
-    // No need to refresh manually - onSnapshot will handle
+    console.log('Project added successfully');
   } catch (e) {
     console.error("Error adding project:", e);
     alert("Error adding project: " + e.message);
   }
-}
+};
 
-function clearProjectList() {
-  const projectList = document.getElementById("projects-list");
-  const rows = projectList.querySelectorAll(".row:not(.header)"); // Skip header
-  rows.forEach(row => row.remove());
-}
-
-// Display all projects with real-time updates using onSnapshot
-// [01.15.2026] Fails on iPad because...
-// See rewrite below with 'setTimeout()'
-
-/*function displayProjects() {
-  // Clear initial list
-  clearProjectList();
-  projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>'; // Preserve header if needed
-
-  // Set up real-time listener
-  onSnapshot(collection(db, "projects"), (querySnapshot) => {
-    try {
-      const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      clearProjectList(); // Clear before rebuild
-
-      if (projects.length === 0) {
-        projectsListDiv.insertAdjacentHTML('beforeend', '<p>No projects found. Add one above!</p>');
-        return;
-      }
-
-      // Remove any stale loading message
-      document.getElementById("loading-message")?.remove();
-
-      let projectsHtml = '';
-
-      projects.forEach(project => {
-        projectsHtml += `
-          <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
-            <span class="project-number">${project.project || '—'}</span>
-            <span>${project.customer || '—'}</span>
-            <span>${project.application || '—'}</span>
-            <span>${project.owner || '—'}</span>
-            <span>${project.lead || '—'}</span>
-            <span>${project.status || '—'}</span>
-            <span>${project.price || '—'}</span>
-            <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}'); event.stopPropagation();"></div>
-            <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}'); event.stopPropagation();"></div>
-          </div>
-        `;
-      });
-
-      projectsListDiv.insertAdjacentHTML('beforeend', projectsHtml + '<span id="loading-message"></span>');
-
-      // Attach sort listeners after render
-      addSortListeners();
-
-      if (initialLoad) {
-        sortByField(0);
-        initialLoad = false;
-      } else {
-        const sortIndex = parseInt(document.body.getAttribute("data-sortIndex")) || 0;
-        sortByField(sortIndex);
-        sortByField(sortIndex); // Toggle twice to preserve direction
-      }
-
-    } catch (e) {
-      console.error("Error in real-time projects update:", e);
-      projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Error loading projects: ${e.message}</p>`);
-    }
-  }, (error) => {
-    console.error("Snapshot listener error:", error);
-    projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Real-time updates failed: ${error.message}</p>`);
-  });
-}*/
-
-function displayProjects() {
-  // Clear initial list
-  clearProjectList();
-  projectsListDiv.innerHTML = projectsListDiv.innerHTML || '<div class="row header">...</div>'; // Preserve header if needed
-
-  // Set up real-time listener
-  onSnapshot(collection(db, "projects"), (querySnapshot) => {
-    try {
-      const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      clearProjectList(); // Clear before rebuild
-
-      if (projects.length === 0) {
-        projectsListDiv.insertAdjacentHTML('beforeend', '<p>No projects found. Add one above!</p>');
-        return;
-      }
-
-      // Remove any stale loading message
-      document.getElementById("loading-message")?.remove();
-
-      let projectsHtml = '';
-
-      projects.forEach(project => {
-        projectsHtml += `
-          <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
-            <span class="project-number">${project.project || '—'}</span>
-            <span>${project.customer || '—'}</span>
-            <span>${project.application || '—'}</span>
-            <span>${project.owner || '—'}</span>
-            <span>${project.lead || '—'}</span>
-            <span>${project.status || '—'}</span>
-            <span>${project.price || '—'}</span>
-            <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}'); event.stopPropagation();"></div>
-            <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}'); event.stopPropagation();"></div>
-          </div>
-        `;
-      });
-
-      projectsListDiv.insertAdjacentHTML('beforeend', projectsHtml + '<span id="loading-message"></span>');
-
-      // Attach sort listeners after render
-      addSortListeners();
-
-      if (initialLoad) {
-        sortByField(0);
-        initialLoad = false;
-      } else {
-        const sortIndex = parseInt(document.body.getAttribute("data-sortIndex")) || 0;
-        sortByField(sortIndex);
-        sortByField(sortIndex); // Toggle twice to preserve direction
-      }
-
-    } catch (e) {
-      console.error("Error in real-time projects update:", e);
-      projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Error loading projects: ${e.message}</p>`);
-    }
-  }, (error) => {
-    console.error("Snapshot listener error:", error);
-    projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Real-time updates failed: ${error.message}</p>`);
-  });
-}
-
-
-
-// Update existing project
-window.editProject = async (id) => {
+window.editProject = async function(id) {
   if (!id) return;
 
+  console.log('[projects.js] editProject called for ID:', id);
+
   try {
-    const projectRef = doc(db, "projects", id);
-    await updateDoc(projectRef, {
+    await window.FirestoreAPI.updateDoc(window.FirestoreAPI.doc(window.FirestoreAPI.db, "projects", id), {
       project: document.getElementById('projectNumber')?.value.trim() || '',
       application: document.getElementById('application')?.value.trim() || '',
       customer: document.getElementById('customerName')?.value.trim() || '',
@@ -211,34 +68,36 @@ window.editProject = async (id) => {
       updatedAt: new Date()
     });
 
-    // No need to refresh - onSnapshot will handle
+    console.log('Project updated successfully');
   } catch (e) {
     console.error("Error updating project:", e);
     alert("Error updating project: " + e.message);
   }
 };
 
-// Delete project
-window.deleteProject = async (id) => {
+window.deleteProject = async function(id) {
   if (!confirm("Are you sure you want to delete this project?")) return;
 
+  console.log('[projects.js] deleteProject called for ID:', id);
+
   try {
-    await deleteDoc(doc(db, "projects", id));
-    // onSnapshot will auto-refresh
+    await window.FirestoreAPI.deleteDoc(window.FirestoreAPI.doc(window.FirestoreAPI.db, "projects", id));
+    console.log('Project deleted');
   } catch (e) {
     console.error("Error deleting project:", e);
     alert("Error deleting project: " + e.message);
   }
 };
 
-// Load single project for editing/view
-window.loadThisProject = async (projectId) => {
+window.loadThisProject = async function(projectId) {
+  console.log('[projects.js] loadThisProject called for ID:', projectId);
+
   try {
-    const projectSnap = await getDoc(doc(db, "projects", projectId));
+    const projectSnap = await window.FirestoreAPI.getDoc(window.FirestoreAPI.doc(window.FirestoreAPI.db, "projects", projectId));
     if (projectSnap.exists()) {
       const project = { id: projectSnap.id, ...projectSnap.data() };
-      showProjectForm();
-      populateProjectForm(project);
+      window.showProjectForm();
+      window.populateProjectForm(project);
     } else {
       console.log(`Project with ID ${projectId} not found`);
     }
@@ -247,7 +106,7 @@ window.loadThisProject = async (projectId) => {
   }
 };
 
-// Form population (made safer)
+// Form population
 window.populateProjectForm = function (project = {}) {
   const form = document.getElementById('projectForm');
   if (!form) return;
@@ -262,120 +121,85 @@ window.populateProjectForm = function (project = {}) {
 };
 
 // Modal Form
-const modal = document.getElementById('projectModal');
-const closeButton = modal.querySelector('.close-btn');
-const cancelButton = modal.querySelector('.cancel-btn');
-const form = document.getElementById('projectForm');
-
-window.showProjectForm = function (id) {
-  modal.style.display = 'flex'; // Or 'block'
-  form.reset();
-  modal.focus(); // For accessibility
+window.showProjectForm = function () {
+  const modal = document.getElementById('projectModal');
+  if (modal) modal.style.display = 'flex';
 };
 
 window.showProjectFormWithNextProject = function () {
-  showProjectForm();
-  populateProjectForm({ project: getNextProjectNumber().toString() });
+  window.showProjectForm();
+  window.populateProjectForm();
 };
 
-window.showFormAndPopulateProject = function(id) {
-  showProjectForm();
-  loadThisProject(id); // Fetch and populate
-  // Change Button Function
-  let submitBtn = form.querySelector("[type=submit]");
-  submitBtn.innerText = "Update";
-  submitBtn.setAttribute("data-id", id);
-};
-
-const closeModal = () => {
-  modal.style.display = 'none';
-};
-
-closeButton.addEventListener('click', closeModal);
-cancelButton.addEventListener('click', closeModal);
-modal.querySelector('.modal-backdrop')?.addEventListener('click', closeModal); // Close on backdrop click
-
-// Escape key close
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
-});
-
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  let btnSubmit = e.submitter;
-  
-  if (btnSubmit.innerText === "Save") {
-    addNewProject(); // <-- Save New Document
-  } else {
-    let id = btnSubmit.getAttribute('data-id');
-    editProject(id); // <-- Update existing Document
+window.showFormAndPopulateProject = function (id) {
+  window.showProjectForm();
+  window.loadThisProject(id);
+  let submitBtn = document.querySelector('#projectForm [type=submit]');
+  if (submitBtn) {
+    submitBtn.innerText = "Update";
+    submitBtn.setAttribute("data-id", id);
   }
-  
-  const projectData = Object.fromEntries(new FormData(form));
-  console.log('Saving project:', projectData);
+};
 
-  btnSubmit.innerText = "Save";
-  btnSubmit.setAttribute("data-id", "");
-  closeModal();
-});
+// ───────────────────────────────────────────────
+ // Helper Functions
+// ───────────────────────────────────────────────
 
-// Next Project Number
-const getNextProjectNumber = function () {
+function clearProjectList() {
+  const projectList = document.getElementById("projects-list");
+  if (!projectList) return;
+  const rows = projectList.querySelectorAll(".row:not(.header)");
+  rows.forEach(row => row.remove());
+}
+
+function getNextProjectNumber() {
   const projects = document.querySelectorAll(".project-number");
-  let highestExisting = 10000; // lowest possible
+  let highestExisting = 10000;
 
   projects.forEach((project) => {
     let thisNumber = parseInt(project.innerText);
-    if (thisNumber > highestExisting) {
-      highestExisting = thisNumber;
-    }
+    if (thisNumber > highestExisting) highestExisting = thisNumber;
   });
-  
+
   return highestExisting + 1;
-};
+}
 
 // Sorting Algorithm
 let lastSortColumn = -1;
-let lastSortDirection = 1; // 1 = ascending, -1 = descending
+let lastSortDirection = 1;
 
 window.sortByField = function(columnIndex) {
   const projectList = document.getElementById("projects-list");
-  const rows = Array.from(projectList.querySelectorAll(".row")); // Convert to array
+  if (!projectList) return;
 
-  // Separate header (first row) and data rows
+  const rows = Array.from(projectList.querySelectorAll(".row"));
+
   const header = rows[0];
   const dataRows = rows.slice(1);
 
-  // Add columnIndex to body to auto-sort when documents are added/removed/changed
   document.body.setAttribute("data-sortIndex", columnIndex);
 
-  // Determine sort direction: toggle if same column, otherwise default to ascending
   let direction = 1;
   if (lastSortColumn === columnIndex) {
-    direction = lastSortDirection * -1; // toggle
+    direction = lastSortDirection * -1;
   }
   lastSortColumn = columnIndex;
   lastSortDirection = direction;
 
-  // Sort the data rows
   dataRows.sort((a, b) => {
-    // Get the cell elements at the specified column index
     const cellA = a.children[columnIndex];
     const cellB = b.children[columnIndex];
 
     let valueA = cellA ? cellA.textContent.trim() : "";
     let valueB = cellB ? cellB.textContent.trim() : "";
 
-    // Special handling for numeric columns
-    if (columnIndex === 0) { // Project # (class="project-number")
+    if (columnIndex === 0) { // Project #
       valueA = parseInt(valueA) || 0;
       valueB = parseInt(valueB) || 0;
-    } else if (columnIndex === 6) { // Price column
-      // Remove $ and commas, then parse as float
+    } else if (columnIndex === 6) { // Price
       valueA = parseFloat(valueA.replace(/[$,]/g, '')) || 0;
       valueB = parseFloat(valueB.replace(/[$,]/g, '')) || 0;
     }
-    // For other columns (strings), use localeCompare for proper alphabetical sorting
 
     let comparison = 0;
     if (typeof valueA === 'number' && typeof valueB === 'number') {
@@ -387,12 +211,10 @@ window.sortByField = function(columnIndex) {
     return comparison * direction;
   });
 
-  // Re-append in sorted order: header first, then sorted data rows
-  projectList.innerHTML = ''; // Clear
+  projectList.innerHTML = '';
   projectList.appendChild(header);
   dataRows.forEach(row => projectList.appendChild(row));
 
-  // Optional: Visual feedback — add a class to the header to show sort direction
   const headerSpans = header.querySelectorAll("span");
   headerSpans.forEach((span, i) => {
     span.classList.remove("sorted-asc", "sorted-desc");
@@ -409,12 +231,11 @@ window.addSortListeners = function() {
   const headerColumns = headerRow.querySelectorAll("span:not(.icon-column)");
 
   headerColumns.forEach((span, index) => {
-    // Clean up old listener if exists
     if (span._sortHandler) {
       span.removeEventListener("click", span._sortHandler);
     }
 
-    const handler = () => sortByField(index);
+    const handler = () => window.sortByField(index);
     span._sortHandler = handler;
 
     span.addEventListener("click", handler);
@@ -423,54 +244,116 @@ window.addSortListeners = function() {
   });
 };
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
-  if (addProjectButton) {
-    addProjectButton.addEventListener('click', addNewProject);
+// ───────────────────────────────────────────────
+ // Main Display Function (called by router.js)
+ // ───────────────────────────────────────────────
+
+window.displayProjects = function() {
+  console.log('[projects.js] displayProjects() started');
+
+  const projectsListDiv = document.getElementById('projects-list');
+  if (!projectsListDiv) {
+    console.error('[projects.js] #projects-list element not found in DOM');
+    return;
   }
-  displayProjects(); // Initial load and setup real-time listener
-});
 
+  // Clear previous content safely
+  clearProjectList();
 
+  // Reset with header + loading message
+  projectsListDiv.innerHTML = `
+    <div class="row header">
+      <span>Project #</span>
+      <span>Customer Name</span>
+      <span>Application</span>
+      <span>Owner</span>
+      <span>Lead</span>
+      <span>Status</span>
+      <span>Price</span>
+      <span class="icon-column"></span>
+      <span class="icon-column"></span>
+    </div>
+    <span id="loading-message" style="padding: 10px;">Loading projects...</span>
+  `;
 
-
-
-// [01.14.2026] Toggle between forms
-// ------------------------------------------------------------------------------
-/*const modalContent = document.querySelector('.modal-content');*/
-window.showForm = function (el, formId) {
-    const modalContent = document.querySelector('.modal-content');
-    var forms = modalContent.querySelectorAll('form');
-
-    showActiveElement(el);
-    forms.forEach(form => {
-        if (form.id !== formId) {
-            form.style.display = 'none';
-        } else {
-            form.style.display = 'flex';
-            form.style.justifyContent = 'center';
-        }
-    });
-
-}
-
-// make calling element active
-var showActiveElement = function(el){
-    if (el) {
-        const siblings = Array.from(el.parentElement.children);
-
-        siblings.forEach(sibling => {
-            sibling.classList.toggle("active", false);
-        });
-
-        el.classList.toggle("active", true);
+  // Small delay for iPad/Safari IndexedDB wake-up (your original timing)
+  setTimeout(() => {
+    // Wait for FireDB (correct name from modules.js)
+    function waitForFireDB(callback, attempts = 200, delay = 100) {
+      if (window.FireDB && typeof window.FireDB.collection === 'function') {
+        console.log('[projects.js] FireDB ready - attaching onSnapshot listener');
+        callback();
+      } else if (attempts > 0) {
+        console.log('[projects.js] Waiting for FireDB... attempts left:', attempts);
+        setTimeout(() => waitForFireDB(callback, attempts - 1, delay), delay);
+      } else {
+        console.error('[projects.js] TIMEOUT: FireDB never loaded after 20 seconds');
+        console.error('[projects.js] window.FireDB exists?', !!window.FireDB);
+        projectsListDiv.insertAdjacentHTML('beforeend', '<p style="color: red;">Error: Firestore not available. Check modules.js.</p>');
+      }
     }
-}
 
-window.toggleRibbonView = function (el) {
-    showActiveElement(el);
-    
-    el.parentElement.classList.toggle("alt")
-}
+    waitForFireDB(() => {
+      // Attach real-time listener using collection()
+      onSnapshot(collection(window.FireDB, "projects"), (querySnapshot) => {
+        try {
+          console.log('[projects.js] onSnapshot fired:', {
+            fromCache: querySnapshot.metadata.fromCache,
+            docsCount: querySnapshot.docs.length,
+            hasPendingWrites: querySnapshot.metadata.hasPendingWrites
+          });
 
-// ------------------------------------------------------------------------------
+          const projects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          clearProjectList();
+
+          document.getElementById("loading-message")?.remove();
+          document.getElementById("ipad-loading")?.remove();
+
+          if (projects.length === 0) {
+            projectsListDiv.insertAdjacentHTML('beforeend', '<p>No projects found. Add one above!</p>');
+            return;
+          }
+
+          let projectsHtml = '';
+
+          projects.forEach(project => {
+            projectsHtml += `
+              <div class="row" data-id="${project.id}" onclick="loadThisProject('${project.id}')">
+                <span class="project-number">${project.project || '—'}</span>
+                <span>${project.customer || '—'}</span>
+                <span>${project.application || '—'}</span>
+                <span>${project.owner || '—'}</span>
+                <span>${project.lead || '—'}</span>
+                <span>${project.status || '—'}</span>
+                <span>${project.price || '—'}</span>
+                <div class="icon-edit" title="Edit this project" onclick="showFormAndPopulateProject('${project.id}'); event.stopPropagation();"></div>
+                <div class="icon-delete" title="Delete this project" onclick="deleteProject('${project.id}'); event.stopPropagation();"></div>
+              </div>
+            `;
+          });
+
+          projectsListDiv.insertAdjacentHTML('beforeend', projectsHtml + '<span id="loading-message"></span>');
+
+          addSortListeners();
+
+          if (initialLoad) {
+            sortByField(0);
+            initialLoad = false;
+          } else {
+            const sortIndex = parseInt(document.body.getAttribute("data-sortIndex")) || 0;
+            sortByField(sortIndex);
+            sortByField(sortIndex); // Preserve direction
+          }
+
+        } catch (e) {
+          console.error("Snapshot processing error:", e);
+          projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Error loading projects: ${e.message}</p>`);
+        }
+      }, (error) => {
+        console.error("Snapshot listener error:", error);
+        projectsListDiv.insertAdjacentHTML('beforeend', `<p style="color: red;">Real-time updates failed: ${error.message}</p>`);
+      });
+    });
+  }, 150);
+}
