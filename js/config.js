@@ -31,13 +31,22 @@ IC.JOB_STATUSES = [
 ];
 
 IC.SALES_NAMES = ["Matt", "Jon", "Jesse", "Ethan"];
-
+/*
 IC.TEAM = [
   { id: "nate", name: "Nate", email: "nathangreen.me@gmail.com", role: "admin", salesName: null, active: true },
   { id: "matt", name: "Matt", email: "", role: "owner", salesName: "Matt", active: true },
   { id: "jon", name: "Jon", email: "", role: "sales", salesName: "Jon", active: true },
   { id: "jesse", name: "Jesse", email: "", role: "sales", salesName: "Jesse", active: true },
   { id: "austin", name: "Ethan", email: "", role: "sales", salesName: "Austin", active: true },
+];
+*/
+
+IC.TEAM = [
+  { id: "nate", name: "Nate", email: "nathangreen.me@gmail.com", role: "admin", title: "Admin", salesName: null, active: true },
+  { id: "matt", name: "Matt", email: "", role: "admin", title: "Owner", salesName: "Matt", active: true },
+  { id: "jon", name: "Jon", email: "", role: "sales", title: "Sales", salesName: "Jon", active: true },
+  { id: "jesse", name: "Jesse", email: "", role: "sales", title: "Sales", salesName: "Jesse", active: true },
+  { id: "ethan", name: "Ethan", email: "", role: "sales", title: "Sales", salesName: "Ethan", active: true },
 ];
 
 IC.CREWS = [
