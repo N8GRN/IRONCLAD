@@ -61,6 +61,13 @@ window.IC = window.IC || {};
     return [c.street, [cityLine, c.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   };
 
+  IC.roleLabel = function (person) {
+    if (!person) return "";
+    if (person.title) return person.title;
+    if (person.role === "admin") return "Admin";
+    return "Sales";
+  };
+
   IC.canAssignSales = function (session) {
     return session && session.role === "admin";
   };
