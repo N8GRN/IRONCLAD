@@ -1,0 +1,28 @@
+IRONCLAD CRM — start here
+=========================
+
+The CRM is this folder. Open:
+
+    index.html
+
+That is the app (HTML + JavaScript + CSS). No React.
+
+Edit:
+  index.html      page shell / which JS files load
+  css/app.css     colors and layout
+  js/views.js     every screen
+  js/config.js    team, rates, Firebase keys
+  js/catalog.js   shingles / materials
+  js/estimate.js  roof math
+  js/contract.js  agreement wording
+  js/store.js     saving data
+  js/firebase.js  cloud sync
+
+Host:
+  GitHub Pages  — push this folder, enable Pages (GitHub Actions). See README.md.
+  Firebase      — firebase deploy --only hosting  (project ironclad-127a5)
+  Any host      — upload these files as a static site.
+
+Sign-in:
+  “Work on this device” stays on that iPad.
+  Firebase email/password writes to your existing Firestore (not the old “projects” collection).

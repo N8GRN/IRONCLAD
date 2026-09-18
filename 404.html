@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>IRONCLAD CRM</title>
+    <script>
+      (function () {
+        var loc = window.location;
+        var path = loc.pathname;
+        var m = path.match(/\/(jobs|customers|schedule|settings|notifications|login|sign)(\/[^/]+)?$/);
+        if (m) {
+          var keep = path.slice(0, path.length - m[0].length) || "/";
+          if (keep.charAt(keep.length - 1) !== "/") keep += "/";
+          loc.replace(keep + "#/" + m[1] + (m[2] || "") + loc.search);
+        } else {
+          loc.replace((path.replace(/\/[^/]*$/, "/") || "/") + "#/");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to IRONCLAD…</p>
+  </body>
+</html>
