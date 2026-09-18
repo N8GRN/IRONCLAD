@@ -1,6 +1,0 @@
-[
-  { "value": "apple",  "label": "Apple" },
-  { "value": "banana", "label": "Banana" },
-  { "value": "cherry", "label": "Cherry", "disabled": true },
-  { "value": "date",   "label": "Date" }
-]
