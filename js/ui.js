@@ -181,8 +181,8 @@ window.IC = window.IC || {};
     var body = !est
       ? '<p class="muted" style="margin-top:1.5rem">Build an estimate first.</p>'
       : '<p class="muted" style="margin-top:1rem">' + IC.esc(IC.pickName(est, "shingle")) + " shingles" +
-        (est.gutters.included ? " · gutters included" : "") +
-        (est.siding.included ? " · siding included" : "") + "</p>" +
+        (est.gutters && est.gutters.included ? " · gutters included" : "") +
+        (est.siding && est.siding.included ? " · siding included" : "") + "</p>" +
         '<table style="width:100%;margin-top:1rem;font-size:.9rem;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--line);text-align:left;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase"><th style="padding:.5rem 0">Item</th><th>Qty</th><th style="text-align:right">Amount</th></tr></thead><tbody>' +
         lines.map(function (l) {
           return '<tr style="border-bottom:1px solid rgba(213,205,190,.6)"><td style="padding:.5rem 0"><div style="font-weight:600">' + IC.esc(l.label) + "</div>" +

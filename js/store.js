@@ -47,6 +47,8 @@ window.IC = window.IC || {};
     signRemote: null,
     signTried: false,
     toast: "",
+    addUserOpen: false,
+    addUserDraft: null,
   };
 
   IC.subscribe = function (fn) {
@@ -91,7 +93,7 @@ window.IC = window.IC || {};
         Object.assign(IC.state, {
           initialized: Boolean(parsed.initialized),
           settings: parsed.settings || IC.clone(IC.SETTINGS),
-          team: parsed.team && parsed.team.length ? parsed.team : IC.clone(IC.TEAM),
+          team: IC.fillTeamTitles(parsed.team && parsed.team.length ? parsed.team : IC.clone(IC.TEAM)),
           crews: parsed.crews && parsed.crews.length ? parsed.crews : IC.clone(IC.CREWS),
           customers: parsed.customers || [],
           jobs: parsed.jobs || [],
@@ -104,6 +106,12 @@ window.IC = window.IC || {};
       console.warn("[ironclad] load failed", err);
     }
     IC.initIfEmpty();
+    if (IC.state.session) {
+      var mem = IC.state.team.find(function (t) { return t.id === IC.state.session.memberId; });
+      if (mem && IC.roleLabel(mem) && IC.state.session.title !== IC.roleLabel(mem)) {
+        IC.state.session = Object.assign({}, IC.state.session, { title: IC.roleLabel(mem) });
+      }
+    }
     IC.state.hydrated = true;
   };
 
@@ -128,8 +136,20 @@ window.IC = window.IC || {};
   };
 
   IC.replaceCloud = function (data) {
+    if (data.team) data.team = IC.fillTeamTitles(data.team);
     Object.assign(IC.state, data, { initialized: true });
     IC.emit();
+  };
+
+  IC.fillTeamTitles = function (team) {
+    var defaults = {};
+    IC.TEAM.forEach(function (t) { defaults[t.id] = t; });
+    return (team || []).map(function (m) {
+      if (m.title) return m;
+      var d = defaults[m.id];
+      if (d && d.title) return Object.assign({}, m, { title: d.title });
+      return Object.assign({}, m, { title: m.role === "admin" ? "Admin" : "Sales" });
+    });
   };
 
   function upsertList(list, item) {
@@ -191,12 +211,13 @@ window.IC = window.IC || {};
   IC.assignCrew = function (jobId, crewId, scheduledDate) {
     var job = IC.state.jobs.find(function (j) { return j.id === jobId; });
     if (!job || !IC.canAssignCrew(IC.state.session, job)) return;
-    var crew = IC.state.crews.find(function (c) { return c.id === crewId; }) || null;
+    var crew = crewId ? (IC.state.crews.find(function (c) { return c.id === crewId; }) || null) : null;
+    var date = IC.validIsoDate(scheduledDate);
     var next = Object.assign({}, job, {
       crewId: crew ? crew.id : null,
       crewName: crew ? crew.name : null,
-      scheduledDate: scheduledDate,
-      status: scheduledDate ? "Job Scheduled" : job.status,
+      scheduledDate: date,
+      status: date ? "Job Scheduled" : job.status,
       updatedAt: IC.nowIso(),
     });
     IC.upsertJob(next);
@@ -208,12 +229,23 @@ window.IC = window.IC || {};
     Object.keys(recipients).forEach(function (userId) {
       IC.notify({
         userId: userId,
-        title: scheduledDate ? "Crew scheduled" : "Crew assignment updated",
-        body: "#" + next.number + " " + next.customerName + (crew ? " · " + crew.name : "") + (scheduledDate ? " · " + scheduledDate : ""),
+        title: next.scheduledDate ? "Crew scheduled" : "Crew assignment updated",
+        body: "#" + next.number + " " + next.customerName + (crew ? " · " + crew.name : "") + (next.scheduledDate ? " · " + next.scheduledDate : ""),
         type: "crew_scheduled",
         jobId: next.id,
       });
     });
+  };
+
+  IC.setProductionDate = function (jobId, iso) {
+    var job = IC.state.jobs.find(function (j) { return j.id === jobId; });
+    if (!job || !IC.canAssignCrew(IC.state.session, job)) return;
+    var date = IC.validIsoDate(iso);
+    if ((job.scheduledDate || null) === date) return;
+    IC.upsertJob(Object.assign({}, job, {
+      scheduledDate: date,
+      updatedAt: IC.nowIso(),
+    }));
   };
 
   IC.setStatus = function (jobId, status) {
@@ -312,8 +344,61 @@ window.IC = window.IC || {};
 
   IC.updateTeam = function (team) {
     IC.state.team = team;
+    var s = IC.state.session;
+    if (s) {
+      var me = team.find(function (t) { return t.id === s.memberId; });
+      if (me) {
+        IC.state.session = Object.assign({}, s, {
+          name: me.name,
+          email: me.email,
+          role: me.role,
+          title: IC.roleLabel(me),
+          salesName: me.salesName,
+        });
+      }
+    }
     IC.emit();
     IC.cloudUpsert("meta", "team", { team: team });
+  };
+
+  IC.addTeammate = function (draft) {
+    if (!IC.canManageTeam(IC.state.session)) return null;
+    draft = draft || {};
+    var name = String(draft.name || "").trim() || "New teammate";
+    var role = draft.role === "admin" ? "admin" : "sales";
+    var title = String(draft.title || "").trim() || (role === "admin" ? "Admin" : "Sales");
+    var salesName = String(draft.salesName || "").trim();
+    if (!salesName && role === "sales") salesName = name;
+    var member = {
+      id: IC.uid(),
+      name: name,
+      email: String(draft.email || "").trim(),
+      role: role,
+      title: title,
+      salesName: salesName || null,
+      active: true,
+    };
+    IC.updateTeam(IC.state.team.concat([member]));
+    return member;
+  };
+
+  IC.removeTeammate = function (id) {
+    var s = IC.state.session;
+    if (!IC.canManageTeam(s)) return;
+    if (s.memberId === id) {
+      IC.toast("You can’t remove yourself");
+      return;
+    }
+    var member = IC.state.team.find(function (t) { return t.id === id; });
+    if (!member) return;
+    var remainingAdmins = IC.state.team.filter(function (t) {
+      return t.id !== id && t.role === "admin";
+    });
+    if (member.role === "admin" && !remainingAdmins.length) {
+      IC.toast("Keep at least one admin");
+      return;
+    }
+    IC.updateTeam(IC.state.team.filter(function (t) { return t.id !== id; }));
   };
 
   IC.markNotificationRead = function (id) {
@@ -395,6 +480,7 @@ window.IC = window.IC || {};
       name: member.name,
       email: member.email,
       role: member.role,
+      title: IC.roleLabel(member),
       salesName: member.salesName,
       firebaseUid: firebaseUid || null,
       mode: mode,

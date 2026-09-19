@@ -19,6 +19,7 @@ IC.VAPID =
 
 IC.STORE_KEY = "ironclad-crm-v1";
 IC.SESSION_KEY = "ironclad-session-v1";
+IC.THEME_KEY = "ironclad-theme-v1";
 
 IC.JOB_STATUSES = [
   "Lead",
@@ -31,15 +32,6 @@ IC.JOB_STATUSES = [
 ];
 
 IC.SALES_NAMES = ["Matt", "Jon", "Jesse", "Ethan"];
-/*
-IC.TEAM = [
-  { id: "nate", name: "Nate", email: "nathangreen.me@gmail.com", role: "admin", salesName: null, active: true },
-  { id: "matt", name: "Matt", email: "", role: "owner", salesName: "Matt", active: true },
-  { id: "jon", name: "Jon", email: "", role: "sales", salesName: "Jon", active: true },
-  { id: "jesse", name: "Jesse", email: "", role: "sales", salesName: "Jesse", active: true },
-  { id: "austin", name: "Ethan", email: "", role: "sales", salesName: "Austin", active: true },
-];
-*/
 
 IC.TEAM = [
   { id: "nate", name: "Nate", email: "nathangreen.me@gmail.com", role: "admin", title: "Admin", salesName: null, active: true },

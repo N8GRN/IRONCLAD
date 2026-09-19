@@ -1,28 +1,23 @@
-IRONCLAD CRM — start here
-=========================
+IRONCLAD CRM
+============
 
-The CRM is this folder. Open:
+This zip is the whole app. Unzip it and you should see index.html
+in the same folder as js/, css/, and brand/.
 
-    index.html
+WHAT CHANGED (Sep 19, 2026)
+- Matt signs in as Owner (company owner). Role stays Admin so he
+  and Nate have the same privileges.
+- Settings → Team: any Admin can add/remove users and change
+  names, roles, and “Shown as” labels.
+- Settings → Appearance: Light, Dark, or System.
+- Production date Reset now clears the date (crew stays assigned).
+- Estimate gutters/siding: checking the box shows the full
+  description (e.g. “Siding as specified on site”) in a wide field.
 
-That is the app (HTML + JavaScript + CSS). No React.
+HOSTING
+- GitHub Pages: put these files in the repo (or docs/) and enable Pages.
+- Firebase Hosting: firebase.json is included. Project ironclad-127a5.
 
-Edit:
-  index.html      page shell / which JS files load
-  css/app.css     colors and layout
-  js/views.js     every screen
-  js/config.js    team, rates, Firebase keys
-  js/catalog.js   shingles / materials
-  js/estimate.js  roof math
-  js/contract.js  agreement wording
-  js/store.js     saving data
-  js/firebase.js  cloud sync
-
-Host:
-  GitHub Pages  — push this folder, enable Pages (GitHub Actions). See README.md.
-  Firebase      — firebase deploy --only hosting  (project ironclad-127a5)
-  Any host      — upload these files as a static site.
-
-Sign-in:
-  “Work on this device” stays on that iPad.
-  Firebase email/password writes to your existing Firestore (not the old “projects” collection).
+EDITING USERS
+You can add people in Settings without touching code. config.js is
+only the first-run roster (Nate, Matt, Jon, Jesse, Ethan).

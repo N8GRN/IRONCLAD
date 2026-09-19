@@ -8,6 +8,22 @@ window.IC = window.IC || {};
     return s || (IC.state && IC.state.settings) || IC.SETTINGS;
   }
 
+  IC.ADDON_DEFAULTS = {
+    gutters: { included: false, description: "Seamless gutters and downspouts", price: 0 },
+    siding: { included: false, description: "Siding as specified on site", price: 0 },
+  };
+
+  IC.normalizeAddon = function (kind, raw) {
+    var d = IC.ADDON_DEFAULTS[kind] || IC.ADDON_DEFAULTS.gutters;
+    var o = Object.assign({}, d, raw || {});
+    o.included = Boolean(o.included);
+    var desc = String(o.description == null ? "" : o.description).trim();
+    o.description = desc || d.description;
+    var price = Number(o.price);
+    o.price = Number.isFinite(price) ? price : 0;
+    return o;
+  };
+
   IC.emptyStructure = function (name) {
     return {
       id: IC.uid(),
@@ -54,8 +70,8 @@ window.IC = window.IC || {};
       pipeBoots: 4, broanVents: 0, chimneyLf: 0, wallFlashingLf: 0, ridgeVentLf: null,
       dumpster: settings.dumpsterDefault, permit: settings.permitDefault,
       extras: [],
-      gutters: { included: false, description: "Seamless gutters and downspouts", price: 0 },
-      siding: { included: false, description: "Siding as specified on site", price: 0 },
+      gutters: IC.normalizeAddon("gutters", { included: false }),
+      siding: IC.normalizeAddon("siding", { included: false }),
       notes: "",
       wastePercent: settings.wastePercent,
       markupPercent: settings.markupPercent,
@@ -97,6 +113,8 @@ window.IC = window.IC || {};
     var iceSquares = Math.max(eaveLf * 3 + valleyLf * 3, 0) / 100;
     var ridgeVentLf = est.ridgeVentLf != null ? est.ridgeVentLf : ridgeLf;
     var billableSquares = 0, labor = 0, tearoff = 0, sheathingSheets = 0;
+    var gutters = IC.normalizeAddon("gutters", est.gutters);
+    var siding = IC.normalizeAddon("siding", est.siding);
 
     est.structures.forEach(function (st) {
       var sq = Number(st.squares) || 0;
@@ -159,11 +177,11 @@ window.IC = window.IC || {};
       if (!extra.label && !extra.amount) return;
       lines.push(line("extra-" + extra.id, extra.label || "Extra", "", 1, "ls", extra.amount, "other"));
     });
-    if (est.gutters && est.gutters.included && est.gutters.price) {
-      lines.push(line("gutters", "Gutters", est.gutters.description || "Gutters & downspouts", 1, "ls", est.gutters.price, "addon"));
+    if (gutters.included) {
+      lines.push(line("gutters", "Gutters", gutters.description, 1, "ls", gutters.price, "addon"));
     }
-    if (est.siding && est.siding.included && est.siding.price) {
-      lines.push(line("siding", "Siding", est.siding.description || "Siding", 1, "ls", est.siding.price, "addon"));
+    if (siding.included) {
+      lines.push(line("siding", "Siding", siding.description, 1, "ls", siding.price, "addon"));
     }
 
     var materialsSubtotal = round2(lines.filter(function (l) { return l.kind === "material"; }).reduce(function (s, l) { return s + l.amount; }, 0));
@@ -185,7 +203,9 @@ window.IC = window.IC || {};
 
   IC.withComputed = function (est, settings) {
     var next = Object.assign({}, est);
-    next.computed = IC.computeEstimate(est, settings);
+    next.gutters = IC.normalizeAddon("gutters", est.gutters);
+    next.siding = IC.normalizeAddon("siding", est.siding);
+    next.computed = IC.computeEstimate(next, settings);
     next.updatedAt = new Date().toISOString();
     return next;
   };

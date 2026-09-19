@@ -12,7 +12,7 @@ window.IC = window.IC || {};
   IC.viewLogin = function () {
     var team = IC.state.team.filter(function (t) { return t.active; });
     var memberOpts = team.map(function (t) {
-      return { value: t.id, label: t.name + " · " + (t.role === "admin" ? "Admin" : "Sales") };
+      return { value: t.id, label: t.name + " · " + IC.roleLabel(t) };
     });
     return '<div class="login"><div class="login-blob"><span></span><span></span></div><div class="login-inner">' +
       '<img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing LLC" />' +
@@ -31,6 +31,7 @@ window.IC = window.IC || {};
       '<p class="sub" style="text-align:left;margin-top:4px">For the iPad in the truck, or until this URL is added to Firebase. Same CRM — data stays on the device unless you later sign in.</p>' +
       IC.field("Who are you?", IC.select({ "data-act": "login-member", value: IC.ui.loginMemberId }, memberOpts)) +
       '<div style="margin-top:12px">' + IC.btn("Continue", { variant: "outline", class: "btn-block", data: 'data-act="local-login"' }) + "</div></div>" +
+      '<a class="dl" href="ironclad-crm-files.zip" download="IRONCLAD-CRM.zip">Download the CRM files (HTML, JS, CSS)</a>' +
       "</div></div>";
   };
 
@@ -55,7 +56,7 @@ window.IC = window.IC || {};
       '<div class="nav-foot"><a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
       (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" +
       '<a href="#/settings" class="' + (route.name === "settings" ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" +
-      '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + (s.role === "admin" ? "Admin" : "Project owner") + (s.mode === "local" ? " · this device" : " · Firebase") + "</span></div></div></aside>" +
+      '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + IC.esc(IC.roleLabel(s)) + (s.mode === "local" ? " · this device" : " · Firebase") + "</span></div></div></aside>" +
       '<div class="main-wrap"><header class="topbar"><a class="brand" href="#/"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing" /></a>' +
       '<div class="top-actions"><a href="#/notifications">' + IC.icon("bell") + (unread ? '<span class="dot"></span>' : "") + '</a><a href="#/settings">' + IC.icon("settings") + "</a></div></header>" +
       '<main class="content">' + inner + "</main>" +
@@ -178,7 +179,26 @@ window.IC = window.IC || {};
         [{ value: "", label: "Unassigned" }].concat(sales.map(function (x) { return { value: x.id, label: x.salesName }; })))) +
       IC.field("Crew", IC.select({ "data-act": "job-crew", "data-id": job.id, value: job.crewId || "", disabled: !IC.canAssignCrew(s, job) },
         [{ value: "", label: "Unassigned" }].concat(crews.map(function (c) { return { value: c.id, label: c.name + (c.foreman ? " · " + c.foreman : "") }; })))) +
-      IC.field("Production date", IC.input({ type: "date", value: job.scheduledDate || "", "data-act": "job-date", "data-id": job.id, disabled: !IC.canAssignCrew(s, job) })) +
+      '<div class="field"><span class="field-label">Production date</span>' +
+        (function () {
+          var can = IC.canAssignCrew(s, job);
+          var valid = IC.validIsoDate(job.scheduledDate);
+          if (valid) {
+            return '<div class="date-row">' +
+              IC.input({ type: "date", value: valid, "data-act": "job-date", "data-id": job.id, disabled: !can }) +
+              (can ? IC.btn("Reset", { variant: "outline", size: "sm", class: "date-reset", data: 'data-act="clear-date" data-id="' + job.id + '"' }) : "") +
+              "</div>";
+          }
+          return '<div class="date-row">' +
+            '<span class="muted date-empty">Not scheduled</span>' +
+            (can
+              ? '<span class="btn btn-outline btn-sm date-set-btn">Set date' +
+                IC.input({ type: "date", value: "", "data-act": "job-date", "data-id": job.id, class: "date-overlay", "aria-label": "Set production date" }) +
+                "</span>"
+              : "") +
+            "</div>";
+        })() +
+      "</div>" +
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeRoof" data-id="' + job.id + '"' + (job.includeRoof ? " checked" : "") + " /> Roof</label>" +
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeGutters" data-id="' + job.id + '"' + (job.includeGutters ? " checked" : "") + " /> Gutters</label>" +
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeSiding" data-id="' + job.id + '"' + (job.includeSiding ? " checked" : "") + " /> Siding</label>" +
@@ -196,6 +216,8 @@ window.IC = window.IC || {};
     var settings = IC.state.settings;
     var value = job.estimate || IC.withComputed(IC.defaultEstimate(settings), settings);
     var c = value.computed;
+    var gutters = IC.normalizeAddon("gutters", value.gutters);
+    var siding = IC.normalizeAddon("siding", value.siding);
     var structures = value.structures.map(function (st, i) {
       return '<section class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3>Structure ' + (i + 1) + "</h3>" +
         (value.structures.length > 1 ? IC.btn(IC.icon("trash"), { variant: "ghost", data: 'data-act="est-del-struct" data-sid="' + st.id + '"' }) : "") + "</div>" +
@@ -243,12 +265,22 @@ window.IC = window.IC || {};
       IC.field("Dumpster", IC.input({ type: "number", value: value.dumpster, "data-est": "num", "data-key": "dumpster" })) +
       IC.field("Permit", IC.input({ type: "number", value: value.permit, "data-est": "num", "data-key": "permit" })) +
       "</div>" +
-      '<label class="check" style="margin-top:1rem;align-items:flex-start;background:var(--paper);border-radius:16px;padding:12px"><input type="checkbox" data-est="gutter-on"' + (value.gutters.included ? " checked" : "") + ' /><div style="flex:1;display:grid;gap:8px"><span style="font-weight:600">Include gutters (lump sum)</span>' +
-      (value.gutters.included ? IC.input({ value: value.gutters.description, "data-est": "gutter-desc" }) + IC.input({ type: "number", value: value.gutters.price, "data-est": "gutter-price" }) : "") +
-      "</div></label>" +
-      '<label class="check" style="margin-top:12px;align-items:flex-start;background:var(--paper);border-radius:16px;padding:12px"><input type="checkbox" data-est="siding-on"' + (value.siding.included ? " checked" : "") + ' /><div style="flex:1;display:grid;gap:8px"><span style="font-weight:600">Include siding (lump sum)</span>' +
-      (value.siding.included ? IC.input({ value: value.siding.description, "data-est": "siding-desc" }) + IC.input({ type: "number", value: value.siding.price, "data-est": "siding-price" }) : "") +
-      "</div></label>" +
+      '<div class="addon-block"><label class="check"><input type="checkbox" data-est="gutter-on"' + (gutters.included ? " checked" : "") + ' /><span style="font-weight:600">Include gutters (lump sum)</span></label>' +
+      (gutters.included
+        ? '<div class="addon-fields">' +
+            IC.field("Description", IC.textarea({ value: gutters.description, placeholder: IC.ADDON_DEFAULTS.gutters.description, rows: "2", "data-est": "gutter-desc" })) +
+            IC.field("Price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: gutters.price, "data-est": "gutter-price" }), "addon-price") +
+          "</div>"
+        : "") +
+      "</div>" +
+      '<div class="addon-block"><label class="check"><input type="checkbox" data-est="siding-on"' + (siding.included ? " checked" : "") + ' /><span style="font-weight:600">Include siding (lump sum)</span></label>' +
+      (siding.included
+        ? '<div class="addon-fields">' +
+            IC.field("Description", IC.textarea({ value: siding.description, placeholder: IC.ADDON_DEFAULTS.siding.description, rows: "2", "data-est": "siding-desc" })) +
+            IC.field("Price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: siding.price, "data-est": "siding-price" }), "addon-price") +
+          "</div>"
+        : "") +
+      "</div>" +
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
       '<section class="navy-sum"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><p class="field-label" style="color:rgba(251,248,241,.7)">Proposal total</p><p class="big">' + IC.money(c.total) + "</p></div><p class='tiny' style='color:rgba(251,248,241,.8)'>" + c.measuredSquares.toFixed(1) + " sq measured<br>" + c.billableSquares.toFixed(1) + " sq billed</p></div>" +
@@ -379,6 +411,25 @@ window.IC = window.IC || {};
       }).join("") + "</ul>" : '<div class="card"><p class="muted">No alerts yet.</p></div>') + "</div>";
   };
 
+  IC.viewAddUserModal = function () {
+    var d = IC.ui.addUserDraft || { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
+    IC.ui.addUserDraft = d;
+    return '<div class="modal-bg" data-act="close-modal"><div class="modal" data-stop="1"><h2>Add user</h2>' +
+      '<p class="muted" style="margin:8px 0 12px">They’ll appear in the login list on this device. Map their Firebase email so they can sign in from any iPad.</p>' +
+      '<div class="form-grid two">' +
+      IC.field("Name", IC.input({ value: d.name, "data-udraft": "name", placeholder: "First name", autocomplete: "off" })) +
+      IC.field("Role", IC.select({ "data-udraft": "role", value: d.role }, [
+        { value: "sales", label: "Sales" },
+        { value: "admin", label: "Admin (full access)" },
+      ])) +
+      IC.field("Shown as", IC.input({ value: d.title, "data-udraft": "title", placeholder: "Admin, Owner, Sales…" })) +
+      IC.field("Owns jobs as", IC.input({ value: d.salesName, "data-udraft": "salesName", placeholder: "Blank if they don’t own jobs" })) +
+      IC.field("Firebase email", IC.input({ value: d.email, type: "email", "data-udraft": "email", placeholder: "optional" }), "span-2") +
+      '</div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem">' +
+      IC.btn("Cancel", { variant: "ghost", data: 'data-act="close-modal"' }) +
+      IC.btn("Add user", { data: 'data-act="save-teammate"' }) + "</div></div></div>";
+  };
+
   IC.viewSettings = function () {
     var s = session();
     var settings = IC.state.settings;
@@ -395,6 +446,13 @@ window.IC = window.IC || {};
     ];
     return '<div class="page"><header class="page-head"><div><p class="kicker muted">Company</p><h1 class="title">Settings</h1></div>' +
       IC.btn("Sign out", { variant: "outline", data: 'data-act="sign-out"' }) + "</header>" +
+      '<div class="card"><h2 style="margin-bottom:8px">Appearance</h2><p class="muted" style="margin-bottom:12px">This iPad only. Light, dark, or match the system setting.</p>' +
+      '<div class="theme-pills" role="group" aria-label="Theme">' +
+      [{ id: "light", label: "Light" }, { id: "dark", label: "Dark" }, { id: "system", label: "System" }].map(function (opt) {
+        var on = IC.getThemePref() === opt.id;
+        return '<button type="button" class="' + (on ? "on" : "") + '" data-act="set-theme" data-theme="' + opt.id + '">' + opt.label + "</button>";
+      }).join("") +
+      "</div></div>" +
       '<div class="card"><h2 style="margin-bottom:12px">On the paperwork</h2><div class="form-grid two">' +
       IC.field("Legal name", IC.input({ value: settings.legalName, "data-set": "legalName", disabled: !admin })) +
       IC.field("License #", IC.input({ value: settings.licenseNumber, "data-set": "licenseNumber", disabled: !admin })) +
@@ -411,14 +469,29 @@ window.IC = window.IC || {};
       '<div class="card"><h2 style="margin-bottom:8px">Default estimate rates</h2><p class="muted" style="margin-bottom:12px">Used when a new estimate is created. Each job can override.</p><div class="form-grid two">' +
       rates.map(function (r) { return IC.field(r[1], IC.input({ type: "number", value: settings[r[0]], "data-set": r[0], "data-num": "1", disabled: !admin })); }).join("") +
       "</div></div>" +
-      '<div class="card"><h2 style="margin-bottom:8px">Team</h2><p class="muted" style="margin-bottom:12px">Nate and Matt are admins. Matt, Jon, Jesse, and Ethan are project owners. Map each person to their Firebase login email.</p>' +
+      '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap"><h2>Team</h2>' +
+      (admin ? IC.btn("Add user", { size: "sm", variant: "outline", data: 'data-act="add-teammate"' }) : "") +
+      '</div><p class="muted" style="margin-bottom:12px">' +
+      (admin
+        ? "Admins (Nate and Matt) can add or remove people and change names, roles, and titles. Role is the privilege — Admin sees every job and can edit Settings; Sales only sees their own jobs. Shown as is the login label. Matt is the company owner, so his label is Owner. Both of you have equal Admin privileges."
+        : "Ask an admin (Nate or Matt) to add people or change roles.") +
+      "</p>" +
       IC.state.team.map(function (m) {
-        return '<div class="form-grid two" style="background:var(--paper);border-radius:16px;padding:12px;margin-bottom:8px">' +
+        return '<div class="team-card"><div class="form-grid two">' +
           IC.field("Name", IC.input({ value: m.name, "data-team": "name", "data-id": m.id, disabled: !admin })) +
-          IC.field("Role", IC.select({ "data-team": "role", "data-id": m.id, value: m.role, disabled: !admin }, [{ value: "admin", label: "Admin" }, { value: "sales", label: "Sales" }])) +
-          IC.field("Owns jobs as", IC.select({ "data-team": "salesName", "data-id": m.id, value: m.salesName || "", disabled: !admin }, [{ value: "", label: "—" }].concat(IC.SALES_NAMES.map(function (n) { return { value: n, label: n }; })))) +
-          IC.field("Firebase email", IC.input({ value: m.email, "data-team": "email", "data-id": m.id, disabled: !admin })) + "</div>";
+          IC.field("Role", IC.select({ "data-team": "role", "data-id": m.id, value: m.role, disabled: !admin }, [{ value: "admin", label: "Admin (full access)" }, { value: "sales", label: "Sales" }])) +
+          IC.field("Shown as", IC.input({ value: IC.roleLabel(m), "data-team": "title", "data-id": m.id, placeholder: "Admin, Owner, Sales…", disabled: !admin })) +
+          IC.field("Owns jobs as", IC.input({ value: m.salesName || "", "data-team": "salesName", "data-id": m.id, placeholder: "Name on jobs, or blank", disabled: !admin })) +
+          IC.field("Firebase email", IC.input({ value: m.email, type: "email", "data-team": "email", "data-id": m.id, disabled: !admin }), "span-2") +
+          "</div>" +
+          (admin
+            ? (m.id === s.memberId
+              ? '<p class="tiny" style="margin-top:8px">That’s you — you can’t remove your own login.</p>'
+              : '<div style="display:flex;justify-content:flex-end;margin-top:8px">' + IC.btn("Remove", { variant: "danger", size: "sm", data: 'data-act="remove-teammate" data-id="' + m.id + '"' }) + "</div>")
+            : "") +
+          "</div>";
       }).join("") + "</div>" +
+      (IC.ui.addUserOpen ? IC.viewAddUserModal() : "") +
       '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2>Crew roster</h2>' +
       (admin ? IC.btn("Add crew", { size: "sm", variant: "outline", data: 'data-act="add-crew"' }) : "") + "</div>" +
       IC.state.crews.map(function (c) {
@@ -432,6 +505,8 @@ window.IC = window.IC || {};
       "<p class='muted' style='margin-top:8px'><strong>Does this write to your existing Firestore?</strong> Yes — when someone signs in with Firebase email/password. “Work on this device” stays in this browser until that sign-in, then the first empty cloud workspace is seeded from local data.</p>" +
       "<pre style='margin-top:12px;overflow:auto;border-radius:12px;background:var(--navy-deep);color:var(--cream);padding:12px;font-size:12px;line-height:1.45'>rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /signLinks/{token} {\n      allow read, write: if true;\n    }\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}</pre>" +
       '<p class="muted" style="margin-top:8px"><code>signLinks</code> is public so a customer can open the signing URL on their own phone without an Ironclad login. Sending actual iOS pushes still needs a small Cloud Function.</p></div>' +
+      '<div class="card"><h2 style="margin-bottom:8px">Source files</h2><p class="muted" style="margin-bottom:12px">The CRM is plain HTML, JavaScript, and CSS. Unzip and open <code>index.html</code> — that is the app. Push the folder to GitHub Pages or Firebase Hosting (see README inside the zip).</p>' +
+      '<a class="btn" href="ironclad-crm-files.zip" download="IRONCLAD-CRM.zip">' + IC.icon("arrow") + " Download IRONCLAD-CRM.zip</a></div>" +
       (admin ? IC.btn("Remove sample jobs & customers", { variant: "outline", data: 'data-act="clear-seed"' }) : "") +
       "</div>";
   };

@@ -78,6 +78,54 @@ window.IC = window.IC || {};
     return Boolean(session.salesName && job && job.ownerId === session.memberId);
   };
 
+  IC.canManageTeam = function (session) {
+    return Boolean(session && session.role === "admin");
+  };
+
+  IC.validIsoDate = function (v) {
+    if (v == null) return null;
+    var s = String(v).trim();
+    if (!s) return null;
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    var y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    if (y < 1990 || mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    var dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+    return m[1] + "-" + m[2] + "-" + m[3];
+  };
+
+  IC.getThemePref = function () {
+    try {
+      var p = localStorage.getItem(IC.THEME_KEY);
+      if (p === "light" || p === "dark" || p === "system") return p;
+    } catch (err) { /* private mode */ }
+    return "system";
+  };
+
+  IC.systemIsDark = function () {
+    return Boolean(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  };
+
+  IC.resolvedTheme = function (pref) {
+    pref = pref || IC.getThemePref();
+    if (pref === "light" || pref === "dark") return pref;
+    return IC.systemIsDark() ? "dark" : "light";
+  };
+
+  IC.applyTheme = function (pref) {
+    if (pref === "light" || pref === "dark" || pref === "system") {
+      try { localStorage.setItem(IC.THEME_KEY, pref); } catch (err) { /* ignore */ }
+    } else {
+      pref = IC.getThemePref();
+    }
+    var resolved = IC.resolvedTheme(pref);
+    document.documentElement.setAttribute("data-theme", resolved);
+    document.documentElement.setAttribute("data-theme-pref", pref);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", resolved === "dark" ? "#101820" : "#0d3b6e");
+  };
+
   IC.statusTone = function (status) {
     switch (status) {
       case "Lead": return "lead";

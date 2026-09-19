@@ -253,6 +253,7 @@ window.IC = window.IC || {};
         name: (user.email.split("@")[0] || "User"),
         email: user.email,
         role: "sales",
+        title: "Sales",
         salesName: null,
         active: true,
       };
