@@ -123,7 +123,7 @@ button, .btn {
   transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
 
-button:hover:not(:disabled), .btn:hover { background: var(--navy-soft); }
+button:hover:not(:disabled), .btn:hover { background: var(--navy-soft); color: black;}
 button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 
