@@ -130,6 +130,7 @@ window.IC = window.IC || {};
       };
       if (meta.settings) payload.settings = meta.settings;
       if (meta.team && meta.team.team) payload.team = meta.team.team;
+      if (meta.catalog) payload.catalog = meta.catalog.catalog || meta.catalog;
       var hasData = payload.jobs.length + payload.customers.length > 0;
       if (hasData) {
         IC.replaceCloud(payload);
@@ -141,6 +142,7 @@ window.IC = window.IC || {};
           .concat(s.crews.map(function (c) { return db.collection("crews").doc(c.id).set(JSON.parse(JSON.stringify(c))); }));
         writes.push(db.collection("meta").doc("settings").set(JSON.parse(JSON.stringify(s.settings))));
         writes.push(db.collection("meta").doc("team").set({ team: s.team }));
+        writes.push(db.collection("meta").doc("catalog").set({ catalog: s.catalog, updatedAt: IC.nowIso() }));
         return Promise.all(writes).then(function () {
           IC.state.firebaseReady = true;
           IC.emit();

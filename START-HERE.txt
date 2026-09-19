@@ -4,15 +4,19 @@ IRONCLAD CRM
 This zip is the whole app. Unzip it and you should see index.html
 in the same folder as js/, css/, and brand/.
 
-WHAT CHANGED (Sep 19, 2026)
+WHAT CHANGED
 - Matt signs in as Owner (company owner). Role stays Admin so he
   and Nate have the same privileges.
-- Settings → Team: any Admin can add/remove users and change
+- Settings → Team: any Admin can add or remove people and change
   names, roles, and “Shown as” labels.
 - Settings → Appearance: Light, Dark, or System.
-- Production date Reset now clears the date (crew stays assigned).
+- Materials (sidebar + Settings): admins edit shingle colors, SKUs,
+  and prices. Retire a discontinued item or bump a category by %.
+  Saved on this device and to Firestore meta/catalog after Firebase
+  sign-in. Price changes apply the next time an estimate is saved.
+- Production date Reset clears the date (crew stays assigned).
 - Estimate gutters/siding: checking the box shows the full
-  description (e.g. “Siding as specified on site”) in a wide field.
+  description in a wide field.
 
 HOSTING
 - GitHub Pages: put these files in the repo (or docs/) and enable Pages.

@@ -55,6 +55,7 @@ window.IC = window.IC || {};
       '<nav class="nav-side">' + sideLinks + "</nav>" +
       '<div class="nav-foot"><a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
       (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" +
+      (s.role === "admin" ? '<a href="#/materials" class="' + (route.name === "materials" ? "active" : "") + '">' + IC.icon("box") + "<span>Materials</span></a>" : "") +
       '<a href="#/settings" class="' + (route.name === "settings" ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" +
       '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + IC.esc(IC.roleLabel(s)) + (s.mode === "local" ? " · this device" : " · Firebase") + "</span></div></div></aside>" +
       '<div class="main-wrap"><header class="topbar"><a class="brand" href="#/"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing" /></a>' +
@@ -233,10 +234,21 @@ window.IC = window.IC || {};
         "</div></section>";
     }).join("");
     var linears = [["eaveLf", "Eaves (lf)"], ["rakeLf", "Rakes (lf)"], ["ridgeLf", "Ridge (lf)"], ["hipLf", "Hips (lf)"], ["valleyLf", "Valleys (lf)"], ["ridgeVentLf", "Ridge vent (lf)"]];
-    var materials = IC.CATALOG.map(function (cat) {
+    var materials = IC.liveCatalog().map(function (cat) {
       var pick = value.materials.find(function (m) { return m.categoryId === cat.id; });
-      return IC.field(cat.label, IC.select({ "data-est": "mat", "data-cat": cat.id, value: (pick && pick.itemName) || cat.items[0].name },
-        cat.items.map(function (item) { return { value: item.name, label: item.name + " · $" + item.price.toFixed(2) + "/" + cat.soldAs }; })));
+      var active = cat.items.filter(function (item) { return item.active !== false; });
+      var current = pick && pick.itemName;
+      var options = active.slice();
+      if (current && !options.some(function (i) { return i.name === current; })) {
+        var stale = cat.items.find(function (i) { return i.name === current; });
+        if (stale) options = [stale].concat(options);
+      }
+      if (!options.length) options = cat.items.slice();
+      return IC.field(cat.label, IC.select({ "data-est": "mat", "data-cat": cat.id, value: current || (options[0] && options[0].name) || "" },
+        options.map(function (item) {
+          var disc = item.active === false ? " (discontinued)" : "";
+          return { value: item.name, label: item.name + disc + " · $" + Number(item.price).toFixed(2) + "/" + cat.soldAs };
+        })));
     }).join("");
     var extras = (value.extras || []).map(function (ex) {
       return '<div style="display:grid;grid-template-columns:1fr 120px 44px;gap:8px;margin-top:8px">' +
@@ -453,7 +465,10 @@ window.IC = window.IC || {};
         return '<button type="button" class="' + (on ? "on" : "") + '" data-act="set-theme" data-theme="' + opt.id + '">' + opt.label + "</button>";
       }).join("") +
       "</div></div>" +
-      '<div class="card"><h2 style="margin-bottom:12px">On the paperwork</h2><div class="form-grid two">' +
+      (admin
+        ? '<a class="card materials-entry" href="#/materials"><div><h2 style="margin-bottom:4px">Materials catalog</h2><p class="muted">Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.</p></div>' + IC.icon("arrow") + "</a>"
+        : "") +
+      '<div class="card"><h2 style="margin-bottom:12px">On the paperwork</h2><div class="form-grid two">' + +
       IC.field("Legal name", IC.input({ value: settings.legalName, "data-set": "legalName", disabled: !admin })) +
       IC.field("License #", IC.input({ value: settings.licenseNumber, "data-set": "licenseNumber", disabled: !admin })) +
       IC.field("Phone", IC.input({ value: settings.phone, "data-set": "phone", disabled: !admin })) +
@@ -501,7 +516,7 @@ window.IC = window.IC || {};
           IC.field("Phone", IC.input({ value: c.phone, "data-crew": "phone", "data-id": c.id, disabled: !admin })) +
           IC.field("Notes", IC.input({ value: c.notes, "data-crew": "notes", "data-id": c.id, disabled: !admin })) + "</div>";
       }).join("") + "</div>" +
-      '<div class="card"><h2 style="margin-bottom:8px">Firebase</h2><p class="muted">Project <strong style="color:var(--ink)">ironclad-127a5</strong>. Add this app’s domain under Authentication → Settings → Authorized domains. Firestore collections: <code>jobs</code>, <code>customers</code>, <code>crews</code>, <code>notifications</code>, <code>meta</code>, <code>fcmTokens</code>, <code>signLinks</code>.</p>' +
+      '<div class="card"><h2 style="margin-bottom:8px">Firebase</h2><p class="muted">Project <strong style="color:var(--ink)">ironclad-127a5</strong>. Add this app’s domain under Authentication → Settings → Authorized domains. Firestore collections: <code>jobs</code>, <code>customers</code>, <code>crews</code>, <code>notifications</code>, <code>meta</code> (settings, team, catalog), <code>fcmTokens</code>, <code>signLinks</code>.</p>' +
       "<p class='muted' style='margin-top:8px'><strong>Does this write to your existing Firestore?</strong> Yes — when someone signs in with Firebase email/password. “Work on this device” stays in this browser until that sign-in, then the first empty cloud workspace is seeded from local data.</p>" +
       "<pre style='margin-top:12px;overflow:auto;border-radius:12px;background:var(--navy-deep);color:var(--cream);padding:12px;font-size:12px;line-height:1.45'>rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /signLinks/{token} {\n      allow read, write: if true;\n    }\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}</pre>" +
       '<p class="muted" style="margin-top:8px"><code>signLinks</code> is public so a customer can open the signing URL on their own phone without an Ironclad login. Sending actual iOS pushes still needs a small Cloud Function.</p></div>' +
@@ -509,6 +524,59 @@ window.IC = window.IC || {};
       '<a class="btn" href="ironclad-crm-files.zip" download="IRONCLAD-CRM.zip">' + IC.icon("arrow") + " Download IRONCLAD-CRM.zip</a></div>" +
       (admin ? IC.btn("Remove sample jobs & customers", { variant: "outline", data: 'data-act="clear-seed"' }) : "") +
       "</div>";
+  };
+
+  IC.viewMaterials = function () {
+    var s = session();
+    if (!s || s.role !== "admin") {
+      return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1></div></header><div class="card"><p class="muted">Only admins (Nate and Matt) can edit the material catalog. Ask one of them to add a color or change a price.</p></div></div>';
+    }
+    var catalog = IC.liveCatalog();
+    var catId = IC.ui.catalogCat || "shingle";
+    var cat = catalog.find(function (c) { return c.id === catId; }) || catalog[0];
+    catId = cat.id;
+    IC.ui.catalogCat = catId;
+    var showOff = Boolean(IC.ui.catalogShowOff);
+    var rows = cat.items.filter(function (it) { return showOff || it.active !== false; });
+    var pills = catalog.map(function (c) {
+      var n = c.items.filter(function (it) { return it.active !== false; }).length;
+      var on = c.id === catId;
+      return '<button type="button" class="' + (on ? "on" : "") + '" data-act="catalog-cat" data-id="' + c.id + '">' +
+        IC.esc(c.label) + ' <span class="tiny" style="opacity:.8">' + n + "</span></button>";
+    }).join("");
+    var itemRows = rows.length ? rows.map(function (it) {
+      var off = it.active === false;
+      return '<div class="mat-row' + (off ? " is-off" : "") + '">' +
+        IC.input({ value: it.name, "data-mat": "name", "data-cat": catId, "data-iid": it.id, "aria-label": "Name" }) +
+        IC.input({ value: it.sku, placeholder: "SKU", "data-mat": "sku", "data-cat": catId, "data-iid": it.id, "aria-label": "SKU" }) +
+        IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: it.price, "data-mat": "price", "data-cat": catId, "data-iid": it.id, "aria-label": "Price" }) +
+        '<div class="mat-row-actions">' +
+        (off
+          ? IC.btn("Restore", { size: "sm", variant: "outline", data: 'data-act="catalog-restore" data-cat="' + catId + '" data-iid="' + it.id + '"' })
+          : IC.btn("Retire", { size: "sm", variant: "ghost", data: 'data-act="catalog-retire" data-cat="' + catId + '" data-iid="' + it.id + '"' })) +
+        IC.btn(IC.icon("trash"), { variant: "danger", size: "sm", class: "btn-icon", data: 'data-act="catalog-remove" data-cat="' + catId + '" data-iid="' + it.id + '"' }) +
+        "</div></div>";
+    }).join("") : '<p class="muted">No items in this list' + (showOff ? "." : ". Turn on discontinued to see retired SKUs.") + "</p>";
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1><p class="muted" style="margin-top:4px">What the estimator can pick. Price changes apply the next time a job estimate is saved — sold and signed jobs keep their quoted total until you re-save.</p></div></header>' +
+      '<div class="card"><div class="cat-pills" role="tablist" aria-label="Material category">' + pills + "</div>" +
+      '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p></div>" +
+      '<label class="check"><input type="checkbox" data-act="catalog-show-off"' + (showOff ? " checked" : "") + ' /><span>Show discontinued</span></label></div>' +
+      '<div class="mat-head"><span>Name / color</span><span>SKU</span><span>Price ($)</span><span></span></div>' +
+      itemRows +
+      '<div class="mat-add"><h3 style="margin-bottom:8px">Add to ' + IC.esc(cat.label) + '</h3><div class="mat-row is-add">' +
+      IC.input({ value: IC.ui.catalogAddName, placeholder: cat.id === "shingle" ? "New color, e.g. Storm Cloud" : "Name", "data-ui": "catalogAddName" }) +
+      IC.input({ value: IC.ui.catalogAddSku, placeholder: "SKU (optional)", "data-ui": "catalogAddSku" }) +
+      IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: IC.ui.catalogAddPrice, placeholder: "Price", "data-ui": "catalogAddPrice" }) +
+      IC.btn(IC.icon("plus") + " Add", { data: 'data-act="catalog-add"' }) +
+      "</div>" +
+      (catId === "shingle"
+        ? '<label class="check" style="margin-top:8px"><input type="checkbox" data-act="catalog-add-hip"' + (IC.ui.catalogAddHip !== false ? " checked" : "") + ' /><span>Also add matching Hip & Ridge (uses current hip price)</span></label>'
+        : "") +
+      "</div>" +
+      '<div class="mat-bump"><h3 style="margin-bottom:8px">Adjust prices in this category</h3><p class="muted" style="margin-bottom:8px">Distributor increase? Enter 5 for +5%. A drop is negative, like -3.</p><div class="date-row">' +
+      IC.input({ type: "number", step: "0.1", value: IC.ui.catalogBump, placeholder: "%", "data-ui": "catalogBump", "aria-label": "Percent change" }) +
+      IC.btn("Apply to active items", { variant: "outline", data: 'data-act="catalog-bump"' }) +
+      "</div></div></div></div>";
   };
 
   IC.viewSign = function (token) {

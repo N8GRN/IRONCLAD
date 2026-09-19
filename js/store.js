@@ -18,6 +18,7 @@ window.IC = window.IC || {};
       settings: IC.clone(IC.SETTINGS),
       team: IC.clone(IC.TEAM),
       crews: IC.clone(IC.CREWS),
+      catalog: IC.ensureCatalog(null),
       customers: [],
       jobs: [],
       notifications: [],
@@ -49,6 +50,13 @@ window.IC = window.IC || {};
     toast: "",
     addUserOpen: false,
     addUserDraft: null,
+    catalogCat: "shingle",
+    catalogShowOff: false,
+    catalogAddName: "",
+    catalogAddSku: "",
+    catalogAddPrice: "",
+    catalogAddHip: true,
+    catalogBump: "",
   };
 
   IC.subscribe = function (fn) {
@@ -66,6 +74,7 @@ window.IC = window.IC || {};
         settings: s.settings,
         team: s.team,
         crews: s.crews,
+        catalog: s.catalog,
         customers: s.customers,
         jobs: s.jobs,
         notifications: s.notifications,
@@ -95,6 +104,7 @@ window.IC = window.IC || {};
           settings: parsed.settings || IC.clone(IC.SETTINGS),
           team: IC.fillTeamTitles(parsed.team && parsed.team.length ? parsed.team : IC.clone(IC.TEAM)),
           crews: parsed.crews && parsed.crews.length ? parsed.crews : IC.clone(IC.CREWS),
+          catalog: IC.ensureCatalog(parsed.catalog),
           customers: parsed.customers || [],
           jobs: parsed.jobs || [],
           notifications: parsed.notifications || [],
@@ -113,6 +123,7 @@ window.IC = window.IC || {};
       }
     }
     IC.state.hydrated = true;
+    persist();
   };
 
   IC.initIfEmpty = function () {
@@ -125,6 +136,7 @@ window.IC = window.IC || {};
     if (!IC.state.settings || !IC.state.settings.legalName) IC.state.settings = IC.clone(IC.SETTINGS);
     if (!IC.state.team.length) IC.state.team = IC.clone(IC.TEAM);
     if (!IC.state.crews.length) IC.state.crews = IC.clone(IC.CREWS);
+    IC.state.catalog = IC.ensureCatalog(IC.state.catalog);
   };
 
   function nextNumber(jobs) {
@@ -137,7 +149,9 @@ window.IC = window.IC || {};
 
   IC.replaceCloud = function (data) {
     if (data.team) data.team = IC.fillTeamTitles(data.team);
+    if (data.catalog) data.catalog = IC.ensureCatalog(data.catalog);
     Object.assign(IC.state, data, { initialized: true });
+    IC.state.catalog = IC.ensureCatalog(IC.state.catalog);
     IC.emit();
   };
 
@@ -340,6 +354,154 @@ window.IC = window.IC || {};
     IC.state.settings = Object.assign({}, IC.state.settings, patch);
     IC.emit();
     IC.cloudUpsert("meta", "settings", IC.state.settings);
+  };
+
+  IC.saveCatalog = function (catalog) {
+    IC.state.catalog = IC.ensureCatalog(catalog);
+    IC.emit();
+    IC.cloudUpsert("meta", "catalog", { catalog: IC.state.catalog, updatedAt: IC.nowIso() });
+  };
+
+  IC.updateCatalogItem = function (catId, itemId, patch) {
+    if (!IC.canManageTeam(IC.state.session)) return;
+    var oldName = null;
+    var nextName = null;
+    var catalog = IC.liveCatalog().map(function (cat) {
+      if (cat.id !== catId) return cat;
+      return Object.assign({}, cat, {
+        items: cat.items.map(function (it) {
+          if (it.id !== itemId) return it;
+          oldName = it.name;
+          var n = Object.assign({}, it, patch);
+          if (patch.name != null) n.name = String(patch.name).trim() || it.name;
+          if (patch.sku != null) n.sku = String(patch.sku).trim();
+          if (patch.price != null) {
+            var p = Number(patch.price);
+            n.price = Number.isFinite(p) ? p : it.price;
+          }
+          if (patch.active != null) n.active = Boolean(patch.active);
+          nextName = n.name;
+          return n;
+        }),
+      });
+    });
+    if (oldName && nextName && oldName !== nextName) {
+      var touched = [];
+      IC.state.jobs = IC.state.jobs.map(function (job) {
+        if (!job.estimate || !job.estimate.materials) return job;
+        var changed = false;
+        var materials = job.estimate.materials.map(function (m) {
+          if (m.categoryId === catId && m.itemName === oldName) {
+            changed = true;
+            return Object.assign({}, m, { itemName: nextName });
+          }
+          return m;
+        });
+        if (!changed) return job;
+        var next = Object.assign({}, job, {
+          estimate: Object.assign({}, job.estimate, { materials: materials }),
+          updatedAt: IC.nowIso(),
+        });
+        touched.push(next);
+        return next;
+      });
+      touched.forEach(function (j) { IC.cloudUpsert("jobs", j.id, j); });
+    }
+    IC.saveCatalog(catalog);
+  };
+
+  IC.addCatalogItem = function (catId, draft) {
+    if (!IC.canManageTeam(IC.state.session)) return null;
+    draft = draft || {};
+    var name = String(draft.name || "").trim();
+    if (!name) {
+      IC.toast("Enter a name");
+      return null;
+    }
+    var cat = IC.catalogCategory(catId);
+    if (!cat) return null;
+    var exists = cat.items.some(function (it) { return it.name.toLowerCase() === name.toLowerCase(); });
+    if (exists) {
+      IC.toast("That name is already in " + cat.label);
+      return null;
+    }
+    var item = IC.normalizeItem(catId, {
+      name: name,
+      sku: draft.sku,
+      price: draft.price === "" || draft.price == null ? 0 : Number(draft.price),
+      active: true,
+    });
+    var catalog = IC.liveCatalog().map(function (c) {
+      if (c.id !== catId) return c;
+      return Object.assign({}, c, { items: c.items.concat([item]) });
+    });
+    if (draft.alsoHip && catId === "shingle") {
+      var hip = IC.catalogCategory("hipRidge");
+      var hipExists = hip && hip.items.some(function (it) { return it.name.toLowerCase() === name.toLowerCase(); });
+      if (!hipExists) {
+        var sample = hip && hip.items.filter(function (it) { return it.active !== false; })[0];
+        var hipPrice = draft.hipPrice != null && draft.hipPrice !== "" ? Number(draft.hipPrice) : (sample ? sample.price : 0);
+        var hipItem = IC.normalizeItem("hipRidge", { name: name, sku: draft.sku, price: hipPrice, active: true });
+        catalog = catalog.map(function (c) {
+          if (c.id !== "hipRidge") return c;
+          return Object.assign({}, c, { items: c.items.concat([hipItem]) });
+        });
+      }
+    }
+    IC.saveCatalog(catalog);
+    return item;
+  };
+
+  IC.setCatalogItemActive = function (catId, itemId, active) {
+    if (!IC.canManageTeam(IC.state.session)) return;
+    var cat = IC.catalogCategory(catId);
+    if (!cat) return;
+    if (!active) {
+      var remaining = cat.items.filter(function (it) { return it.id !== itemId && it.active !== false; });
+      if (!remaining.length) {
+        IC.toast("Keep at least one active item in " + cat.label);
+        return;
+      }
+    }
+    IC.updateCatalogItem(catId, itemId, { active: active });
+  };
+
+  IC.removeCatalogItem = function (catId, itemId) {
+    if (!IC.canManageTeam(IC.state.session)) return;
+    var cat = IC.catalogCategory(catId);
+    if (!cat) return;
+    var remaining = cat.items.filter(function (it) { return it.id !== itemId; });
+    var remainingActive = remaining.filter(function (it) { return it.active !== false; });
+    if (!remainingActive.length) {
+      IC.toast("Keep at least one active item in " + cat.label);
+      return;
+    }
+    var catalog = IC.liveCatalog().map(function (c) {
+      if (c.id !== catId) return c;
+      return Object.assign({}, c, { items: remaining });
+    });
+    IC.saveCatalog(catalog);
+  };
+
+  IC.bumpCatalogPrices = function (catId, percent) {
+    if (!IC.canManageTeam(IC.state.session)) return;
+    var pct = Number(percent);
+    if (!Number.isFinite(pct) || pct === 0) {
+      IC.toast("Enter a percent, like 5 or -3");
+      return;
+    }
+    var factor = 1 + pct / 100;
+    var catalog = IC.liveCatalog().map(function (cat) {
+      if (cat.id !== catId) return cat;
+      return Object.assign({}, cat, {
+        items: cat.items.map(function (it) {
+          if (it.active === false) return it;
+          return Object.assign({}, it, { price: Math.round(it.price * factor * 100) / 100 });
+        }),
+      });
+    });
+    IC.saveCatalog(catalog);
+    IC.toast((pct > 0 ? "+" : "") + pct + "% on " + (IC.catalogCategory(catId) || {}).label);
   };
 
   IC.updateTeam = function (team) {

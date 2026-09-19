@@ -25,7 +25,7 @@ The old `projects` collection is left alone.
 | **Light / dark / system theme** | Settings → Appearance (saved on this device, not Firestore) |
 | Colors, type, spacing | [`public/css/app.css`](public/css/app.css) |
 | Screens (home, jobs, estimate, contract…) | [`public/js/views.js`](public/js/views.js) |
-| Material catalog / prices | [`public/js/catalog.js`](public/js/catalog.js) |
+| Material catalog & prices | Settings → **Materials catalog**, or **Materials** in the sidebar (admins only). Add colors, retire SKUs, reprice, or bump a category by %. Saved on this device and to Firestore `meta/catalog` after Firebase sign-in. `catalog.js` is only the first-run list. |
 | Estimate math | [`public/js/estimate.js`](public/js/estimate.js) |
 | Contract wording | [`public/js/contract.js`](public/js/contract.js) |
 | Firestore sync | [`public/js/store.js`](public/js/store.js) + [`public/js/firebase.js`](public/js/firebase.js) |

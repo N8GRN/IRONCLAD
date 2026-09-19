@@ -36,12 +36,70 @@ window.IC = window.IC || {};
   IC.STORY_LABOR = { "1-Story": 1, "2-Story": 1.18, "3-Story": 1.35 };
   IC.TEAROFF_LAYERS = { None: 0, "1-Layer": 1, "2-Layer": 2, "3-Layer": 3, "4-Layer": 4, "5-Layer": 5 };
 
-  IC.catalogCategory = function (id) {
-    return IC.CATALOG.find(function (c) { return c.id === id; });
+  function slug(s) {
+    return String(s || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item";
+  }
+
+  IC.normalizeItem = function (catId, it, index) {
+    it = it || {};
+    return {
+      id: it.id || catId + "::" + slug(it.name || index),
+      name: String(it.name || "Untitled").trim() || "Untitled",
+      price: Number.isFinite(Number(it.price)) ? Number(it.price) : 0,
+      sku: String(it.sku || "").trim(),
+      active: it.active !== false,
+    };
   };
+
+  IC.ensureCatalog = function (saved) {
+    var incoming = saved;
+    if (saved && !Array.isArray(saved) && Array.isArray(saved.catalog)) incoming = saved.catalog;
+    var byId = {};
+    (incoming || []).forEach(function (c) { if (c && c.id) byId[c.id] = c; });
+    return IC.CATALOG.map(function (def) {
+      var have = byId[def.id];
+      var items = have && have.items && have.items.length ? have.items : def.items;
+      return {
+        id: def.id,
+        label: def.label,
+        soldAs: def.soldAs,
+        coverageAmount: def.coverageAmount,
+        coverageUnit: def.coverageUnit,
+        items: items.map(function (it, i) { return IC.normalizeItem(def.id, it, i); }),
+      };
+    });
+  };
+
+  IC.liveCatalog = function () {
+    if (IC.state && IC.state.catalog && IC.state.catalog.length) return IC.state.catalog;
+    return IC.ensureCatalog(null);
+  };
+
+  IC.catalogCategory = function (id) {
+    return IC.liveCatalog().find(function (c) { return c.id === id; });
+  };
+
+  IC.catalogActiveItems = function (categoryId) {
+    var cat = IC.catalogCategory(categoryId);
+    if (!cat) return [];
+    return cat.items.filter(function (i) { return i.active !== false; });
+  };
+
   IC.catalogItem = function (categoryId, name) {
     var cat = IC.catalogCategory(categoryId);
     if (!cat) return null;
-    return cat.items.find(function (i) { return i.name === name; }) || cat.items[0];
+    var hit = cat.items.find(function (i) { return i.name === name; });
+    if (hit) return hit;
+    var active = cat.items.filter(function (i) { return i.active !== false; });
+    return active[0] || cat.items[0] || null;
+  };
+
+  IC.catalogDefaultName = function (categoryId, fallback) {
+    var items = IC.catalogActiveItems(categoryId);
+    if (items.length) {
+      var prefer = items.find(function (i) { return i.name === fallback; });
+      return (prefer || items[0]).name;
+    }
+    return fallback;
   };
 })(window.IC);

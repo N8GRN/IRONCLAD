@@ -24,6 +24,7 @@ window.IC = window.IC || {};
     if (parts[0] === "customers") return { name: "customers" };
     if (parts[0] === "schedule") return { name: "schedule" };
     if (parts[0] === "settings") return { name: "settings" };
+    if (parts[0] === "materials") return { name: "materials" };
     if (parts[0] === "notifications") return { name: "notifications" };
     if (parts[0] === "sign" && parts[1]) return { name: "sign", token: parts[1] };
     return { name: "home" };
@@ -70,6 +71,9 @@ window.IC = window.IC || {};
         draft: active.getAttribute("data-draft"),
         cdraft: active.getAttribute("data-cdraft"),
         udraft: active.getAttribute("data-udraft"),
+        mat: active.getAttribute("data-mat"),
+        iid: active.getAttribute("data-iid"),
+        ui: active.getAttribute("data-ui"),
         name: active.getAttribute("name"),
         idAttr: active.getAttribute("data-id"),
         tag: active.tagName,
@@ -102,6 +106,7 @@ window.IC = window.IC || {};
       else if (route.name === "customer") inner = IC.viewCustomer(route.id);
       else if (route.name === "schedule") inner = IC.viewSchedule();
       else if (route.name === "settings") inner = IC.viewSettings();
+      else if (route.name === "materials") inner = IC.viewMaterials();
       else if (route.name === "notifications") inner = IC.viewNotifications();
       else inner = IC.viewHome();
       html = IC.viewShell(inner, route);
@@ -122,7 +127,8 @@ window.IC = window.IC || {};
           same("data-set", restore.set) && same("data-team", restore.team) &&
           same("data-crew", restore.crew) && same("data-cust", restore.cust) &&
           same("data-draft", restore.draft) && same("data-cdraft", restore.cdraft) &&
-          same("data-udraft", restore.udraft) &&
+          same("data-udraft", restore.udraft) && same("data-mat", restore.mat) &&
+          same("data-iid", restore.iid) && same("data-ui", restore.ui) &&
           same("name", restore.name) && same("data-id", restore.idAttr);
         if (ok) match = n;
       });
@@ -436,6 +442,73 @@ window.IC = window.IC || {};
       IC.toast("Sample records removed");
       return;
     }
+    if (act === "catalog-cat") {
+      IC.ui.catalogCat = t.getAttribute("data-id");
+      IC.ui.catalogAddName = "";
+      IC.ui.catalogAddSku = "";
+      IC.ui.catalogAddPrice = "";
+      IC.ui.catalogBump = "";
+      IC.render();
+      return;
+    }
+    if (act === "catalog-add") {
+      var addWrap = t.closest(".mat-add");
+      if (addWrap) {
+        var n = addWrap.querySelector('[data-ui="catalogAddName"]');
+        var sku = addWrap.querySelector('[data-ui="catalogAddSku"]');
+        var pr = addWrap.querySelector('[data-ui="catalogAddPrice"]');
+        if (n) IC.ui.catalogAddName = n.value;
+        if (sku) IC.ui.catalogAddSku = sku.value;
+        if (pr) IC.ui.catalogAddPrice = pr.value;
+      }
+      var added = IC.addCatalogItem(IC.ui.catalogCat || "shingle", {
+        name: IC.ui.catalogAddName,
+        sku: IC.ui.catalogAddSku,
+        price: IC.ui.catalogAddPrice,
+        alsoHip: IC.ui.catalogAddHip !== false,
+      });
+      if (added) {
+        IC.ui.catalogAddName = "";
+        IC.ui.catalogAddSku = "";
+        IC.ui.catalogAddPrice = "";
+        IC.toast("Added " + added.name);
+      }
+      return;
+    }
+    if (act === "catalog-retire") {
+      var rname = (function () {
+        var c = IC.catalogCategory(t.getAttribute("data-cat"));
+        var it = c && c.items.find(function (x) { return x.id === t.getAttribute("data-iid"); });
+        return it ? it.name : "this item";
+      })();
+      if (confirm("Retire " + rname + "? It won’t show on new estimates. Existing jobs keep it.")) {
+        IC.setCatalogItemActive(t.getAttribute("data-cat"), t.getAttribute("data-iid"), false);
+      }
+      return;
+    }
+    if (act === "catalog-restore") {
+      IC.setCatalogItemActive(t.getAttribute("data-cat"), t.getAttribute("data-iid"), true);
+      IC.toast("Restored");
+      return;
+    }
+    if (act === "catalog-remove") {
+      var dname = (function () {
+        var c = IC.catalogCategory(t.getAttribute("data-cat"));
+        var it = c && c.items.find(function (x) { return x.id === t.getAttribute("data-iid"); });
+        return it ? it.name : "this item";
+      })();
+      if (confirm("Permanently remove " + dname + " from the catalog?")) {
+        IC.removeCatalogItem(t.getAttribute("data-cat"), t.getAttribute("data-iid"));
+      }
+      return;
+    }
+    if (act === "catalog-bump") {
+      var wrap = t.closest(".mat-bump");
+      var inp = wrap && wrap.querySelector('[data-ui="catalogBump"]');
+      var pct = inp && inp.value !== "" ? inp.value : IC.ui.catalogBump;
+      IC.bumpCatalogPrices(IC.ui.catalogCat || "shingle", pct);
+      return;
+    }
   }
 
   function onChange(e) {
@@ -448,6 +521,8 @@ window.IC = window.IC || {};
     if (act === "customer-search") { IC.ui.customerSearch = el.value; IC.render(); return; }
     if (act === "new-job-customer") { IC.ui.newJobCustomerId = el.value; return; }
     if (act === "printed-name") { IC.ui.printedName = el.value; return; }
+    if (act === "catalog-show-off") { IC.ui.catalogShowOff = el.checked; IC.render(); return; }
+    if (act === "catalog-add-hip") { IC.ui.catalogAddHip = el.checked; return; }
     if (act === "job-status") { IC.setStatus(el.getAttribute("data-id"), el.value); return; }
     if (act === "job-owner") { IC.assignOwner(el.getAttribute("data-id"), el.value || null); return; }
     if (act === "job-crew") {
@@ -480,6 +555,17 @@ window.IC = window.IC || {};
 
     if (el.hasAttribute("data-draft")) {
       IC.ui.newJobDraft[el.getAttribute("data-draft")] = el.value;
+      return;
+    }
+    if (el.hasAttribute("data-ui")) {
+      IC.ui[el.getAttribute("data-ui")] = el.value;
+      return;
+    }
+    if (el.hasAttribute("data-mat")) {
+      var mf = el.getAttribute("data-mat");
+      var mp = {};
+      mp[mf] = el.value;
+      IC.updateCatalogItem(el.getAttribute("data-cat"), el.getAttribute("data-iid"), mp);
       return;
     }
     if (el.hasAttribute("data-cdraft")) {
@@ -620,6 +706,9 @@ window.IC = window.IC || {};
     if (actIn === "job-search") { IC.ui.jobSearch = el.value; IC.render(); }
     if (actIn === "customer-search") { IC.ui.customerSearch = el.value; IC.render(); }
     if (actIn === "printed-name") IC.ui.printedName = el.value;
+    if (el.hasAttribute("data-ui")) {
+      IC.ui[el.getAttribute("data-ui")] = el.value;
+    }
     if (el.hasAttribute("data-udraft")) {
       IC.ui.addUserDraft = IC.ui.addUserDraft || { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
       IC.ui.addUserDraft[el.getAttribute("data-udraft")] = el.value;
@@ -652,7 +741,7 @@ window.IC = window.IC || {};
 
   function liftPathToHash() {
     var path = location.pathname.replace(/\/+$/, "") || "/";
-    var m = path.match(/\/(jobs|customers|schedule|settings|notifications|login|sign)(\/[^/]+)?$/);
+    var m = path.match(/\/(jobs|customers|schedule|settings|materials|notifications|login|sign)(\/[^/]+)?$/);
     if (m && !location.hash) {
       var keep = path.slice(0, path.length - m[0].length) || "/";
       if (keep.charAt(keep.length - 1) !== "/") keep += "/";
