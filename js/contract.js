@@ -25,7 +25,8 @@ window.IC = window.IC || {};
           items.push(
             st.name + ": " + st.squares + " squares, " + st.type + ", " + st.level +
             ", pitch " + st.pitch + ", tear-off " + st.tearoff + ", deck " + st.sheathing +
-            " (replace approx. " + st.sheathingReplacePct + "%)."
+            " (replace " + (st.sheathingSheets != null && st.sheathingSheets !== "" ? st.sheathingSheets : "approx. " + st.sheathingReplacePct + "%") +
+            (st.sheathingSheets != null && st.sheathingSheets !== "" ? " sheets" : "") + ")."
           );
         });
       }

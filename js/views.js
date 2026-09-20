@@ -5,33 +5,84 @@ window.IC = window.IC || {};
   function mineJobs() {
     var s = session();
     var jobs = IC.state.jobs;
-    if (!s || s.role === "admin") return jobs;
+    if (!s || !IC.isApproved(s)) return [];
+    if (s.role === "admin") return jobs;
     return jobs.filter(function (j) { return j.ownerId === s.memberId; });
   }
 
   IC.viewLogin = function () {
-    var team = IC.state.team.filter(function (t) { return t.active; });
-    var memberOpts = team.map(function (t) {
-      return { value: t.id, label: t.name + " · " + (t.role === "admin" ? "Admin" : "Sales") };
-    });
+    var panel = IC.ui.authPanel || "signin";
+    var cached = IC.state.session;
+    var canOffline = cached && IC.isApproved(cached);
+    var tabs = [["signin", "Sign in"], ["signup", "Create account"]].map(function (t) {
+      return '<button type="button" class="' + (panel === t[0] ? "on" : "") + '" data-act="auth-panel" data-panel="' + t[0] + '">' + t[1] + "</button>";
+    }).join("");
+    var body = "";
+    if (panel === "signup") {
+      body = '<form class="login-card" data-act="auth-signup">' +
+        "<h2>Create account</h2>" +
+        '<p class="sub" style="text-align:left;margin:0 0 12px">Anyone can create an account. Nate or Matt have to turn on Sales or Admin before you can see jobs.</p>' +
+        IC.field("Your name", IC.input({ name: "displayName", autocomplete: "name", value: IC.ui.loginName, placeholder: "First name" })) +
+        IC.field("Email", IC.input({ type: "email", name: "email", autocomplete: "username", value: IC.ui.loginEmail })) +
+        IC.field("Password", IC.input({ type: "password", name: "password", autocomplete: "new-password", value: IC.ui.loginPassword, placeholder: "At least 6 characters" })) +
+        IC.field("Confirm password", IC.input({ type: "password", name: "password2", autocomplete: "new-password", value: IC.ui.loginPassword2 })) +
+        (IC.ui.loginError ? '<p class="err">' + IC.esc(IC.ui.loginError) + "</p>" : "") +
+        (IC.ui.loginInfo ? '<p class="muted">' + IC.esc(IC.ui.loginInfo) + "</p>" : "") +
+        IC.btn(IC.ui.loginBusy ? "Creating…" : "Create account", { type: "submit", class: "btn-block", disabled: IC.ui.loginBusy }) +
+        "</form>";
+    } else if (panel === "forgot") {
+      body = '<form class="login-card" data-act="auth-forgot">' +
+        "<h2>Reset password</h2>" +
+        '<p class="sub" style="text-align:left;margin:0 0 12px">We’ll email a reset link. Same address you sign in with.</p>' +
+        IC.field("Email", IC.input({ type: "email", name: "email", autocomplete: "username", value: IC.ui.loginEmail })) +
+        (IC.ui.loginError ? '<p class="err">' + IC.esc(IC.ui.loginError) + "</p>" : "") +
+        (IC.ui.loginInfo ? '<p class="muted">' + IC.esc(IC.ui.loginInfo) + "</p>" : "") +
+        IC.btn(IC.ui.loginBusy ? "Sending…" : "Send reset link", { type: "submit", class: "btn-block", disabled: IC.ui.loginBusy }) +
+        '<button type="button" class="text-link" data-act="auth-panel" data-panel="signin">Back to sign in</button>' +
+        "</form>";
+    } else {
+      body = '<form class="login-card" data-act="auth-signin">' +
+        "<h2>Sign in</h2>" +
+        IC.field("Email", IC.input({ type: "email", name: "email", autocomplete: "username", value: IC.ui.loginEmail })) +
+        IC.field("Password", IC.input({ type: "password", name: "password", autocomplete: "current-password", value: IC.ui.loginPassword })) +
+        '<label class="check" style="margin:4px 0 12px"><input type="checkbox" data-act="keep-signed-in"' + (IC.ui.keepSignedIn !== false ? " checked" : "") + ' /> Keep me signed in on this iPad</label>' +
+        (IC.ui.loginError ? '<p class="err">' + IC.esc(IC.ui.loginError) + "</p>" : "") +
+        (IC.ui.loginInfo ? '<p class="muted">' + IC.esc(IC.ui.loginInfo) + "</p>" : "") +
+        IC.btn(IC.ui.loginBusy ? "Signing in…" : "Sign in", { type: "submit", class: "btn-block", disabled: IC.ui.loginBusy }) +
+        '<button type="button" class="text-link" data-act="auth-panel" data-panel="forgot">Forgot password?</button>' +
+        "</form>";
+    }
     return '<div class="login"><div class="login-blob"><span></span><span></span></div><div class="login-inner">' +
       '<img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing LLC" />' +
       '<p class="tag" style="margin-top:12px">UNBREAKABLE QUALITY</p>' +
       "<h1>IRONCLAD CRM</h1>" +
       '<p class="sub">Jobs, estimates, and agreements — built for the iPad in the truck.</p>' +
-      '<form class="login-card" data-act="firebase-login">' +
-      "<h2>Sign in</h2>" +
-      IC.field("Email", IC.input({ type: "email", name: "email", autocomplete: "username", value: IC.ui.loginEmail })) +
-      IC.field("Password", IC.input({ type: "password", name: "password", autocomplete: "current-password", value: IC.ui.loginPassword })) +
-      (IC.ui.loginError ? '<p class="err">' + IC.esc(IC.ui.loginError) + "</p>" : "") +
-      (IC.ui.loginLocalMsg ? '<p class="muted">' + IC.esc(IC.ui.loginLocalMsg) + "</p>" : "") +
-      IC.btn(IC.ui.loginBusy ? "Signing in…" : "Sign in with Firebase", { type: "submit", class: "btn-block", disabled: IC.ui.loginBusy }) +
-      "</form>" +
-      '<div class="login-local"><h2>Work on this device</h2>' +
-      '<p class="sub" style="text-align:left;margin-top:4px">For the iPad in the truck, or until this URL is added to Firebase. Same CRM — data stays on the device unless you later sign in.</p>' +
-      IC.field("Who are you?", IC.select({ "data-act": "login-member", value: IC.ui.loginMemberId }, memberOpts)) +
-      '<div style="margin-top:12px">' + IC.btn("Continue", { variant: "outline", class: "btn-block", data: 'data-act="local-login"' }) + "</div></div>" +
+      '<div class="auth-tabs">' + tabs + "</div>" +
+      body +
+      (canOffline
+        ? '<div class="login-local"><p class="sub" style="text-align:left;margin:0 0 12px">Signed in before as <strong>' + IC.esc(cached.name) + "</strong>. No signal? Keep working with the jobs already on this iPad. They’ll sync when you’re back.</p>" +
+          IC.btn("Continue offline", { variant: "outline", class: "btn-block", data: 'data-act="offline-login"' }) + "</div>"
+        : '<p class="tiny" style="margin-top:18px;max-width:22rem">First sign-in needs a connection. After that this iPad can work offline and will sync the shared company jobs when you’re back on the network.</p>') +
       "</div></div>";
+  };
+
+  IC.viewWaiting = function () {
+    var s = session() || {};
+    var off = s.status === "disabled";
+    return '<div class="login"><div class="login-blob"><span></span><span></span></div><div class="login-inner">' +
+      '<img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing LLC" />' +
+      '<p class="tag" style="margin-top:12px">UNBREAKABLE QUALITY</p>' +
+      "<h1>" + (off ? "Access off" : "Waiting on access") + "</h1>" +
+      '<div class="login-card">' +
+      "<p>Hi " + IC.esc(s.name || "there") + ".</p>" +
+      '<p class="muted" style="margin-top:8px">' +
+      (off
+        ? "This login was turned off. Ask Nate or Matt if you still need into IRONCLAD."
+        : "Your account is in. Nate or Matt still need to give you Sales or Admin rights before you can see jobs.") +
+      "</p>" +
+      '<p class="tiny" style="margin-top:12px">' + IC.esc(s.email || "") + "</p>" +
+      '<div style="margin-top:16px">' + IC.btn("Sign out", { variant: "outline", class: "btn-block", data: 'data-act="sign-out"' }) + "</div>" +
+      "</div></div></div>";
   };
 
   IC.viewShell = function (inner, route) {
@@ -54,11 +105,14 @@ window.IC = window.IC || {};
       '<nav class="nav-side">' + sideLinks + "</nav>" +
       '<div class="nav-foot"><a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
       (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" +
+      (s.role === "admin" ? '<a href="#/materials" class="' + (route.name === "materials" ? "active" : "") + '">' + IC.icon("box") + "<span>Materials</span></a>" : "") +
       '<a href="#/settings" class="' + (route.name === "settings" ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" +
-      '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + (s.role === "admin" ? "Admin" : "Project owner") + (s.mode === "local" ? " · this device" : " · Firebase") + "</span></div></div></aside>" +
+      '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + IC.esc(IC.roleLabel(s)) + (s.mode === "offline" || !IC.ui.online ? " · offline" : "") + "</span></div></div></aside>" +
       '<div class="main-wrap"><header class="topbar"><a class="brand" href="#/"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing" /></a>' +
       '<div class="top-actions"><a href="#/notifications">' + IC.icon("bell") + (unread ? '<span class="dot"></span>' : "") + '</a><a href="#/settings">' + IC.icon("settings") + "</a></div></header>" +
-      '<main class="content">' + inner + "</main>" +
+      '<main class="content">' +
+      (!IC.ui.online ? '<div class="offline-banner">You’re offline. Changes save on this iPad and sync when you’re back.</div>' : "") +
+      inner + "</main>" +
       '<nav class="tabbar">' + nav.map(function (item) {
         return '<a href="' + item.to + '" class="' + (isActive(item.id) ? "active" : "") + '">' + IC.icon(item.icon) + item.label + "</a>";
       }).join("") + "</nav></div></div>" +
@@ -170,7 +224,9 @@ window.IC = window.IC || {};
 
   IC.viewJobOverview = function (job, customer) {
     var s = session();
-    var sales = IC.state.team.filter(function (t) { return t.salesName && t.active; });
+    var sales = IC.state.team.filter(function (t) {
+      return t.salesName && t.status !== "pending" && t.role !== "pending" && t.status !== "disabled";
+    });
     var crews = IC.state.crews.filter(function (c) { return c.active; });
     return '<div class="lg-split"><div class="card"><h2 style="margin-bottom:12px">Job</h2><div class="form-grid two">' +
       IC.field("Status", IC.select({ "data-act": "job-status", "data-id": job.id, value: job.status }, IC.JOB_STATUSES.map(function (x) { return { value: x, label: x }; }))) +
@@ -178,7 +234,26 @@ window.IC = window.IC || {};
         [{ value: "", label: "Unassigned" }].concat(sales.map(function (x) { return { value: x.id, label: x.salesName }; })))) +
       IC.field("Crew", IC.select({ "data-act": "job-crew", "data-id": job.id, value: job.crewId || "", disabled: !IC.canAssignCrew(s, job) },
         [{ value: "", label: "Unassigned" }].concat(crews.map(function (c) { return { value: c.id, label: c.name + (c.foreman ? " · " + c.foreman : "") }; })))) +
-      IC.field("Production date", IC.input({ type: "date", value: job.scheduledDate || "", "data-act": "job-date", "data-id": job.id, disabled: !IC.canAssignCrew(s, job) })) +
+      '<div class="field"><span class="field-label">Production date</span>' +
+        (function () {
+          var can = IC.canAssignCrew(s, job);
+          var valid = IC.validIsoDate(job.scheduledDate);
+          if (valid) {
+            return '<div class="date-row">' +
+              IC.input({ type: "date", value: valid, "data-act": "job-date", "data-id": job.id, disabled: !can }) +
+              (can ? IC.btn("Reset", { variant: "outline", size: "sm", class: "date-reset", data: 'data-act="clear-date" data-id="' + job.id + '"' }) : "") +
+              "</div>";
+          }
+          return '<div class="date-row">' +
+            '<span class="muted date-empty">Not scheduled</span>' +
+            (can
+              ? '<span class="btn btn-outline btn-sm date-set-btn">Set date' +
+                IC.input({ type: "date", value: "", "data-act": "job-date", "data-id": job.id, class: "date-overlay", "aria-label": "Set production date" }) +
+                "</span>"
+              : "") +
+            "</div>";
+        })() +
+      "</div>" +
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeRoof" data-id="' + job.id + '"' + (job.includeRoof ? " checked" : "") + " /> Roof</label>" +
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeGutters" data-id="' + job.id + '"' + (job.includeGutters ? " checked" : "") + " /> Gutters</label>" +
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeSiding" data-id="' + job.id + '"' + (job.includeSiding ? " checked" : "") + " /> Siding</label>" +
@@ -196,6 +271,8 @@ window.IC = window.IC || {};
     var settings = IC.state.settings;
     var value = job.estimate || IC.withComputed(IC.defaultEstimate(settings), settings);
     var c = value.computed;
+    var gutters = IC.normalizeAddon("gutters", value.gutters);
+    var siding = IC.normalizeAddon("siding", value.siding);
     var structures = value.structures.map(function (st, i) {
       return '<section class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3>Structure ' + (i + 1) + "</h3>" +
         (value.structures.length > 1 ? IC.btn(IC.icon("trash"), { variant: "ghost", data: 'data-act="est-del-struct" data-sid="' + st.id + '"' }) : "") + "</div>" +
@@ -207,14 +284,25 @@ window.IC = window.IC || {};
         IC.field("Pitch", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "pitch", value: st.pitch }, IC.PITCHES.map(function (x) { return { value: x, label: x }; }))) +
         IC.field("Tear-off", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "tearoff", value: st.tearoff }, IC.TEAROFF.map(function (x) { return { value: x, label: x }; }))) +
         IC.field("Sheathing", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "sheathing", value: st.sheathing }, IC.SHEATHING.map(function (x) { return { value: x, label: x }; }))) +
-        IC.field("Replace sheathing %", IC.input({ type: "number", min: "0", max: "100", value: st.sheathingReplacePct, "data-est": "struct", "data-sid": st.id, "data-key": "sheathingReplacePct", "data-num": "1" })) +
+        IC.field("Replace sheathing (sheets)", IC.input({ type: "number", min: "0", step: "1", value: st.sheathingSheets != null ? st.sheathingSheets : "", placeholder: "e.g. 10", "data-est": "struct", "data-sid": st.id, "data-key": "sheathingSheets", "data-num": "1" })) +
         "</div></section>";
     }).join("");
     var linears = [["eaveLf", "Eaves (lf)"], ["rakeLf", "Rakes (lf)"], ["ridgeLf", "Ridge (lf)"], ["hipLf", "Hips (lf)"], ["valleyLf", "Valleys (lf)"], ["ridgeVentLf", "Ridge vent (lf)"]];
-    var materials = IC.CATALOG.map(function (cat) {
+    var materials = IC.liveCatalog().map(function (cat) {
       var pick = value.materials.find(function (m) { return m.categoryId === cat.id; });
-      return IC.field(cat.label, IC.select({ "data-est": "mat", "data-cat": cat.id, value: (pick && pick.itemName) || cat.items[0].name },
-        cat.items.map(function (item) { return { value: item.name, label: item.name + " · $" + item.price.toFixed(2) + "/" + cat.soldAs }; })));
+      var active = cat.items.filter(function (item) { return item.active !== false; });
+      var current = pick && pick.itemName;
+      var options = active.slice();
+      if (current && !options.some(function (i) { return i.name === current; })) {
+        var stale = cat.items.find(function (i) { return i.name === current; });
+        if (stale) options = [stale].concat(options);
+      }
+      if (!options.length) options = cat.items.slice();
+      return IC.field(cat.label, IC.select({ "data-est": "mat", "data-cat": cat.id, value: current || (options[0] && options[0].name) || "" },
+        options.map(function (item) {
+          var disc = item.active === false ? " (discontinued)" : "";
+          return { value: item.name, label: item.name + disc + " · $" + Number(item.price).toFixed(2) + "/" + cat.soldAs };
+        })));
     }).join("");
     var extras = (value.extras || []).map(function (ex) {
       return '<div style="display:grid;grid-template-columns:1fr 120px 44px;gap:8px;margin-top:8px">' +
@@ -243,12 +331,22 @@ window.IC = window.IC || {};
       IC.field("Dumpster", IC.input({ type: "number", value: value.dumpster, "data-est": "num", "data-key": "dumpster" })) +
       IC.field("Permit", IC.input({ type: "number", value: value.permit, "data-est": "num", "data-key": "permit" })) +
       "</div>" +
-      '<label class="check" style="margin-top:1rem;align-items:flex-start;background:var(--paper);border-radius:16px;padding:12px"><input type="checkbox" data-est="gutter-on"' + (value.gutters.included ? " checked" : "") + ' /><div style="flex:1;display:grid;gap:8px"><span style="font-weight:600">Include gutters (lump sum)</span>' +
-      (value.gutters.included ? IC.input({ value: value.gutters.description, "data-est": "gutter-desc" }) + IC.input({ type: "number", value: value.gutters.price, "data-est": "gutter-price" }) : "") +
-      "</div></label>" +
-      '<label class="check" style="margin-top:12px;align-items:flex-start;background:var(--paper);border-radius:16px;padding:12px"><input type="checkbox" data-est="siding-on"' + (value.siding.included ? " checked" : "") + ' /><div style="flex:1;display:grid;gap:8px"><span style="font-weight:600">Include siding (lump sum)</span>' +
-      (value.siding.included ? IC.input({ value: value.siding.description, "data-est": "siding-desc" }) + IC.input({ type: "number", value: value.siding.price, "data-est": "siding-price" }) : "") +
-      "</div></label>" +
+      '<div class="addon-block"><label class="check"><input type="checkbox" data-est="gutter-on"' + (gutters.included ? " checked" : "") + ' /><span style="font-weight:600">Include gutters (lump sum)</span></label>' +
+      (gutters.included
+        ? '<div class="addon-fields">' +
+            IC.field("Description", IC.textarea({ value: gutters.description, placeholder: IC.ADDON_DEFAULTS.gutters.description, rows: "2", "data-est": "gutter-desc" })) +
+            IC.field("Price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: gutters.price, "data-est": "gutter-price" }), "addon-price") +
+          "</div>"
+        : "") +
+      "</div>" +
+      '<div class="addon-block"><label class="check"><input type="checkbox" data-est="siding-on"' + (siding.included ? " checked" : "") + ' /><span style="font-weight:600">Include siding (lump sum)</span></label>' +
+      (siding.included
+        ? '<div class="addon-fields">' +
+            IC.field("Description", IC.textarea({ value: siding.description, placeholder: IC.ADDON_DEFAULTS.siding.description, rows: "2", "data-est": "siding-desc" })) +
+            IC.field("Price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: siding.price, "data-est": "siding-price" }), "addon-price") +
+          "</div>"
+        : "") +
+      "</div>" +
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
       '<section class="navy-sum"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><p class="field-label" style="color:rgba(251,248,241,.7)">Proposal total</p><p class="big">' + IC.money(c.total) + "</p></div><p class='tiny' style='color:rgba(251,248,241,.8)'>" + c.measuredSquares.toFixed(1) + " sq measured<br>" + c.billableSquares.toFixed(1) + " sq billed</p></div>" +
@@ -371,12 +469,30 @@ window.IC = window.IC || {};
     return '<div class="page"><header class="page-head"><div><p class="kicker muted">Inbox</p><h1 class="title">Alerts</h1></div><div style="display:flex;gap:8px">' +
       IC.btn("Mark all read", { variant: "outline", size: "sm", data: 'data-act="mark-all"' }) +
       IC.btn("Enable push", { variant: "outline", size: "sm", data: 'data-act="enable-push"' }) +
-      "</div></header><p class='muted'>Job assigned, crew scheduled, and contract signed. iPhone push only works after Add to Home Screen (iOS 16.4+). Tokens save to Firestore when Firebase sign-in is active.</p>" +
+      "</div></header><p class='muted'>You’ll get an alert when a job is assigned to you, a crew is scheduled on your job, or your customer signs. iPhone push works after Add to Home Screen (iOS 16.4+).</p>" +
       (mine.length ? '<ul style="display:grid;gap:8px;list-style:none;padding:0;margin:0">' + mine.map(function (n) {
         var inner = '<p style="font-weight:600">' + IC.esc(n.title) + '</p><p class="muted">' + IC.esc(n.body) + '</p><p class="tiny">' + IC.formatDate(n.createdAt) + "</p>";
         return '<li><div class="card"' + (n.read ? ' style="opacity:.7"' : "") + ">" +
           (n.jobId ? '<a href="#/jobs/' + n.jobId + '" data-act="read-note" data-id="' + n.id + '">' + inner + "</a>" : inner) + "</div></li>";
       }).join("") + "</ul>" : '<div class="card"><p class="muted">No alerts yet.</p></div>') + "</div>";
+  };
+
+  IC.viewAddUserModal = function () {
+    var d = IC.ui.addUserDraft || { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
+    IC.ui.addUserDraft = d;
+    return '<div class="modal-bg" data-act="close-modal"><div class="modal" data-stop="1"><h2>Add a sales seat</h2>' +
+      '<p class="muted" style="margin:8px 0 12px">For someone who doesn’t have a login yet — so you can still assign jobs to them. When they create an account, grant access and link them to this seat.</p>' +
+      '<div class="form-grid two">' +
+      IC.field("Name", IC.input({ value: d.name, "data-udraft": "name", placeholder: "First name", autocomplete: "off" })) +
+      IC.field("Role", IC.select({ "data-udraft": "role", value: d.role }, [
+        { value: "sales", label: "Sales" },
+        { value: "admin", label: "Admin (full access)" },
+      ])) +
+      IC.field("Shown as", IC.input({ value: d.title, "data-udraft": "title", placeholder: "Admin, Owner, Sales…" })) +
+      IC.field("Owns jobs as", IC.input({ value: d.salesName, "data-udraft": "salesName", placeholder: "Blank if they don’t own jobs" })) +
+      '</div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem">' +
+      IC.btn("Cancel", { variant: "ghost", data: 'data-act="close-modal"' }) +
+      IC.btn("Add seat", { data: 'data-act="save-teammate"' }) + "</div></div></div>";
   };
 
   IC.viewSettings = function () {
@@ -395,6 +511,16 @@ window.IC = window.IC || {};
     ];
     return '<div class="page"><header class="page-head"><div><p class="kicker muted">Company</p><h1 class="title">Settings</h1></div>' +
       IC.btn("Sign out", { variant: "outline", data: 'data-act="sign-out"' }) + "</header>" +
+      '<div class="card"><h2 style="margin-bottom:8px">Appearance</h2><p class="muted" style="margin-bottom:12px">This iPad only. Light, dark, or match the system setting.</p>' +
+      '<div class="theme-pills" role="group" aria-label="Theme">' +
+      [{ id: "light", label: "Light" }, { id: "dark", label: "Dark" }, { id: "system", label: "System" }].map(function (opt) {
+        var on = IC.getThemePref() === opt.id;
+        return '<button type="button" class="' + (on ? "on" : "") + '" data-act="set-theme" data-theme="' + opt.id + '">' + opt.label + "</button>";
+      }).join("") +
+      "</div></div>" +
+      (admin
+        ? '<a class="card materials-entry" href="#/materials"><div><h2 style="margin-bottom:4px">Materials catalog</h2><p class="muted">Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.</p></div>' + IC.icon("arrow") + "</a>"
+        : "") +
       '<div class="card"><h2 style="margin-bottom:12px">On the paperwork</h2><div class="form-grid two">' +
       IC.field("Legal name", IC.input({ value: settings.legalName, "data-set": "legalName", disabled: !admin })) +
       IC.field("License #", IC.input({ value: settings.licenseNumber, "data-set": "licenseNumber", disabled: !admin })) +
@@ -411,14 +537,50 @@ window.IC = window.IC || {};
       '<div class="card"><h2 style="margin-bottom:8px">Default estimate rates</h2><p class="muted" style="margin-bottom:12px">Used when a new estimate is created. Each job can override.</p><div class="form-grid two">' +
       rates.map(function (r) { return IC.field(r[1], IC.input({ type: "number", value: settings[r[0]], "data-set": r[0], "data-num": "1", disabled: !admin })); }).join("") +
       "</div></div>" +
-      '<div class="card"><h2 style="margin-bottom:8px">Team</h2><p class="muted" style="margin-bottom:12px">Nate and Matt are admins. Matt, Jon, Jesse, and Ethan are project owners. Map each person to their Firebase login email.</p>' +
-      IC.state.team.map(function (m) {
-        return '<div class="form-grid two" style="background:var(--paper);border-radius:16px;padding:12px;margin-bottom:8px">' +
-          IC.field("Name", IC.input({ value: m.name, "data-team": "name", "data-id": m.id, disabled: !admin })) +
-          IC.field("Role", IC.select({ "data-team": "role", "data-id": m.id, value: m.role, disabled: !admin }, [{ value: "admin", label: "Admin" }, { value: "sales", label: "Sales" }])) +
-          IC.field("Owns jobs as", IC.select({ "data-team": "salesName", "data-id": m.id, value: m.salesName || "", disabled: !admin }, [{ value: "", label: "—" }].concat(IC.SALES_NAMES.map(function (n) { return { value: n, label: n }; })))) +
-          IC.field("Firebase email", IC.input({ value: m.email, "data-team": "email", "data-id": m.id, disabled: !admin })) + "</div>";
-      }).join("") + "</div>" +
+      '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap"><h2>Team</h2>' +
+      (admin ? IC.btn("Add sales seat", { size: "sm", variant: "outline", data: 'data-act="add-teammate"' }) : "") +
+      '</div><p class="muted" style="margin-bottom:12px">' +
+      (admin
+        ? "People create their own account on the sign-in screen. You grant Sales or Admin here. Until then they see a waiting page — no jobs. Matt is the company owner (label), and you both have Admin rights."
+        : "Ask Nate or Matt to turn on your access.") +
+      "</p>" +
+      (function () {
+        var pending = IC.state.team.filter(function (m) { return m.status === "pending" || m.role === "pending"; });
+        var seats = IC.state.team.filter(function (m) { return m.status !== "pending" && m.role !== "pending"; });
+        var seatOpts = seats.filter(function (m) { return m.placeholder || !m.email; }).map(function (m) {
+          return { value: m.id, label: m.name + " · " + IC.roleLabel(m) };
+        });
+        var pendingHtml = pending.length ? pending.map(function (m) {
+          return '<div class="team-card pending-card"><p style="font-weight:600">' + IC.esc(m.name) + '</p><p class="muted">' + IC.esc(m.email || "No email") + "</p>" +
+            (admin
+              ? '<div class="grant-row">' +
+                IC.btn("Grant sales", { size: "sm", data: 'data-act="grant-user" data-id="' + m.id + '" data-role="sales"' }) +
+                IC.btn("Grant admin", { size: "sm", variant: "outline", data: 'data-act="grant-user" data-id="' + m.id + '" data-role="admin"' }) +
+                (seatOpts.length ? IC.select({ "data-act": "link-seat", "data-id": m.id }, [{ value: "", label: "Link to existing seat…" }].concat(seatOpts)) : "") +
+                IC.btn("Deny", { size: "sm", variant: "ghost", data: 'data-act="deny-user" data-id="' + m.id + '"' }) +
+                "</div>"
+              : '<p class="tiny" style="margin-top:8px">Waiting on Nate or Matt.</p>') +
+            "</div>";
+        }).join("") : "";
+        var seatsHtml = seats.map(function (m) {
+          return '<div class="team-card"><div class="form-grid two">' +
+            IC.field("Name", IC.input({ value: m.name, "data-team": "name", "data-id": m.id, disabled: !admin })) +
+            IC.field("Role", IC.select({ "data-team": "role", "data-id": m.id, value: m.role === "admin" ? "admin" : "sales", disabled: !admin }, [{ value: "admin", label: "Admin (full access)" }, { value: "sales", label: "Sales" }])) +
+            IC.field("Shown as", IC.input({ value: IC.roleLabel(m), "data-team": "title", "data-id": m.id, placeholder: "Admin, Owner, Sales…", disabled: !admin })) +
+            IC.field("Owns jobs as", IC.input({ value: m.salesName || "", "data-team": "salesName", "data-id": m.id, placeholder: "Name on jobs, or blank", disabled: !admin })) +
+            IC.field("Email", IC.input({ value: m.email, type: "email", "data-team": "email", "data-id": m.id, disabled: !admin, placeholder: m.placeholder ? "Creates an account, then you grant access" : "" }), "span-2") +
+            "</div>" +
+            (m.placeholder && !m.email ? '<p class="tiny" style="margin-top:8px">No login yet — they create an account, then you grant access and can link it to this seat.</p>' : "") +
+            (admin
+              ? (m.id === s.memberId
+                ? '<p class="tiny" style="margin-top:8px">That’s you — you can’t remove your own login.</p>'
+                : '<div style="display:flex;justify-content:flex-end;margin-top:8px">' + IC.btn("Remove", { variant: "danger", size: "sm", data: 'data-act="remove-teammate" data-id="' + m.id + '"' }) + "</div>")
+              : "") +
+            "</div>";
+        }).join("");
+        return (pendingHtml ? "<h3 style=\"margin:4px 0 8px\">Waiting on you</h3>" + pendingHtml : "") + seatsHtml;
+      })() + "</div>" +
+      (IC.ui.addUserOpen ? IC.viewAddUserModal() : "") +
       '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2>Crew roster</h2>' +
       (admin ? IC.btn("Add crew", { size: "sm", variant: "outline", data: 'data-act="add-crew"' }) : "") + "</div>" +
       IC.state.crews.map(function (c) {
@@ -428,12 +590,64 @@ window.IC = window.IC || {};
           IC.field("Phone", IC.input({ value: c.phone, "data-crew": "phone", "data-id": c.id, disabled: !admin })) +
           IC.field("Notes", IC.input({ value: c.notes, "data-crew": "notes", "data-id": c.id, disabled: !admin })) + "</div>";
       }).join("") + "</div>" +
-      '<div class="card"><h2 style="margin-bottom:8px">Firebase</h2><p class="muted">Project <strong style="color:var(--ink)">ironclad-127a5</strong>. Add this app’s domain under Authentication → Settings → Authorized domains. Firestore collections: <code>jobs</code>, <code>customers</code>, <code>crews</code>, <code>notifications</code>, <code>meta</code>, <code>fcmTokens</code>, <code>signLinks</code>.</p>' +
-      "<p class='muted' style='margin-top:8px'><strong>Does this write to your existing Firestore?</strong> Yes — when someone signs in with Firebase email/password. “Work on this device” stays in this browser until that sign-in, then the first empty cloud workspace is seeded from local data.</p>" +
-      "<pre style='margin-top:12px;overflow:auto;border-radius:12px;background:var(--navy-deep);color:var(--cream);padding:12px;font-size:12px;line-height:1.45'>rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /signLinks/{token} {\n      allow read, write: if true;\n    }\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}</pre>" +
-      '<p class="muted" style="margin-top:8px"><code>signLinks</code> is public so a customer can open the signing URL on their own phone without an Ironclad login. Sending actual iOS pushes still needs a small Cloud Function.</p></div>' +
+      (admin
+        ? '<div class="card"><h2 style="margin-bottom:8px">Sync</h2><p class="muted">All signed-in teammates share the same company jobs, customers, catalog, and team list. Add this website under Authentication → Authorized domains if sign-in is refused. Customer signing links stay public so a homeowner can sign without an Ironclad login.</p></div>'
+        : "") +
       (admin ? IC.btn("Remove sample jobs & customers", { variant: "outline", data: 'data-act="clear-seed"' }) : "") +
       "</div>";
+  };
+
+  IC.viewMaterials = function () {
+    var s = session();
+    if (!s || s.role !== "admin") {
+      return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1></div></header><div class="card"><p class="muted">Only admins (Nate and Matt) can edit the material catalog. Ask one of them to add a color or change a price.</p></div></div>';
+    }
+    var catalog = IC.liveCatalog();
+    var catId = IC.ui.catalogCat || "shingle";
+    var cat = catalog.find(function (c) { return c.id === catId; }) || catalog[0];
+    catId = cat.id;
+    IC.ui.catalogCat = catId;
+    var showOff = Boolean(IC.ui.catalogShowOff);
+    var rows = cat.items.filter(function (it) { return showOff || it.active !== false; });
+    var pills = catalog.map(function (c) {
+      var n = c.items.filter(function (it) { return it.active !== false; }).length;
+      var on = c.id === catId;
+      return '<button type="button" class="' + (on ? "on" : "") + '" data-act="catalog-cat" data-id="' + c.id + '">' +
+        IC.esc(c.label) + ' <span class="tiny" style="opacity:.8">' + n + "</span></button>";
+    }).join("");
+    var itemRows = rows.length ? rows.map(function (it) {
+      var off = it.active === false;
+      return '<div class="mat-row' + (off ? " is-off" : "") + '">' +
+        IC.input({ value: it.name, "data-mat": "name", "data-cat": catId, "data-iid": it.id, "aria-label": "Name" }) +
+        IC.input({ value: it.sku, placeholder: "SKU", "data-mat": "sku", "data-cat": catId, "data-iid": it.id, "aria-label": "SKU" }) +
+        IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: it.price, "data-mat": "price", "data-cat": catId, "data-iid": it.id, "aria-label": "Price" }) +
+        '<div class="mat-row-actions">' +
+        (off
+          ? IC.btn("Restore", { size: "sm", variant: "outline", data: 'data-act="catalog-restore" data-cat="' + catId + '" data-iid="' + it.id + '"' })
+          : IC.btn("Retire", { size: "sm", variant: "ghost", data: 'data-act="catalog-retire" data-cat="' + catId + '" data-iid="' + it.id + '"' })) +
+        IC.btn(IC.icon("trash"), { variant: "danger", size: "sm", class: "btn-icon", data: 'data-act="catalog-remove" data-cat="' + catId + '" data-iid="' + it.id + '"' }) +
+        "</div></div>";
+    }).join("") : '<p class="muted">No items in this list' + (showOff ? "." : ". Turn on discontinued to see retired SKUs.") + "</p>";
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1><p class="muted" style="margin-top:4px">What the estimator can pick. Price changes apply the next time a job estimate is saved — sold and signed jobs keep their quoted total until you re-save.</p></div></header>' +
+      '<div class="card"><div class="cat-pills" role="tablist" aria-label="Material category">' + pills + "</div>" +
+      '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p></div>" +
+      '<label class="check"><input type="checkbox" data-act="catalog-show-off"' + (showOff ? " checked" : "") + ' /><span>Show discontinued</span></label></div>' +
+      '<div class="mat-head"><span>Name / color</span><span>SKU</span><span>Price ($)</span><span></span></div>' +
+      itemRows +
+      '<div class="mat-add"><h3 style="margin-bottom:8px">Add to ' + IC.esc(cat.label) + '</h3><div class="mat-row is-add">' +
+      IC.input({ value: IC.ui.catalogAddName, placeholder: cat.id === "shingle" ? "New color, e.g. Storm Cloud" : "Name", "data-ui": "catalogAddName" }) +
+      IC.input({ value: IC.ui.catalogAddSku, placeholder: "SKU (optional)", "data-ui": "catalogAddSku" }) +
+      IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: IC.ui.catalogAddPrice, placeholder: "Price", "data-ui": "catalogAddPrice" }) +
+      IC.btn(IC.icon("plus") + " Add", { data: 'data-act="catalog-add"' }) +
+      "</div>" +
+      (catId === "shingle"
+        ? '<label class="check" style="margin-top:8px"><input type="checkbox" data-act="catalog-add-hip"' + (IC.ui.catalogAddHip !== false ? " checked" : "") + ' /><span>Also add matching Hip & Ridge (uses current hip price)</span></label>'
+        : "") +
+      "</div>" +
+      '<div class="mat-bump"><h3 style="margin-bottom:8px">Adjust prices in this category</h3><p class="muted" style="margin-bottom:8px">Distributor increase? Enter 5 for +5%. A drop is negative, like -3.</p><div class="date-row">' +
+      IC.input({ type: "number", step: "0.1", value: IC.ui.catalogBump, placeholder: "%", "data-ui": "catalogBump", "aria-label": "Percent change" }) +
+      IC.btn("Apply to active items", { variant: "outline", data: 'data-act="catalog-bump"' }) +
+      "</div></div></div></div>";
   };
 
   IC.viewSign = function (token) {

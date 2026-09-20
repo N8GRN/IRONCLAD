@@ -8,6 +8,22 @@ window.IC = window.IC || {};
     return s || (IC.state && IC.state.settings) || IC.SETTINGS;
   }
 
+  IC.ADDON_DEFAULTS = {
+    gutters: { included: false, description: "Seamless gutters and downspouts", price: 0 },
+    siding: { included: false, description: "Siding as specified on site", price: 0 },
+  };
+
+  IC.normalizeAddon = function (kind, raw) {
+    var d = IC.ADDON_DEFAULTS[kind] || IC.ADDON_DEFAULTS.gutters;
+    var o = Object.assign({}, d, raw || {});
+    o.included = Boolean(o.included);
+    var desc = String(o.description == null ? "" : o.description).trim();
+    o.description = desc || d.description;
+    var price = Number(o.price);
+    o.price = Number.isFinite(price) ? price : 0;
+    return o;
+  };
+
   IC.emptyStructure = function (name) {
     return {
       id: IC.uid(),
@@ -18,7 +34,7 @@ window.IC = window.IC || {};
       pitch: "4/12 - 7/12",
       tearoff: "1-Layer",
       sheathing: "OSB / Plywood",
-      sheathingReplacePct: 10,
+      sheathingSheets: 0,
       notes: "",
     };
   };
@@ -35,27 +51,27 @@ window.IC = window.IC || {};
     return {
       structures: [IC.emptyStructure("House")],
       materials: [
-        { categoryId: "shingle", itemName: "Estate Gray" },
-        { categoryId: "hipRidge", itemName: "Estate Gray" },
-        { categoryId: "starter", itemName: "Starter Strip Plus" },
-        { categoryId: "dripEdge", itemName: "Black" },
-        { categoryId: "gutterApron", itemName: "Black" },
-        { categoryId: "iceWater", itemName: "Rhino" },
-        { categoryId: "felt", itemName: "Rhino" },
-        { categoryId: "ridgeVent", itemName: "SkyRunner LTE" },
-        { categoryId: "broan", itemName: "4 in" },
-        { categoryId: "pipeBoots", itemName: "Black" },
-        { categoryId: "flashing", itemName: "Black" },
-        { categoryId: "chimney", itemName: "Black" },
-        { categoryId: "wallFlashing", itemName: "Black" },
-        { categoryId: "lomance", itemName: "Black" },
+        { categoryId: "shingle", itemName: IC.catalogDefaultName("shingle", "Estate Gray") },
+        { categoryId: "hipRidge", itemName: IC.catalogDefaultName("hipRidge", "Estate Gray") },
+        { categoryId: "starter", itemName: IC.catalogDefaultName("starter", "Starter Strip Plus") },
+        { categoryId: "dripEdge", itemName: IC.catalogDefaultName("dripEdge", "Black") },
+        { categoryId: "gutterApron", itemName: IC.catalogDefaultName("gutterApron", "Black") },
+        { categoryId: "iceWater", itemName: IC.catalogDefaultName("iceWater", "Rhino") },
+        { categoryId: "felt", itemName: IC.catalogDefaultName("felt", "Rhino") },
+        { categoryId: "ridgeVent", itemName: IC.catalogDefaultName("ridgeVent", "SkyRunner LTE") },
+        { categoryId: "broan", itemName: IC.catalogDefaultName("broan", "4 in") },
+        { categoryId: "pipeBoots", itemName: IC.catalogDefaultName("pipeBoots", "Black") },
+        { categoryId: "flashing", itemName: IC.catalogDefaultName("flashing", "Black") },
+        { categoryId: "chimney", itemName: IC.catalogDefaultName("chimney", "Black") },
+        { categoryId: "wallFlashing", itemName: IC.catalogDefaultName("wallFlashing", "Black") },
+        { categoryId: "lomance", itemName: IC.catalogDefaultName("lomance", "Black") },
       ],
       eaveLf: null, rakeLf: null, ridgeLf: null, hipLf: null, valleyLf: null,
       pipeBoots: 4, broanVents: 0, chimneyLf: 0, wallFlashingLf: 0, ridgeVentLf: null,
       dumpster: settings.dumpsterDefault, permit: settings.permitDefault,
       extras: [],
-      gutters: { included: false, description: "Seamless gutters and downspouts", price: 0 },
-      siding: { included: false, description: "Siding as specified on site", price: 0 },
+      gutters: IC.normalizeAddon("gutters", { included: false }),
+      siding: IC.normalizeAddon("siding", { included: false }),
       notes: "",
       wastePercent: settings.wastePercent,
       markupPercent: settings.markupPercent,
@@ -97,6 +113,8 @@ window.IC = window.IC || {};
     var iceSquares = Math.max(eaveLf * 3 + valleyLf * 3, 0) / 100;
     var ridgeVentLf = est.ridgeVentLf != null ? est.ridgeVentLf : ridgeLf;
     var billableSquares = 0, labor = 0, tearoff = 0, sheathingSheets = 0;
+    var gutters = IC.normalizeAddon("gutters", est.gutters);
+    var siding = IC.normalizeAddon("siding", est.siding);
 
     est.structures.forEach(function (st) {
       var sq = Number(st.squares) || 0;
@@ -106,8 +124,15 @@ window.IC = window.IC || {};
       billableSquares += billed;
       labor += billed * (Number(est.laborRatePerSquare) || 0) * (IC.STORY_LABOR[st.level] || 1);
       tearoff += sq * (IC.TEAROFF_LAYERS[st.tearoff] || 0) * (Number(est.tearoffRatePerSquare) || 0);
-      var sqft = sq * 100 * ((Number(st.sheathingReplacePct) || 0) / 100);
-      sheathingSheets += sqft / Math.max(settings.sheathingSqftPerSheet, 1);
+      var sheetsHere = 0;
+      if (st.sheathingSheets != null && st.sheathingSheets !== "") {
+        sheetsHere = Number(st.sheathingSheets) || 0;
+      } else {
+        var pct = Number(st.sheathingReplacePct) || 0;
+        var per = Math.max(Number(settings.sheathingSqftPerSheet) || 32, 1);
+        sheetsHere = ceilQty((sq * 100 * (pct / 100)) / per);
+      }
+      sheathingSheets += sheetsHere;
     });
     billableSquares = round2(billableSquares);
 
@@ -159,11 +184,11 @@ window.IC = window.IC || {};
       if (!extra.label && !extra.amount) return;
       lines.push(line("extra-" + extra.id, extra.label || "Extra", "", 1, "ls", extra.amount, "other"));
     });
-    if (est.gutters && est.gutters.included && est.gutters.price) {
-      lines.push(line("gutters", "Gutters", est.gutters.description || "Gutters & downspouts", 1, "ls", est.gutters.price, "addon"));
+    if (gutters.included) {
+      lines.push(line("gutters", "Gutters", gutters.description, 1, "ls", gutters.price, "addon"));
     }
-    if (est.siding && est.siding.included && est.siding.price) {
-      lines.push(line("siding", "Siding", est.siding.description || "Siding", 1, "ls", est.siding.price, "addon"));
+    if (siding.included) {
+      lines.push(line("siding", "Siding", siding.description, 1, "ls", siding.price, "addon"));
     }
 
     var materialsSubtotal = round2(lines.filter(function (l) { return l.kind === "material"; }).reduce(function (s, l) { return s + l.amount; }, 0));
@@ -185,7 +210,9 @@ window.IC = window.IC || {};
 
   IC.withComputed = function (est, settings) {
     var next = Object.assign({}, est);
-    next.computed = IC.computeEstimate(est, settings);
+    next.gutters = IC.normalizeAddon("gutters", est.gutters);
+    next.siding = IC.normalizeAddon("siding", est.siding);
+    next.computed = IC.computeEstimate(next, settings);
     next.updatedAt = new Date().toISOString();
     return next;
   };

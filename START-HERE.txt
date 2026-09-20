@@ -1,28 +1,20 @@
-IRONCLAD CRM — start here
-=========================
+IRONCLAD CRM
+============
 
-The CRM is this folder. Open:
+This zip is the whole app. Unzip it and you should see index.html
+in the same folder as js/, css/, and brand/.
 
-    index.html
+SIGN-IN
+- One login: email + password. Create account / Forgot password are
+  on that screen.
+- New accounts wait until Nate or Matt grant Sales or Admin.
+- Everyone shares the same company jobs (ironclad-127a5 / users).
+- After you sign in once on an iPad, Continue offline uses YOUR
+  account only — no picking someone else’s name.
+- Alerts go to the project owner you assigned, not to yourself.
 
-That is the app (HTML + JavaScript + CSS). No React.
+MATERIALS
+Admins: sidebar Materials. Add colors, retire SKUs, bump prices.
 
-Edit:
-  index.html      page shell / which JS files load
-  css/app.css     colors and layout
-  js/views.js     every screen
-  js/config.js    team, rates, Firebase keys
-  js/catalog.js   shingles / materials
-  js/estimate.js  roof math
-  js/contract.js  agreement wording
-  js/store.js     saving data
-  js/firebase.js  cloud sync
-
-Host:
-  GitHub Pages  — push this folder, enable Pages (GitHub Actions). See README.md.
-  Firebase      — firebase deploy --only hosting  (project ironclad-127a5)
-  Any host      — upload these files as a static site.
-
-Sign-in:
-  “Work on this device” stays on that iPad.
-  Firebase email/password writes to your existing Firestore (not the old “projects” collection).
+SHEATHING
+Estimator field is a sheet count (10 = 10 sheets of OSB), not a %.

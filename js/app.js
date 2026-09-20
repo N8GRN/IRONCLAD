@@ -8,6 +8,7 @@ window.IC = window.IC || {};
 (function (IC) {
   var root;
   var rendering = false;
+  var ignoreClicksUntil = 0;
 
   IC.parseRoute = function () {
     var hash = (location.hash || "#/").replace(/^#/, "");
@@ -23,6 +24,7 @@ window.IC = window.IC || {};
     if (parts[0] === "customers") return { name: "customers" };
     if (parts[0] === "schedule") return { name: "schedule" };
     if (parts[0] === "settings") return { name: "settings" };
+    if (parts[0] === "materials") return { name: "materials" };
     if (parts[0] === "notifications") return { name: "notifications" };
     if (parts[0] === "sign" && parts[1]) return { name: "sign", token: parts[1] };
     return { name: "home" };
@@ -68,6 +70,10 @@ window.IC = window.IC || {};
         cust: active.getAttribute("data-cust"),
         draft: active.getAttribute("data-draft"),
         cdraft: active.getAttribute("data-cdraft"),
+        udraft: active.getAttribute("data-udraft"),
+        mat: active.getAttribute("data-mat"),
+        iid: active.getAttribute("data-iid"),
+        ui: active.getAttribute("data-ui"),
         name: active.getAttribute("name"),
         idAttr: active.getAttribute("data-id"),
         tag: active.tagName,
@@ -92,6 +98,8 @@ window.IC = window.IC || {};
       }
     } else if (!IC.state.session || route.name === "login") {
       html = IC.viewLogin();
+    } else if (!IC.isApproved(IC.state.session)) {
+      html = IC.viewWaiting();
     } else {
       var inner = "";
       if (route.name === "jobs") inner = IC.viewJobs();
@@ -100,6 +108,7 @@ window.IC = window.IC || {};
       else if (route.name === "customer") inner = IC.viewCustomer(route.id);
       else if (route.name === "schedule") inner = IC.viewSchedule();
       else if (route.name === "settings") inner = IC.viewSettings();
+      else if (route.name === "materials") inner = IC.viewMaterials();
       else if (route.name === "notifications") inner = IC.viewNotifications();
       else inner = IC.viewHome();
       html = IC.viewShell(inner, route);
@@ -120,6 +129,8 @@ window.IC = window.IC || {};
           same("data-set", restore.set) && same("data-team", restore.team) &&
           same("data-crew", restore.crew) && same("data-cust", restore.cust) &&
           same("data-draft", restore.draft) && same("data-cdraft", restore.cdraft) &&
+          same("data-udraft", restore.udraft) && same("data-mat", restore.mat) &&
+          same("data-iid", restore.iid) && same("data-ui", restore.ui) &&
           same("name", restore.name) && same("data-id", restore.idAttr);
         if (ok) match = n;
       });
@@ -148,18 +159,35 @@ window.IC = window.IC || {};
   }
 
   function onClick(e) {
+    if (Date.now() < ignoreClicksUntil) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     var t = e.target.closest("[data-act]");
     if (!t) return;
     if (t.getAttribute("data-act") === "close-modal" && e.target.closest("[data-stop]") && e.target !== t) return;
     var act = t.getAttribute("data-act");
     var s = IC.state.session;
 
-    if (act === "local-login") {
-      var member = IC.state.team.find(function (m) { return m.id === IC.ui.loginMemberId; });
-      if (member) {
-        IC.enterLocal(member);
-        IC.go("#/");
-      }
+    if (act === "offline-login") {
+      if (IC.continueOffline()) IC.go("#/");
+      else IC.toast("Sign in once on this iPad while online first");
+      return;
+    }
+    if (act === "auth-panel") {
+      IC.ui.authPanel = t.getAttribute("data-panel") || "signin";
+      IC.ui.loginError = "";
+      IC.ui.loginInfo = "";
+      IC.render();
+      return;
+    }
+    if (act === "grant-user") {
+      IC.grantUser(t.getAttribute("data-id"), { role: t.getAttribute("data-role") });
+      return;
+    }
+    if (act === "deny-user") {
+      IC.grantUser(t.getAttribute("data-id"), { status: "disabled", role: "pending" });
       return;
     }
     if (act === "open-new-job") {
@@ -178,6 +206,7 @@ window.IC = window.IC || {};
     if (act === "close-modal") {
       IC.ui.newJobOpen = false;
       IC.ui.newCustomerOpen = false;
+      IC.ui.addUserOpen = false;
       IC.render();
       return;
     }
@@ -372,15 +401,133 @@ window.IC = window.IC || {};
       IC.upsertCrew({ id: IC.uid(), name: "Crew " + (IC.state.crews.length + 1), foreman: "", phone: "", notes: "", active: true });
       return;
     }
+    if (act === "add-teammate") {
+      IC.ui.addUserOpen = true;
+      IC.ui.addUserDraft = { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
+      IC.render();
+      return;
+    }
+    if (act === "save-teammate") {
+      var draft = IC.ui.addUserDraft || {};
+      if (!String(draft.name || "").trim()) {
+        IC.toast("Enter a name");
+        return;
+      }
+      IC.addTeammate(draft);
+      IC.ui.addUserOpen = false;
+      IC.ui.addUserDraft = null;
+      IC.toast("User added");
+      return;
+    }
+    if (act === "remove-teammate") {
+      var rid = t.getAttribute("data-id");
+      var who = IC.state.team.find(function (m) { return m.id === rid; });
+      if (who && confirm("Remove " + who.name + " from the team?")) {
+        IC.removeTeammate(rid);
+      }
+      return;
+    }
+    if (act === "set-theme") {
+      IC.applyTheme(t.getAttribute("data-theme"));
+      IC.render();
+      return;
+    }
+    if (act === "clear-date") {
+      e.preventDefault();
+      var jd = IC.state.jobs.find(function (j) { return j.id === t.getAttribute("data-id"); });
+      if (jd) IC.setProductionDate(jd.id, null);
+      return;
+    }
+    if (act === "open-date") {
+      var wrap = t.closest(".date-row");
+      var inp = wrap && wrap.querySelector('input[type="date"]');
+      if (inp) {
+        try {
+          if (typeof inp.showPicker === "function") inp.showPicker();
+          else inp.focus();
+        } catch (err) {
+          inp.focus();
+        }
+      }
+      return;
+    }
     if (act === "clear-seed") {
       IC.clearSeedData();
       IC.toast("Sample records removed");
+      return;
+    }
+    if (act === "catalog-cat") {
+      IC.ui.catalogCat = t.getAttribute("data-id");
+      IC.ui.catalogAddName = "";
+      IC.ui.catalogAddSku = "";
+      IC.ui.catalogAddPrice = "";
+      IC.ui.catalogBump = "";
+      IC.render();
+      return;
+    }
+    if (act === "catalog-add") {
+      var addWrap = t.closest(".mat-add");
+      if (addWrap) {
+        var n = addWrap.querySelector('[data-ui="catalogAddName"]');
+        var sku = addWrap.querySelector('[data-ui="catalogAddSku"]');
+        var pr = addWrap.querySelector('[data-ui="catalogAddPrice"]');
+        if (n) IC.ui.catalogAddName = n.value;
+        if (sku) IC.ui.catalogAddSku = sku.value;
+        if (pr) IC.ui.catalogAddPrice = pr.value;
+      }
+      var added = IC.addCatalogItem(IC.ui.catalogCat || "shingle", {
+        name: IC.ui.catalogAddName,
+        sku: IC.ui.catalogAddSku,
+        price: IC.ui.catalogAddPrice,
+        alsoHip: IC.ui.catalogAddHip !== false,
+      });
+      if (added) {
+        IC.ui.catalogAddName = "";
+        IC.ui.catalogAddSku = "";
+        IC.ui.catalogAddPrice = "";
+        IC.toast("Added " + added.name);
+      }
+      return;
+    }
+    if (act === "catalog-retire") {
+      var rname = (function () {
+        var c = IC.catalogCategory(t.getAttribute("data-cat"));
+        var it = c && c.items.find(function (x) { return x.id === t.getAttribute("data-iid"); });
+        return it ? it.name : "this item";
+      })();
+      if (confirm("Retire " + rname + "? It won’t show on new estimates. Existing jobs keep it.")) {
+        IC.setCatalogItemActive(t.getAttribute("data-cat"), t.getAttribute("data-iid"), false);
+      }
+      return;
+    }
+    if (act === "catalog-restore") {
+      IC.setCatalogItemActive(t.getAttribute("data-cat"), t.getAttribute("data-iid"), true);
+      IC.toast("Restored");
+      return;
+    }
+    if (act === "catalog-remove") {
+      var dname = (function () {
+        var c = IC.catalogCategory(t.getAttribute("data-cat"));
+        var it = c && c.items.find(function (x) { return x.id === t.getAttribute("data-iid"); });
+        return it ? it.name : "this item";
+      })();
+      if (confirm("Permanently remove " + dname + " from the catalog?")) {
+        IC.removeCatalogItem(t.getAttribute("data-cat"), t.getAttribute("data-iid"));
+      }
+      return;
+    }
+    if (act === "catalog-bump") {
+      var wrap = t.closest(".mat-bump");
+      var inp = wrap && wrap.querySelector('[data-ui="catalogBump"]');
+      var pct = inp && inp.value !== "" ? inp.value : IC.ui.catalogBump;
+      IC.bumpCatalogPrices(IC.ui.catalogCat || "shingle", pct);
       return;
     }
   }
 
   function onChange(e) {
     var el = e.target;
+    if (!el || !document.body.contains(el)) return;
     var act = el.getAttribute("data-act");
     if (act === "login-member") { IC.ui.loginMemberId = el.value; return; }
     if (act === "job-search") { IC.ui.jobSearch = el.value; IC.render(); return; }
@@ -388,6 +535,14 @@ window.IC = window.IC || {};
     if (act === "customer-search") { IC.ui.customerSearch = el.value; IC.render(); return; }
     if (act === "new-job-customer") { IC.ui.newJobCustomerId = el.value; return; }
     if (act === "printed-name") { IC.ui.printedName = el.value; return; }
+    if (act === "keep-signed-in") { IC.ui.keepSignedIn = el.checked; return; }
+    if (act === "link-seat") {
+      var to = el.value;
+      if (to) IC.grantUser(el.getAttribute("data-id"), { role: "sales", linkTo: to });
+      return;
+    }
+    if (act === "catalog-show-off") { IC.ui.catalogShowOff = el.checked; IC.render(); return; }
+    if (act === "catalog-add-hip") { IC.ui.catalogAddHip = el.checked; return; }
     if (act === "job-status") { IC.setStatus(el.getAttribute("data-id"), el.value); return; }
     if (act === "job-owner") { IC.assignOwner(el.getAttribute("data-id"), el.value || null); return; }
     if (act === "job-crew") {
@@ -397,7 +552,10 @@ window.IC = window.IC || {};
     }
     if (act === "job-date") {
       var jobd = jobFromEl(el);
-      IC.assignCrew(el.getAttribute("data-id"), jobd ? jobd.crewId : null, el.value || null);
+      if (!jobd) return;
+      var date = IC.validIsoDate(el.value);
+      if (date) IC.assignCrew(jobd.id, jobd.crewId || null, date);
+      else IC.setProductionDate(jobd.id, null);
       return;
     }
     if (act === "job-flag") {
@@ -417,6 +575,17 @@ window.IC = window.IC || {};
 
     if (el.hasAttribute("data-draft")) {
       IC.ui.newJobDraft[el.getAttribute("data-draft")] = el.value;
+      return;
+    }
+    if (el.hasAttribute("data-ui")) {
+      IC.ui[el.getAttribute("data-ui")] = el.value;
+      return;
+    }
+    if (el.hasAttribute("data-mat")) {
+      var mf = el.getAttribute("data-mat");
+      var mp = {};
+      mp[mf] = el.value;
+      IC.updateCatalogItem(el.getAttribute("data-cat"), el.getAttribute("data-iid"), mp);
       return;
     }
     if (el.hasAttribute("data-cdraft")) {
@@ -443,12 +612,53 @@ window.IC = window.IC || {};
     if (el.hasAttribute("data-team")) {
       var field = el.getAttribute("data-team");
       var id = el.getAttribute("data-id");
+      if (field === "role" && el.value !== "admin") {
+        var otherAdmins = IC.state.team.filter(function (m) { return m.id !== id && m.role === "admin"; });
+        if (!otherAdmins.length) {
+          IC.toast("Keep at least one admin");
+          IC.render();
+          return;
+        }
+      }
       IC.updateTeam(IC.state.team.map(function (m) {
         if (m.id !== id) return m;
         var n = Object.assign({}, m);
-        n[field] = field === "salesName" ? (el.value || null) : el.value;
+        if (field === "salesName") n.salesName = el.value.trim() || null;
+        else n[field] = el.value;
+        if (field === "name" && n.role === "sales" && (!m.salesName || m.salesName === m.name)) {
+          n.salesName = el.value.trim() || null;
+        }
+        if (field === "role" && el.value === "sales" && !n.salesName) {
+          n.salesName = n.name || null;
+        }
+        if (field === "role" && el.value === "admin" && (!n.title || n.title === "Sales")) {
+          n.title = n.title && n.title !== "Sales" ? n.title : "Admin";
+        }
+        if (field === "role" && el.value === "sales" && (!n.title || n.title === "Admin")) {
+          n.title = "Sales";
+        }
+        if (field === "role" && (el.value === "admin" || el.value === "sales")) {
+          n.status = "active";
+          n.active = true;
+          n.role = el.value;
+        }
         return n;
       }));
+      return;
+    }
+    if (el.hasAttribute("data-udraft")) {
+      var uk = el.getAttribute("data-udraft");
+      IC.ui.addUserDraft = IC.ui.addUserDraft || { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
+      IC.ui.addUserDraft[uk] = el.value;
+      if (uk === "role") {
+        var title = IC.ui.addUserDraft.title;
+        if (el.value === "admin" && (!title || title === "Sales")) IC.ui.addUserDraft.title = "Admin";
+        if (el.value === "sales" && (!title || title === "Admin")) IC.ui.addUserDraft.title = "Sales";
+        IC.render();
+      }
+      if (uk === "name" && IC.ui.addUserDraft.role === "sales" && !IC.ui.addUserDraft.salesName) {
+        IC.ui.addUserDraft.salesName = el.value;
+      }
       return;
     }
     if (el.hasAttribute("data-crew")) {
@@ -489,17 +699,21 @@ window.IC = window.IC || {};
       np[nk] = nv;
       patchEstimate(jobE, np);
     } else if (kind === "gutter-on") {
-      patchEstimate(jobE, { gutters: Object.assign({}, est.gutters, { included: el.checked }) });
+      var gOn = IC.normalizeAddon("gutters", est.gutters);
+      gOn.included = el.checked;
+      patchEstimate(jobE, { gutters: gOn });
     } else if (kind === "gutter-desc") {
-      patchEstimate(jobE, { gutters: Object.assign({}, est.gutters, { description: el.value }) });
+      patchEstimate(jobE, { gutters: Object.assign({}, IC.normalizeAddon("gutters", est.gutters), { description: el.value, included: true }) });
     } else if (kind === "gutter-price") {
-      patchEstimate(jobE, { gutters: Object.assign({}, est.gutters, { price: Number(el.value) }) });
+      patchEstimate(jobE, { gutters: Object.assign({}, IC.normalizeAddon("gutters", est.gutters), { price: Number(el.value), included: true }) });
     } else if (kind === "siding-on") {
-      patchEstimate(jobE, { siding: Object.assign({}, est.siding, { included: el.checked }) });
+      var sOn = IC.normalizeAddon("siding", est.siding);
+      sOn.included = el.checked;
+      patchEstimate(jobE, { siding: sOn });
     } else if (kind === "siding-desc") {
-      patchEstimate(jobE, { siding: Object.assign({}, est.siding, { description: el.value }) });
+      patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { description: el.value, included: true }) });
     } else if (kind === "siding-price") {
-      patchEstimate(jobE, { siding: Object.assign({}, est.siding, { price: Number(el.value) }) });
+      patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { price: Number(el.value), included: true }) });
     } else if (kind === "notes") {
       patchEstimate(jobE, { notes: el.value });
     } else if (kind === "extra-label") {
@@ -513,39 +727,94 @@ window.IC = window.IC || {};
     var el = e.target;
     if (el.name === "email") IC.ui.loginEmail = el.value;
     if (el.name === "password") IC.ui.loginPassword = el.value;
+    if (el.name === "password2") IC.ui.loginPassword2 = el.value;
+    if (el.name === "displayName") IC.ui.loginName = el.value;
     var actIn = el.getAttribute("data-act");
     if (actIn === "job-search") { IC.ui.jobSearch = el.value; IC.render(); }
     if (actIn === "customer-search") { IC.ui.customerSearch = el.value; IC.render(); }
     if (actIn === "printed-name") IC.ui.printedName = el.value;
+    if (el.hasAttribute("data-ui")) {
+      IC.ui[el.getAttribute("data-ui")] = el.value;
+    }
+    if (el.hasAttribute("data-udraft")) {
+      IC.ui.addUserDraft = IC.ui.addUserDraft || { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
+      IC.ui.addUserDraft[el.getAttribute("data-udraft")] = el.value;
+    }
+  }
+
+  function finishAuthOk() {
+    IC.ui.loginBusy = false;
+    IC.ui.loginError = "";
+    IC.go("#/");
+  }
+
+  function finishAuthErr(err) {
+    IC.ui.loginBusy = false;
+    IC.ui.loginError = IC.authFriendly(err);
+    var blob = String((err && err.code) || "") + " " + String((err && err.message) || "");
+    if (/unauthorized-domain/i.test(blob)) {
+      var member = IC.matchMember(IC.ui.loginEmail);
+      if (member && IC.isApproved(member)) {
+        IC.ui.loginInfo = "";
+        IC.enterLocal(Object.assign({}, member, { email: IC.ui.loginEmail }));
+        IC.toast("This site isn’t on the allow-list yet. Working as " + member.name + " on this iPad.");
+        IC.go("#/");
+        return;
+      }
+    }
+    IC.render();
   }
 
   function onSubmit(e) {
     var form = e.target.closest("form");
-    if (!form || form.getAttribute("data-act") !== "firebase-login") return;
+    if (!form) return;
+    var act = form.getAttribute("data-act");
+    if (act !== "auth-signin" && act !== "auth-signup" && act !== "auth-forgot" && act !== "firebase-login") return;
     e.preventDefault();
     IC.ui.loginBusy = true;
     IC.ui.loginError = "";
-    IC.ui.loginLocalMsg = "";
+    IC.ui.loginInfo = "";
     IC.render();
-    var email = form.email.value;
-    var password = form.password.value;
+    var email = (form.email && form.email.value || IC.ui.loginEmail || "").trim();
+    var password = form.password ? form.password.value : IC.ui.loginPassword;
+    if (act === "auth-forgot") {
+      IC.sendPasswordReset(email).then(function () {
+        IC.ui.loginBusy = false;
+        IC.ui.loginInfo = "Check your email for a reset link.";
+        IC.render();
+      }).catch(finishAuthErr);
+      return;
+    }
+    if (act === "auth-signup") {
+      var name = (form.displayName && form.displayName.value || IC.ui.loginName || "").trim();
+      var p2 = form.password2 ? form.password2.value : IC.ui.loginPassword2;
+      if (password !== p2) {
+        IC.ui.loginBusy = false;
+        IC.ui.loginError = "Passwords don’t match.";
+        IC.render();
+        return;
+      }
+      if (!name) {
+        IC.ui.loginBusy = false;
+        IC.ui.loginError = "Add your name so Nate and Matt know who you are.";
+        IC.render();
+        return;
+      }
+      IC.createAccount(name, email, password).then(function () {
+        IC.ui.loginBusy = false;
+        finishAuthOk();
+      }).catch(finishAuthErr);
+      return;
+    }
     IC.signInFirebase(email, password).then(function () {
       IC.ui.loginBusy = false;
-      IC.go("#/");
-    }).catch(function (err) {
-      var msg = err && err.message ? err.message : "Sign-in failed";
-      IC.ui.loginBusy = false;
-      IC.ui.loginError = msg;
-      if (/unauthorized-domain|auth\/invalid|operation-not-allowed|network/i.test(msg)) {
-        IC.ui.loginLocalMsg = "Firebase did not accept this domain yet. Add it under Authentication → Settings → Authorized domains, or work on this device below.";
-      }
-      IC.render();
-    });
+      finishAuthOk();
+    }).catch(finishAuthErr);
   }
 
   function liftPathToHash() {
     var path = location.pathname.replace(/\/+$/, "") || "/";
-    var m = path.match(/\/(jobs|customers|schedule|settings|notifications|login|sign)(\/[^/]+)?$/);
+    var m = path.match(/\/(jobs|customers|schedule|settings|materials|notifications|login|sign)(\/[^/]+)?$/);
     if (m && !location.hash) {
       var keep = path.slice(0, path.length - m[0].length) || "/";
       if (keep.charAt(keep.length - 1) !== "/") keep += "/";
@@ -563,12 +832,45 @@ window.IC = window.IC || {};
     }
     liftPathToHash();
     IC.loadLocal();
+    IC.applyTheme(IC.getThemePref());
+    if (window.matchMedia) {
+      var mq = window.matchMedia("(prefers-color-scheme: dark)");
+      var onScheme = function () {
+        if (IC.getThemePref() === "system") IC.applyTheme("system");
+      };
+      if (mq.addEventListener) mq.addEventListener("change", onScheme);
+      else if (mq.addListener) mq.addListener(onScheme);
+    }
     IC.listenAuth();
+    IC.ui.online = typeof navigator === "undefined" ? true : navigator.onLine;
+    window.addEventListener("online", function () {
+      IC.ui.online = true;
+      if (IC.state.session) IC.state.session = Object.assign({}, IC.state.session, { mode: "online" });
+      var user = IC.getAuth() && IC.getAuth().currentUser;
+      if (user && IC.isApproved(IC.state.session)) {
+        IC.pullCloud().then(function () { IC.subscribeCloud(); });
+      }
+      IC.render();
+    });
+    window.addEventListener("offline", function () {
+      IC.ui.online = false;
+      if (IC.state.session) IC.state.session = Object.assign({}, IC.state.session, { mode: "offline" });
+      IC.render();
+    });
     root = document.getElementById("app");
     document.addEventListener("click", onClick);
     document.addEventListener("change", onChange);
     document.addEventListener("input", onInput);
     document.addEventListener("submit", onSubmit);
+    document.addEventListener("pointerdown", function (e) {
+      var t = e.target.closest('[data-act="clear-date"]');
+      if (!t) return;
+      e.preventDefault();
+      e.stopPropagation();
+      ignoreClicksUntil = Date.now() + 500;
+      var jd = IC.state.jobs.find(function (j) { return j.id === t.getAttribute("data-id"); });
+      if (jd) IC.setProductionDate(jd.id, null);
+    }, true);
     window.addEventListener("hashchange", function () {
       IC.ui.jobTab = "Overview";
       IC.ui.sigUrl = "";

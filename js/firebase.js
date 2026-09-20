@@ -1,14 +1,16 @@
 /* ============================================================
-   IRONCLAD CRM — Firebase Auth / Firestore / FCM
+   IRONCLAD CRM — Auth / Firestore / FCM
    Project: ironclad-127a5  (config.js)
-   Writes ONLY when signed in with Firebase (session.mode === "firebase").
-   "Work on this device" stays in this browser until you sign in.
+   Everyone shares the same jobs, customers, catalog, and users.
    ============================================================ */
 window.IC = window.IC || {};
 
 (function (IC) {
   var app = null;
   var unsubscribers = [];
+  var persistenceReady = null;
+  var notesPrimed = false;
+  var seenNotes = {};
 
   IC.firebaseAvailable = function () {
     return typeof firebase !== "undefined" && firebase.apps;
@@ -32,9 +34,32 @@ window.IC = window.IC || {};
     return a ? firebase.firestore() : null;
   };
 
+  IC.cloudEnabled = function () {
+    var auth = IC.getAuth();
+    return Boolean(auth && auth.currentUser && IC.state.session && IC.isApproved(IC.state.session));
+  };
+
+  IC.initFirebase = function () {
+    if (persistenceReady) return persistenceReady;
+    var a = IC.getFirebaseApp();
+    if (!a) {
+      persistenceReady = Promise.resolve(false);
+      return persistenceReady;
+    }
+    try {
+      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    } catch (err) { /* ignore */ }
+    persistenceReady = firebase.firestore().enablePersistence({ synchronizeTabs: true })
+      .then(function () { return true; })
+      .catch(function () { return false; });
+    return persistenceReady;
+  };
+
   IC.cloudUpsert = function (col, id, data) {
     var db = IC.getDb();
-    if (!db || !IC.state.session || IC.state.session.mode !== "firebase") return;
+    if (!db || !id) return;
+    if (!IC.getAuth() || !IC.getAuth().currentUser) return;
+    if (col !== "users" && !IC.cloudEnabled()) return;
     db.collection(col).doc(id).set(JSON.parse(JSON.stringify(data))).catch(function (err) {
       console.warn("[ironclad] cloud upsert failed", col, id, err);
     });
@@ -42,7 +67,7 @@ window.IC = window.IC || {};
 
   IC.cloudDelete = function (col, id) {
     var db = IC.getDb();
-    if (!db || !IC.state.session || IC.state.session.mode !== "firebase") return;
+    if (!db || !IC.getAuth() || !IC.getAuth().currentUser) return;
     db.collection(col).doc(id).delete().catch(function (err) {
       console.warn("[ironclad] cloud delete failed", col, id, err);
     });
@@ -117,11 +142,13 @@ window.IC = window.IC || {};
       db.collection("crews").get(),
       db.collection("notifications").get(),
       db.collection("meta").get(),
+      db.collection("users").get(),
     ]).then(function (parts) {
       var jobsSnap = parts[0], customersSnap = parts[1], crewsSnap = parts[2];
-      var notesSnap = parts[3], metaSnap = parts[4];
+      var notesSnap = parts[3], metaSnap = parts[4], usersSnap = parts[5];
       var meta = {};
       metaSnap.forEach(function (d) { meta[d.id] = d.data(); });
+      var users = usersSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
       var payload = {
         jobs: jobsSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
         customers: customersSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
@@ -129,18 +156,23 @@ window.IC = window.IC || {};
         notifications: notesSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
       };
       if (meta.settings) payload.settings = meta.settings;
-      if (meta.team && meta.team.team) payload.team = meta.team.team;
-      var hasData = payload.jobs.length + payload.customers.length > 0;
+      if (users.length) payload.team = users;
+      else if (meta.team && meta.team.team) payload.team = meta.team.team;
+      if (meta.catalog) payload.catalog = meta.catalog.catalog || meta.catalog;
+      var hasData = payload.jobs.length + payload.customers.length + users.length > 0;
       if (hasData) {
         IC.replaceCloud(payload);
+        if (!users.length) IC.seedUsers(IC.state.team);
       } else {
         var s = IC.state;
         var writes = []
           .concat(s.jobs.map(function (j) { return db.collection("jobs").doc(j.id).set(JSON.parse(JSON.stringify(j))); }))
           .concat(s.customers.map(function (c) { return db.collection("customers").doc(c.id).set(JSON.parse(JSON.stringify(c))); }))
-          .concat(s.crews.map(function (c) { return db.collection("crews").doc(c.id).set(JSON.parse(JSON.stringify(c))); }));
+          .concat(s.crews.map(function (c) { return db.collection("crews").doc(c.id).set(JSON.parse(JSON.stringify(c))); }))
+          .concat(s.team.map(function (u) { return db.collection("users").doc(u.id).set(JSON.parse(JSON.stringify(u))); }));
         writes.push(db.collection("meta").doc("settings").set(JSON.parse(JSON.stringify(s.settings))));
         writes.push(db.collection("meta").doc("team").set({ team: s.team }));
+        writes.push(db.collection("meta").doc("catalog").set({ catalog: s.catalog, updatedAt: IC.nowIso() }));
         return Promise.all(writes).then(function () {
           IC.state.firebaseReady = true;
           IC.emit();
@@ -156,10 +188,28 @@ window.IC = window.IC || {};
     });
   };
 
+  IC.seedUsers = function (team) {
+    var db = IC.getDb();
+    (team || []).forEach(function (u) {
+      if (db) db.collection("users").doc(u.id).set(JSON.parse(JSON.stringify(u))).catch(function () {});
+    });
+  };
+
+  function showIncomingNote(n) {
+    if (!n || seenNotes[n.id]) return;
+    seenNotes[n.id] = true;
+    var me = IC.state.session && IC.state.session.memberId;
+    if (!me || n.userId !== me || n.read) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    try { new Notification(n.title || "IRONCLAD", { body: n.body || "", icon: IC.asset("brand/logo.png") }); }
+    catch (e) { /* ignore */ }
+  }
+
   IC.subscribeCloud = function () {
     var db = IC.getDb();
     IC.unsubscribeCloud();
     if (!db) return;
+    notesPrimed = false;
     unsubscribers.push(db.collection("jobs").onSnapshot(function (snap) {
       IC.state.jobs = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
       IC.emit();
@@ -168,8 +218,43 @@ window.IC = window.IC || {};
       IC.state.customers = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
       IC.emit();
     }));
+    unsubscribers.push(db.collection("crews").onSnapshot(function (snap) {
+      if (!snap.docs.length) return;
+      IC.state.crews = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      IC.emit();
+    }));
+    unsubscribers.push(db.collection("users").onSnapshot(function (snap) {
+      if (!snap.docs.length) return;
+      IC.state.team = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      var s = IC.state.session;
+      if (s) {
+        var me = IC.state.team.find(function (t) {
+          return t.id === s.memberId || (s.firebaseUid && t.firebaseUid === s.firebaseUid) ||
+            (s.email && t.email && t.email.toLowerCase() === s.email.toLowerCase());
+        });
+        if (me) IC.state.session = IC.memberToSession(me, s.mode, s.firebaseUid);
+      }
+      IC.emit();
+    }));
     unsubscribers.push(db.collection("notifications").onSnapshot(function (snap) {
-      IC.state.notifications = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      var list = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      if (!notesPrimed) {
+        notesPrimed = true;
+        list.forEach(function (n) { seenNotes[n.id] = true; });
+      } else {
+        list.forEach(showIncomingNote);
+      }
+      IC.state.notifications = list;
+      IC.emit();
+    }));
+    unsubscribers.push(db.collection("meta").onSnapshot(function (snap) {
+      snap.forEach(function (d) {
+        if (d.id === "settings" && d.data()) IC.state.settings = Object.assign({}, IC.state.settings, d.data());
+        if (d.id === "catalog" && d.data()) {
+          var cat = d.data().catalog || d.data();
+          if (cat) IC.state.catalog = IC.ensureCatalog(cat);
+        }
+      });
       IC.emit();
     }));
     unsubscribers.push(db.collection("signLinks").onSnapshot(function (snap) {
@@ -195,15 +280,127 @@ window.IC = window.IC || {};
 
   IC.matchMember = function (email) {
     var e = (email || "").trim().toLowerCase();
+    if (!e) return null;
     var team = IC.state.team;
-    return team.find(function (t) { return t.email && t.email.toLowerCase() === e; }) ||
-      ((e.indexOf("nathan") >= 0 || e.indexOf("nate") >= 0) ? team.find(function (t) { return t.id === "nate"; }) : null);
+    return team.find(function (t) { return t.email && t.email.toLowerCase() === e; }) || null;
+  };
+
+  IC.isBootstrapAdmin = function (email) {
+    var e = (email || "").trim().toLowerCase();
+    return (IC.ADMIN_EMAILS || []).some(function (x) { return String(x).toLowerCase() === e; });
+  };
+
+  IC.normalizeUser = function (raw, id) {
+    raw = raw || {};
+    var role = raw.role === "admin" || raw.role === "sales" ? raw.role : "pending";
+    var status = raw.status || (role === "pending" ? "pending" : "active");
+    return {
+      id: id || raw.id,
+      name: raw.name || "Teammate",
+      email: raw.email || "",
+      role: status === "pending" ? "pending" : role,
+      title: raw.title || "",
+      salesName: raw.salesName || null,
+      active: status === "active",
+      status: status,
+      firebaseUid: raw.firebaseUid || null,
+      placeholder: Boolean(raw.placeholder),
+      createdAt: raw.createdAt || IC.nowIso(),
+      lastLoginAt: raw.lastLoginAt || null,
+    };
+  };
+
+  IC.ensureUserProfile = function (fbUser) {
+    var db = IC.getDb();
+    var email = (fbUser.email || "").trim();
+    var uid = fbUser.uid;
+    var display = (fbUser.displayName || email.split("@")[0] || "Teammate").trim();
+    var finish = function (user) {
+      user = IC.normalizeUser(user, user.id);
+      user.lastLoginAt = IC.nowIso();
+      user.firebaseUid = uid;
+      user.email = email;
+      IC.saveUser(user);
+      return user;
+    };
+    if (!db) {
+      var local = IC.matchMember(email);
+      if (local) return Promise.resolve(finish(Object.assign({}, local, { firebaseUid: uid, email: email })));
+      if (IC.isBootstrapAdmin(email)) {
+        return Promise.resolve(finish({
+          id: uid, name: display, email: email, role: "admin", title: "Admin", status: "active", firebaseUid: uid,
+        }));
+      }
+      return Promise.resolve(finish({
+        id: uid, name: display, email: email, role: "pending", title: "Waiting", status: "pending", firebaseUid: uid,
+      }));
+    }
+    return db.collection("users").doc(uid).get().then(function (byUid) {
+      if (byUid.exists) return finish(Object.assign({ id: uid }, byUid.data(), { firebaseUid: uid, email: email }));
+      return db.collection("users").where("email", "==", email).get().then(function (q) {
+        if (!q.empty) {
+          var doc = q.docs[0];
+          return finish(Object.assign({ id: doc.id }, doc.data(), { firebaseUid: uid, email: email, placeholder: false }));
+        }
+        var byAddr = IC.matchMember(email);
+        if (byAddr) return finish(Object.assign({}, byAddr, { firebaseUid: uid, email: email, placeholder: false }));
+        if (IC.isBootstrapAdmin(email)) {
+          var nate = IC.state.team.find(function (t) { return t.id === "nate"; });
+          if (nate) return finish(Object.assign({}, nate, { email: email, firebaseUid: uid, role: "admin", status: "active", placeholder: false }));
+          return finish({
+            id: uid, name: display, email: email, role: "admin", title: "Admin", status: "active", firebaseUid: uid,
+          });
+        }
+        return finish({
+          id: uid, name: display, email: email, role: "pending", title: "Waiting", status: "pending", firebaseUid: uid,
+        });
+      });
+    });
+  };
+
+  IC.applyAuthUser = function (fbUser) {
+    return IC.ensureUserProfile(fbUser).then(function (member) {
+      IC.setSession(IC.memberToSession(member, navigator.onLine ? "online" : "offline", fbUser.uid));
+      if (!IC.isApproved(member)) return member;
+      return IC.pullCloud().then(function () {
+        IC.subscribeCloud();
+        IC.registerPush(member.id);
+        return member;
+      });
+    });
   };
 
   IC.signInFirebase = function (email, password) {
     var auth = IC.getAuth();
-    if (!auth) return Promise.reject(new Error("Firebase is not available in this environment."));
-    return auth.signInWithEmailAndPassword(email, password);
+    if (!auth) return Promise.reject(new Error("Sign-in isn’t available in this browser."));
+    var persist = IC.ui.keepSignedIn === false
+      ? firebase.auth.Auth.Persistence.SESSION
+      : firebase.auth.Auth.Persistence.LOCAL;
+    return auth.setPersistence(persist).catch(function () {}).then(function () {
+      return auth.signInWithEmailAndPassword(email, password);
+    });
+  };
+
+  IC.createAccount = function (name, email, password) {
+    var auth = IC.getAuth();
+    if (!auth) return Promise.reject(new Error("Create account isn’t available in this browser."));
+    return auth.createUserWithEmailAndPassword(email, password).then(function (cred) {
+      if (cred.user && name) return cred.user.updateProfile({ displayName: name }).then(function () { return cred; });
+      return cred;
+    });
+  };
+
+  IC.sendPasswordReset = function (email) {
+    var auth = IC.getAuth();
+    if (!auth) return Promise.reject(new Error("Reset isn’t available in this browser."));
+    return auth.sendPasswordResetEmail(email);
+  };
+
+  IC.continueOffline = function () {
+    var s = IC.state.session;
+    if (!s || !IC.isApproved(s)) return false;
+    IC.setSession(Object.assign({}, s, { mode: "offline" }));
+    return true;
   };
 
   IC.signOut = function () {
@@ -225,15 +422,20 @@ window.IC = window.IC || {};
         return messaging.getToken({ vapidKey: IC.VAPID, serviceWorkerRegistration: reg });
       }).then(function (token) {
         var db = IC.getDb();
-        if (token && db && IC.state.session && IC.state.session.mode === "firebase") {
+        var who = userId || (IC.state.session && IC.state.session.memberId);
+        if (token && db && IC.getAuth() && IC.getAuth().currentUser && who) {
           db.collection("fcmTokens").doc(token).set({
-            userId: userId,
+            userId: who,
+            email: IC.state.session && IC.state.session.email || "",
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             platform: navigator.userAgent,
           });
         }
         messaging.onMessage(function (payload) {
           var n = (payload && payload.notification) || {};
+          var me = IC.state.session && IC.state.session.memberId;
+          var target = (payload && payload.data && payload.data.userId) || "";
+          if (target && me && target !== me) return;
           try { new Notification(n.title || "IRONCLAD", { body: n.body || "", icon: IC.asset("brand/logo.png") }); }
           catch (e) { /* ignore */ }
         });
@@ -244,22 +446,13 @@ window.IC = window.IC || {};
   };
 
   IC.listenAuth = function () {
+    IC.initFirebase();
     var auth = IC.getAuth();
     if (!auth) return;
     auth.onAuthStateChanged(function (user) {
-      if (!user || !user.email) return;
-      var member = IC.matchMember(user.email) || {
-        id: user.uid,
-        name: (user.email.split("@")[0] || "User"),
-        email: user.email,
-        role: "sales",
-        salesName: null,
-        active: true,
-      };
-      IC.setSession(IC.memberToSession(member, "firebase", user.uid));
-      IC.pullCloud().then(function () {
-        IC.subscribeCloud();
-        IC.registerPush(user.uid);
+      if (!user) return;
+      IC.applyAuthUser(user).catch(function (err) {
+        console.warn("[ironclad] profile failed", err);
       });
     });
   };

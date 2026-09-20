@@ -1,7 +1,7 @@
 {
   "hosting": {
-    "public": ".",
-    "ignore": ["firebase.json", "**/.*", "README.md", "START-HERE.txt", ".github/**"],
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/__grok/**"],
     "rewrites": [
       { "source": "**", "destination": "/index.html" }
     ],
