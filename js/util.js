@@ -61,6 +61,80 @@ window.IC = window.IC || {};
     return [c.street, [cityLine, c.zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   };
 
+  IC.jobSalesperson = function (job) {
+    var team = (IC.state && IC.state.team) || IC.TEAM || [];
+    if (!job) return null;
+    return team.find(function (t) { return t.id === job.ownerId; }) ||
+      team.find(function (t) { return t.salesName && job.ownerName && t.salesName === job.ownerName; }) ||
+      null;
+  };
+
+  IC.commissionRate = function (person) {
+    var n = person ? Number(person.commissionPercent) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+
+  IC.mapsUrl = function (customer) {
+    var addr = IC.customerAddress(customer);
+    if (!addr) return "";
+    return "https://maps.apple.com/?daddr=" + encodeURIComponent(addr);
+  };
+
+  IC.buildAllDayIcs = function (opts) {
+    opts = opts || {};
+    var date = String(opts.date || "").replace(/-/g, "");
+    var y = Number(date.slice(0, 4));
+    var m = Number(date.slice(4, 6));
+    var d = Number(date.slice(6, 8));
+    var end = new Date(y, m - 1, d + 1);
+    var endStr = String(end.getFullYear()) +
+      ("0" + (end.getMonth() + 1)).slice(-2) +
+      ("0" + end.getDate()).slice(-2);
+    function fold(s) {
+      return String(s || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+    }
+    var stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+    return [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//IRONCLAD//CRM//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      "UID:" + fold(opts.uid || ("ironclad-" + date + "@crm")),
+      "DTSTAMP:" + stamp,
+      "DTSTART;VALUE=DATE:" + date,
+      "DTEND;VALUE=DATE:" + endStr,
+      "SUMMARY:" + fold(opts.summary),
+      "LOCATION:" + fold(opts.location || ""),
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+  };
+
+  IC.addJobToCalendar = function (job, customer) {
+    var date = IC.validIsoDate(job && job.scheduledDate);
+    if (!date) {
+      IC.toast("Set a production date first");
+      return;
+    }
+    var summary = "Job #" + job.number + " | " + (job.customerName || "");
+    var location = IC.customerAddress(customer);
+    var ics = IC.buildAllDayIcs({
+      summary: summary,
+      location: location,
+      date: date,
+      uid: "ironclad-job-" + job.id + "-" + date + "@ironclad",
+    });
+    var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    IC.shareOrDownload({
+      blob: blob,
+      filename: "Job-" + job.number + ".ics",
+      title: summary,
+      text: location || summary,
+    });
+  };
+
   IC.roleLabel = function (person) {
     if (!person) return "";
     if (person.status === "pending" || person.role === "pending") return "Waiting";
