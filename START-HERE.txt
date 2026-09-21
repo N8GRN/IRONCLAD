@@ -13,8 +13,48 @@ SIGN-IN
   account only — no picking someone else’s name.
 - Alerts go to the project owner you assigned, not to yourself.
 
+TEAM
+Settings → Team: phone next to email, commission % per person
+(Jon 3%, Jesse 6%, Austin 6%). Commission is that % of the job total.
+
+JOB TABS
+Overview · Assessment · Summary · Contract
+Summary opens Customer quote, Job Sheet (materials only), and Job cost.
+
+ASSESSMENT / TAKEOFF (this build)
+- Facets on each structure (squares, pitch, tear-off). Stories stay
+  on the structure. Pitch is labor-only.
+- Linears (eaves, rakes, ridge, hips, valleys) are per structure.
+- 12% waste on materials except drip (rakes, 10% + 1 stick) and
+  gutter apron (eaves, 10%).
+- Felt: 10 sq/roll, 4/12+ only.
+- Ice & Water: 4/12+ eaves+valleys+½ wall flashing at 60 lf/roll;
+  2/12–3.9/12 is ½ roll/sq and no felt.
+- Flat Roof pitch: Base sheet + MuleHide cap + custom edge metal
+  ($1.03/lf). No shingles/felt/ice/starter/drip/hip on an all-flat
+  structure.
+- Vent: Ridge vents (ridge lf ÷ 30 lf/roll) OR box vents (qty+color).
+- Broan: 4" bath and 8" kitchen as separate counts.
+- Sheathing is a sheet count (10 = 10 sheets of OSB).
+
 MATERIALS
 Admins: sidebar Materials. Add colors, retire SKUs, bump prices.
+Ridge vent SkyRunner LTE $88/roll; box vents $18.
 
-SHEATHING
-Estimator field is a sheet count (10 = 10 sheets of OSB), not a %.
+ALERTS
+Each person: Alerts → Notifications. Defaults:
+  on  — assigned to me, status of my job
+  on for admins — a new job is created
+  off — scheduled, complete
+Tap Enable push once per iPad (Allow Notifications; iPhone/iPad:
+Add to Home Screen first). Cache ironclad-crm-v5 — if a Home Screen
+icon looks old, remove it and add the site again.
+
+LABOR (admins)
+Sidebar → Labor. Per crew: install pay $/sq, tear-off 1–5 layer,
+OSB $/sheet, wood $/board. Assessment Price $/square is what the
+customer is charged. Job cost uses crew pay for profit.
+
+QUOTED PRICE
+On Assessment, optional Quoted price. Lower than list → customer
+Estimate shows the % discount. Higher is hidden from the customer.

@@ -33,14 +33,16 @@ IC.JOB_STATUSES = [
 
 IC.SALES_NAMES = ["Matt", "Jon", "Jesse", "Ethan"];
 
+/* Emails here skip the waiting room and always get Admin. Add Matt’s login email when you have it. */
 IC.ADMIN_EMAILS = ["nathangreen.me@gmail.com"];
 
 IC.TEAM = [
-  { id: "nate", name: "Nate", email: "nathangreen.me@gmail.com", role: "admin", title: "Admin", salesName: null, active: true, status: "active" },
-  { id: "matt", name: "Matt", email: "", role: "admin", title: "Owner", salesName: "Matt", active: true, status: "active", placeholder: true },
-  { id: "jon", name: "Jon", email: "", role: "sales", title: "Sales", salesName: "Jon", active: true, status: "active", placeholder: true },
-  { id: "jesse", name: "Jesse", email: "", role: "sales", title: "Sales", salesName: "Jesse", active: true, status: "active", placeholder: true },
-  { id: "ethan", name: "Ethan", email: "", role: "sales", title: "Sales", salesName: "Ethan", active: true, status: "active", placeholder: true },
+  { id: "nate", name: "Nate", email: "nathangreen.me@gmail.com", role: "admin", title: "Admin", salesName: null, active: true, status: "active", commissionPercent: 0 },
+  { id: "matt", name: "Matt", email: "", role: "admin", title: "Owner", salesName: "Matt", active: true, status: "active", placeholder: true, commissionPercent: 0 },
+  { id: "jon", name: "Jon", email: "", role: "sales", title: "Sales", salesName: "Jon", active: true, status: "active", placeholder: true, commissionPercent: 3 },
+  { id: "jesse", name: "Jesse", email: "", role: "sales", title: "Sales", salesName: "Jesse", active: true, status: "active", placeholder: true, commissionPercent: 6 },
+  { id: "ethan", name: "Ethan", email: "", role: "sales", title: "Sales", salesName: "Ethan", active: true, status: "active", placeholder: true, commissionPercent: 0 },
+  { id: "austin", name: "Austin", email: "", role: "sales", title: "Sales", salesName: "Austin", active: true, status: "active", placeholder: true, commissionPercent: 6 },
 ];
 
 IC.CREWS = [
@@ -48,18 +50,63 @@ IC.CREWS = [
   { id: "crew-2", name: "Crew 2", foreman: "", phone: "", notes: "", active: true },
 ];
 
+IC.DEFAULT_CREW_LABOR = {
+  installPerSq: 90,
+  tearoff1: 40,
+  tearoff2: 50,
+  tearoff3: 60,
+  tearoff4: 70,
+  tearoff5: 80,
+  osbPerSheet: 15,
+  woodPerBoard: 15,
+};
+
+IC.normalizeCrew = function (c) {
+  c = c || {};
+  var laborIn = c.labor || {};
+  var labor = {
+    installPerSq: numLabor(laborIn.installPerSq, IC.DEFAULT_CREW_LABOR.installPerSq),
+    tearoff1: numLabor(laborIn.tearoff1, IC.DEFAULT_CREW_LABOR.tearoff1),
+    tearoff2: numLabor(laborIn.tearoff2, IC.DEFAULT_CREW_LABOR.tearoff2),
+    tearoff3: numLabor(laborIn.tearoff3, IC.DEFAULT_CREW_LABOR.tearoff3),
+    tearoff4: numLabor(laborIn.tearoff4, IC.DEFAULT_CREW_LABOR.tearoff4),
+    tearoff5: numLabor(laborIn.tearoff5, IC.DEFAULT_CREW_LABOR.tearoff5),
+    osbPerSheet: numLabor(laborIn.osbPerSheet, IC.DEFAULT_CREW_LABOR.osbPerSheet),
+    woodPerBoard: numLabor(laborIn.woodPerBoard, IC.DEFAULT_CREW_LABOR.woodPerBoard),
+  };
+  return Object.assign({}, c, {
+    id: c.id,
+    name: c.name || "Crew",
+    foreman: c.foreman || "",
+    phone: c.phone || "",
+    notes: c.notes || "",
+    active: c.active !== false,
+    labor: labor,
+  });
+};
+
+function numLabor(v, fallback) {
+  var n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+IC.crewLabel = function (c) {
+  if (!c) return "Crew";
+  return c.foreman ? (c.name + " — " + c.foreman) : c.name;
+};
+
 IC.SETTINGS = {
   legalName: "Ironclad Roofing LLC",
   dba: "IRONCLAD",
   street: "",
-  city: "",
+  city: "Albany",
   state: "IN",
-  zip: "",
-  phone: "",
+  zip: "47320",
+  phone: "(765) 789-0558",
   email: "",
   licenseNumber: "",
-  website: "",
-  warrantyWorkmanshipYears: 5,
+  website: "https://ironcladroofing.com",
+  warrantyWorkmanshipYears: 10,
   paymentTerms:
     "Fifty percent (50%) of the contract price is due upon signing as a deposit. The remaining fifty percent (50%) is due upon substantial completion of the work.",
   laborRatePerSquare: 185,
@@ -74,7 +121,7 @@ IC.SETTINGS = {
     "This Residential Roofing Service Agreement (“Agreement”) is entered into by and between Ironclad Roofing LLC (“Contractor”) and the Customer named below. Contractor agrees to furnish labor, materials, and equipment to perform the work described herein at the property listed below, in a good and workmanlike manner consistent with industry standards.",
 };
 
-IC.PITCHES = ["0 - 2/12", "2/12 - 3/12", "4/12 - 7/12", "8/12 - 9/12", "10/12 - 11/12", "12/12 - 13/12"];
+IC.PITCHES = ["Flat Roof", "2/12 - 3.9/12", "4/12 - 7/12", "8/12 - 9/12", "10/12 - 11/12", "12/12 - 13/12"];
 IC.STORIES = ["1-Story", "2-Story", "3-Story"];
 IC.TEAROFF = ["None", "1-Layer", "2-Layer", "3-Layer", "4-Layer", "5-Layer"];
 IC.SHEATHING = ["Wood Board", "OSB / Plywood"];
