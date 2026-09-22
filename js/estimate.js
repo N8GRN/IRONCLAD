@@ -131,6 +131,7 @@ window.IC = window.IC || {};
       eaveLf: null, rakeLf: null, ridgeLf: null, hipLf: null, valleyLf: null,
       pipeBoots: 4, broanBath: 0, broanKitchen: 0, broanVents: 0, chimneyCount: 0, chimneyLf: 0, wallFlashingLf: 0, ridgeVentLf: null,
       dumpster: settings.dumpsterDefault, permit: settings.permitDefault,
+      deliveryFee: settings.deliveryFeeDefault != null ? settings.deliveryFeeDefault : 65,
       extras: [],
       gutters: IC.normalizeAddon("gutters", { included: false }),
       siding: IC.normalizeAddon("siding", { included: false }),
@@ -384,6 +385,9 @@ window.IC = window.IC || {};
     }
     if (est.dumpster > 0) lines.push(line("dumpster", "Dumpster", "Debris container", 1, "ea", est.dumpster, "other"));
     if (est.permit > 0) lines.push(line("permit", "Permit", "Building permit allowance", 1, "ea", est.permit, "other"));
+    var deliveryFee = Number(est.deliveryFee);
+    if (!Number.isFinite(deliveryFee) || deliveryFee < 0) deliveryFee = 0;
+    if (deliveryFee > 0) lines.push(line("delivery", "Delivery fee", "Material delivery", 1, "ea", deliveryFee, "other"));
     (est.extras || []).forEach(function (extra) {
       if (!extra.label && !extra.amount) return;
       lines.push(line("extra-" + extra.id, extra.label || "Extra", "", 1, "ls", extra.amount, "other"));
@@ -409,6 +413,7 @@ window.IC = window.IC || {};
     if (taxPct == null || taxPct === "") taxPct = 7;
     taxPct = Number(taxPct);
     if (!Number.isFinite(taxPct) || taxPct < 0) taxPct = 0;
+    // Tax is on material COST (catalog prices) only — not on material margin, labor, permit, or delivery.
     var salesTax = round2(materialsSubtotal * (taxPct / 100));
     var listTotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal + salesTax);
     var quotedRaw = est.quotedTotal;
@@ -422,7 +427,7 @@ window.IC = window.IC || {};
     var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
     var profitBilled = round2(salePrice - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax);
     var profitActual = round2(salePrice - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission - salesTax);
-    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal, measuredSquares);
+    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee, measuredSquares);
 
     var costLines = lines.filter(function (l) { return l.key !== "labor" && l.key !== "tearoff"; }).slice();
     if (laborCostInstall > 0) {
@@ -445,6 +450,7 @@ window.IC = window.IC || {};
       osbLaborCost: osbLaborCost, woodLaborCost: woodLaborCost,
       otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,
       salesTax: salesTax, salesTaxPercent: taxPct,
+      deliveryFee: deliveryFee,
       total: salePrice, listTotal: listTotal, quotedTotal: salePrice,
       discountPercent: discountPercent, discountAmount: discountAmount,
       billableSquares: billableSquares, measuredSquares: measuredSquares,
@@ -519,6 +525,11 @@ window.IC = window.IC || {};
     if (next.chimneyCount == null) next.chimneyCount = 0;
     if (next.salesTaxPercent == null || next.salesTaxPercent === "") {
       next.salesTaxPercent = settingsOf(settings).salesTaxPercent != null ? settingsOf(settings).salesTaxPercent : 7;
+    }
+    if (next.deliveryFee == null || next.deliveryFee === "") {
+      var feeDef = settingsOf(settings).deliveryFeeDefault;
+      next.deliveryFee = feeDef != null && feeDef !== "" ? Number(feeDef) : 65;
+      if (!Number.isFinite(next.deliveryFee) || next.deliveryFee < 0) next.deliveryFee = 65;
     }
     next.computed = IC.computeEstimate(next, settings, job);
     next.updatedAt = new Date().toISOString();

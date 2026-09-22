@@ -336,7 +336,7 @@ window.IC = window.IC || {};
     var prices = (est.computed && est.computed.structurePrices) || [];
     var c = est.computed;
     if (c && c.discountPercent > 0 && c.listTotal != null) {
-      prices = IC.structurePrices(est.structures, c.listTotal, c.addonsSubtotal, c.measuredSquares);
+      prices = IC.structurePrices(est.structures, c.listTotal, (c.addonsSubtotal || 0) + (Number(c.deliveryFee) || 0), c.measuredSquares);
     }
     if (!prices.length) {
       rows.push({ qty: "", desc: "Replace roof with " + shingle + " on whole house", unit: "", total: est.computed && est.computed.total });
@@ -355,6 +355,10 @@ window.IC = window.IC || {};
     rows.push({ qty: "", desc: "Dispose of old materials", unit: "", total: null });
     var years = (settings && settings.warrantyWorkmanshipYears) || 10;
     rows.push({ qty: "", desc: years + "-year workmanship warranty", unit: "", total: null });
+    var deliveryFee = Number(est.deliveryFee != null ? est.deliveryFee : (c && c.deliveryFee));
+    if (Number.isFinite(deliveryFee) && deliveryFee > 0) {
+      rows.push({ qty: "", desc: "Delivery fee", unit: "", total: deliveryFee });
+    }
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     if (gutters.included) rows.push({ qty: "", desc: gutters.description, unit: "", total: gutters.price });
     var siding = IC.normalizeAddon("siding", est.siding);
@@ -400,7 +404,7 @@ window.IC = window.IC || {};
       ["Materials", c.materialsSubtotal],
       ["Labor & tear-off", laborValue],
       [commLabel, commission],
-      ["Sales tax (" + (Number(taxPct) || 0) + "% on materials)", c.salesTax != null ? c.salesTax : 0],
+      ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
       ["Other", c.otherCost != null ? c.otherCost : c.otherSubtotal],
       ["Gutters / siding", c.addonsSubtotal],
     ];

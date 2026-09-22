@@ -143,18 +143,21 @@ window.IC = window.IC || {};
     var row = function (j, meta) {
       return '<a class="job-row" href="#/jobs/' + j.id + '"><div><p><span class="tabular muted">#' + j.number + "</span> " + IC.esc(j.customerName) + '</p><p class="tiny">' + IC.esc(meta) + "</p></div>" + IC.badge(j.status) + "</a>";
     };
+    var stack = function (items, empty) {
+      return items && items.length ? '<div class="job-stack">' + items.join("") + "</div>" : empty;
+    };
     return '<div class="page"><header class="page-head"><div><p class="kicker">Ironclad Roofing</p><h1 class="hero">Let’s go to work, ' + IC.esc(s.name) + '.</h1></div><a href="#/jobs">' + IC.btn("New job " + IC.icon("arrow")) + "</a></header>" +
       '<div class="grid-stats">' + stats + "</div>" +
       (unread[0] ? '<div class="card" style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><p class="kicker">Needs you</p><p style="font-weight:600">' + IC.esc(unread[0].title) + '</p><p class="muted">' + IC.esc(unread[0].body) + '</p></div><a href="#/notifications">' + IC.btn("Alerts", { variant: "outline", size: "sm" }) + "</a></div>" : "") +
       '<div class="grid-2"><div class="card"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' + IC.icon("userplus") + "<h2>Unassigned</h2></div>" +
-      (unassigned.length ? unassigned.map(function (j) { return row(j, "Needs a salesperson"); }).join("") : '<p class="muted">Every job has a project owner.</p>') +
+      stack(unassigned.map(function (j) { return row(j, "Needs a salesperson"); }), '<p class="muted">Every job has a project owner.</p>') +
       '</div><div class="card"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' + IC.icon("pen") + "<h2>Waiting on signature</h2></div>" +
-      (unsigned.length ? unsigned.map(function (j) { return row(j, IC.money(j.price)); }).join("") : '<p class="muted">No sold jobs waiting on a contract.</p>') +
+      stack(unsigned.map(function (j) { return row(j, IC.money(j.price)); }), '<p class="muted">No sold jobs waiting on a contract.</p>') +
       "</div></div>" +
       '<div class="card"><h2 style="margin-bottom:12px">Upcoming production</h2>' +
-      (upcoming.length ? upcoming.map(function (j) {
+      stack(upcoming.map(function (j) {
         return row(j, (j.crewName || "Crew TBD") + " · " + (j.scheduledDate === today ? "Today" : IC.formatDate(j.scheduledDate)));
-      }).join("") : '<p class="muted">Nothing on the calendar yet. Assign a crew from a sold job.</p>') +
+      }), '<p class="muted">Nothing on the calendar yet. Assign a crew from a sold job.</p>') +
       "</div></div>";
   };
 
@@ -377,8 +380,10 @@ window.IC = window.IC || {};
       IC.field("Tear-off $/sq / layer", IC.input({ type: "number", value: value.tearoffRatePerSquare, "data-est": "num", "data-key": "tearoffRatePerSquare" })) +
       IC.field("Dumpster", IC.input({ type: "number", value: value.dumpster, "data-est": "num", "data-key": "dumpster" })) +
       IC.field("Permit", IC.input({ type: "number", value: value.permit, "data-est": "num", "data-key": "permit" })) +
+      IC.field("Delivery fee", IC.input({ type: "number", min: "0", step: "0.01", value: value.deliveryFee != null ? value.deliveryFee : 65, "data-est": "num", "data-key": "deliveryFee" })) +
       IC.field("Sales tax %", IC.input({ type: "number", min: "0", step: "0.1", value: value.salesTaxPercent != null ? value.salesTaxPercent : 7, "data-est": "num", "data-key": "salesTaxPercent" })) +
       "</div>" +
+      '<p class="tiny muted" style="margin-top:8px">Sales tax is on material cost only — not on material margin, labor, permit, or delivery.</p>' +
       '<div class="addon-block"><label class="check"><input type="checkbox" data-est="gutter-on"' + (gutters.included ? " checked" : "") + ' /><span style="font-weight:600">Include gutters (lump sum)</span></label>' +
       (gutters.included
         ? '<div class="addon-fields">' +
@@ -516,9 +521,9 @@ window.IC = window.IC || {};
       '</div><div style="display:flex;justify-content:flex-end;margin-top:1rem">' +
       IC.btn("New job for this customer", { data: 'data-act="job-for-customer" data-id="' + id + '"' }) + "</div></div>" +
       '<div class="card"><h2 style="margin-bottom:12px">Jobs</h2>' +
-      (theirs.length ? theirs.map(function (j) {
+      (theirs.length ? '<div class="job-stack">' + theirs.map(function (j) {
         return '<a class="job-row" href="#/jobs/' + j.id + '"><span>#' + j.number + " · " + IC.esc(j.ownerName || "Unassigned") + '</span><span style="display:flex;gap:8px;align-items:center"><span class="tabular muted">' + (j.price ? IC.money(j.price) : "") + "</span>" + IC.badge(j.status) + "</span></a>";
-      }).join("") : '<p class="muted">No jobs yet.</p>') + "</div></div>";
+      }).join("") + "</div>" : '<p class="muted">No jobs yet.</p>') + "</div></div>";
   };
 
   IC.viewSchedule = function () {
@@ -613,7 +618,7 @@ window.IC = window.IC || {};
       }).join("") +
       "</div></div>" +
       IC.settingsCard("#/settings/company", "Company profile →", "Legal name, address, phone, warranty, and contract language.") +
-      IC.settingsCard("#/settings/defaults", "Estimate defaults →", "Price $/square, waste, tax rate, chimney price, dumpster, and permit.") +
+      IC.settingsCard("#/settings/defaults", "Estimate defaults →", "Price $/square, waste, tax rate, chimney price, dumpster, permit, and delivery.") +
       (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team →", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
       (admin ? IC.settingsCard("#/settings/crews", "Crews →", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
       (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog →", "Crew pay rates by pitch, tear-off, OSB, and wood. Used on Job cost — not the customer price.") : "") +
@@ -657,8 +662,9 @@ window.IC = window.IC || {};
       ["tearoffRatePerSquare", "Tear-off $ / sq / layer"],
       ["dumpsterDefault", "Dumpster default"],
       ["permitDefault", "Permit default"],
+      ["deliveryFeeDefault", "Delivery fee default"],
       ["sheathingSheetPrice", "Sheathing $ / sheet"],
-      ["salesTaxPercent", "Sales tax % (on materials)"],
+      ["salesTaxPercent", "Sales tax % (on material cost)"],
       ["chimneyEachPrice", "Chimney $ / each"],
     ];
     var body = '<div class="card"><h2 style="margin-bottom:8px">Default estimate rates</h2><p class="muted" style="margin-bottom:12px">Used when a new estimate is created. Each job can override tax and price on Assessment.</p><div class="form-grid two">' +

@@ -145,6 +145,7 @@ IC.SETTINGS = {
   tearoffRatePerSquare: 42,
   dumpsterDefault: 425,
   permitDefault: 0,
+  deliveryFeeDefault: 65,
   sheathingSheetPrice: 68,
   sheathingSqftPerSheet: 32,
   salesTaxPercent: 7,
