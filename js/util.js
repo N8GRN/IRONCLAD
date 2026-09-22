@@ -305,4 +305,34 @@ window.IC = window.IC || {};
     var base = IC.baseUrl || "";
     return base + path.replace(/^\//, "");
   };
+
+  IC.appJoinUrl = function () {
+    var path = location.pathname.replace(/index\.html$/i, "");
+    if (path.slice(-1) !== "/") path += "/";
+    return location.origin + path;
+  };
+
+  IC.copyText = function (text) {
+    function fallback() {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.top = "0";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      } catch (err) {
+        return false;
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () { return fallback(); });
+    }
+    return Promise.resolve(fallback());
+  };
 })(window.IC);

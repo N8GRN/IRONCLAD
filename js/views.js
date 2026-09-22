@@ -625,6 +625,17 @@ window.IC = window.IC || {};
         return '<button type="button" class="' + (on ? "on" : "") + '" data-act="set-theme" data-theme="' + opt.id + '">' + opt.label + "</button>";
       }).join("") +
       "</div></div>" +
+      '<div class="card"><h2 style="margin-bottom:8px">Invite a teammate</h2>' +
+      '<p class="muted" style="margin-bottom:12px">Send the IRONCLAD link in a text or email. They install the app and create an account. You still grant Sales, Manager, or Admin before they can see jobs.</p>' +
+      (function () {
+        var join = IC.appJoinUrl();
+        if (/localhost|127\.0\.0\.1/.test(join)) return "";
+        return '<p class="tiny" style="margin-bottom:12px;word-break:break-all">' + IC.esc(join) + "</p>";
+      })() +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+      IC.btn(IC.icon("share") + " Invite", { data: 'data-act="invite-app"' }) +
+      IC.btn("Copy link", { variant: "outline", data: 'data-act="copy-invite"' }) +
+      "</div></div>" +
       IC.settingsCard("#/settings/company", "Company profile →", "Legal name, address, phone, warranty, insurance, and contract language.") +
       IC.settingsCard("#/settings/defaults", "Estimate defaults →", "Price $/square, waste, tax rate, chimney price, dumpster, permit, and delivery.") +
       (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team →", "Who can sign in, roles, and commission. Only admins can change this.") : "") +

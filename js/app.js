@@ -494,6 +494,29 @@ window.IC = window.IC || {};
       IC.markNotificationRead(t.getAttribute("data-id"));
       return;
     }
+    if (act === "invite-app") {
+      var inviteUrl = IC.appJoinUrl();
+      var inviteText = "Join Ironclad Roofing on IRONCLAD. Install the app and create an account — Nate or Matt will turn on your access.";
+      if (navigator.share) {
+        navigator.share({ title: "IRONCLAD", text: inviteText, url: inviteUrl }).catch(function (err) {
+          if (err && err.name === "AbortError") return;
+          IC.copyText(inviteUrl).then(function (ok) {
+            IC.toast(ok ? "Link copied" : "Couldn’t open the share sheet");
+          });
+        });
+        return;
+      }
+      IC.copyText(inviteUrl).then(function (ok) {
+        IC.toast(ok ? "Link copied — paste it in a text" : "Couldn’t copy the link");
+      });
+      return;
+    }
+    if (act === "copy-invite") {
+      IC.copyText(IC.appJoinUrl()).then(function (ok) {
+        IC.toast(ok ? "Invite link copied" : "Couldn’t copy the link");
+      });
+      return;
+    }
     if (act === "sign-out") {
       IC.signOut().then(function () { IC.go("#/"); });
       return;
