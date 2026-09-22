@@ -155,23 +155,20 @@ window.IC = window.IC || {};
         crews: crewsSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
         notifications: notesSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
       };
-      if (meta.settings) payload.settings = meta.settings;
+      if (meta.settings) payload.settings = Object.assign({}, IC.SETTINGS, meta.settings);
       if (users.length) payload.team = IC.mergeRoster(users);
-      else if (meta.team && meta.team.team) payload.team = IC.mergeRoster(meta.team.team);
       if (meta.catalog) payload.catalog = meta.catalog.catalog || meta.catalog;
       var hasData = payload.jobs.length + payload.customers.length + users.length > 0;
       if (hasData) {
         IC.replaceCloud(payload);
-        if (!users.length) IC.seedUsers(IC.state.team);
       } else {
         var s = IC.state;
         var writes = []
           .concat(s.jobs.map(function (j) { return db.collection("jobs").doc(j.id).set(JSON.parse(JSON.stringify(j))); }))
           .concat(s.customers.map(function (c) { return db.collection("customers").doc(c.id).set(JSON.parse(JSON.stringify(c))); }))
           .concat(s.crews.map(function (c) { return db.collection("crews").doc(c.id).set(JSON.parse(JSON.stringify(c))); }))
-          .concat(s.team.map(function (u) { return db.collection("users").doc(u.id).set(JSON.parse(JSON.stringify(u))); }));
+          .concat(s.team.filter(function (u) { return u && u.id && !IC.isGhostSeed(u); }).map(function (u) { return db.collection("users").doc(u.id).set(JSON.parse(JSON.stringify(u))); }));
         writes.push(db.collection("meta").doc("settings").set(JSON.parse(JSON.stringify(s.settings))));
-        writes.push(db.collection("meta").doc("team").set({ team: s.team }));
         writes.push(db.collection("meta").doc("catalog").set({ catalog: s.catalog, updatedAt: IC.nowIso() }));
         return Promise.all(writes).then(function () {
           IC.state.firebaseReady = true;
@@ -237,8 +234,10 @@ window.IC = window.IC || {};
       IC.emit();
     }));
     unsubscribers.push(db.collection("users").onSnapshot(function (snap) {
-      if (!snap.docs.length) return;
-      IC.state.team = IC.mergeRoster(snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }));
+      var incoming = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      var next = IC.mergeRoster(incoming);
+      IC.purgeDroppedUsers(incoming, next);
+      IC.state.team = next;
       var s = IC.state.session;
       if (s) {
         var me = IC.state.team.find(function (t) {
@@ -265,7 +264,12 @@ window.IC = window.IC || {};
     }));
     unsubscribers.push(db.collection("meta").onSnapshot(function (snap) {
       snap.forEach(function (d) {
-        if (d.id === "settings" && d.data()) IC.state.settings = Object.assign({}, IC.state.settings, d.data());
+        if (d.id === "settings" && d.data()) {
+          IC.state.settings = Object.assign({}, IC.SETTINGS, IC.state.settings, d.data());
+          if (IC.state.settings.permissions) {
+            IC.state.settings.permissions = IC.normalizePermissions(IC.state.settings.permissions);
+          }
+        }
         if (d.id === "catalog" && d.data()) {
           var cat = d.data().catalog || d.data();
           if (cat) IC.state.catalog = IC.ensureCatalog(cat);
@@ -316,10 +320,8 @@ window.IC = window.IC || {};
     next.status = "active";
     next.active = true;
     next.placeholder = false;
-    if (!next.title || next.title === "Waiting" || next.title === "Sales") next.title = "Admin";
-    var seed = (IC.TEAM || []).find(function (t) {
-      return t.email && t.email.toLowerCase() === email.toLowerCase();
-    });
+    if (!next.title || next.title === "Waiting" || next.title === "Sales" || next.title === "Manager") next.title = "Admin";
+    var seed = IC.BOOTSTRAP[email.toLowerCase()] || IC.BOOTSTRAP[(user.email || "").trim().toLowerCase()];
     var local = email.split("@")[0];
     if (!next.name || next.name === "Teammate" || next.name === local) {
       next.name = (seed && seed.name) || "Nate";
@@ -327,9 +329,18 @@ window.IC = window.IC || {};
     return next;
   };
 
+  IC.isGhostSeed = function (user) {
+    if (!user) return false;
+    var id = user.id;
+    if (!id || !IC.GHOST_SEED_IDS[id]) return false;
+    if (user.firebaseUid) return false;
+    if (user.email && IC.isBootstrapAdmin(user.email) && !user.placeholder) return false;
+    return Boolean(user.placeholder || !user.email);
+  };
+
   IC.normalizeUser = function (raw, id) {
     raw = raw || {};
-    var role = raw.role === "admin" || raw.role === "sales" ? raw.role : "pending";
+    var role = raw.role === "admin" || raw.role === "manager" || raw.role === "sales" ? raw.role : "pending";
     var status = raw.status || (role === "pending" ? "pending" : "active");
     var user = {
       id: id || raw.id,
@@ -344,11 +355,7 @@ window.IC = window.IC || {};
           var n = Number(raw.commissionPercent);
           return Number.isFinite(n) ? n : 0;
         }
-        var seed = (IC.TEAM || []).find(function (t) {
-          return (id && t.id === id) || (raw.id && t.id === raw.id) ||
-            (raw.email && t.email && String(t.email).toLowerCase() === String(raw.email).toLowerCase());
-        });
-        return seed && seed.commissionPercent != null ? Number(seed.commissionPercent) || 0 : 0;
+        return 0;
       })(),
       active: status === "active",
       status: status,
@@ -364,19 +371,60 @@ window.IC = window.IC || {};
   IC.mergeRoster = function (cloudUsers) {
     var list = (cloudUsers || []).map(function (u) {
       return IC.normalizeUser(Object.assign({}, u), u.id);
+    }).filter(function (u) {
+      return u && u.id && !IC.isGhostSeed(u);
+    });
+    list.sort(function (a, b) {
+      var aReal = a.firebaseUid ? 1 : 0;
+      var bReal = b.firebaseUid ? 1 : 0;
+      if (bReal !== aReal) return bReal - aReal;
+      var aMail = a.email ? 1 : 0;
+      var bMail = b.email ? 1 : 0;
+      if (bMail !== aMail) return bMail - aMail;
+      var aPh = a.placeholder ? 0 : 1;
+      var bPh = b.placeholder ? 0 : 1;
+      if (bPh !== aPh) return bPh - aPh;
+      return String(a.id).localeCompare(String(b.id));
     });
     var emails = {};
-    var ids = {};
+    var uids = {};
+    var names = {};
+    var out = [];
     list.forEach(function (u) {
-      if (u.id) ids[u.id] = true;
-      if (u.email) emails[String(u.email).toLowerCase()] = true;
+      var email = (u.email || "").trim().toLowerCase();
+      var uid = u.firebaseUid || "";
+      if (uid && uids[uid]) return;
+      if (email && emails[email]) return;
+      if (uid) uids[uid] = true;
+      if (email) emails[email] = true;
+      var nm = (u.name || "").trim().toLowerCase();
+      if (nm) names[nm] = true;
+      out.push(u);
     });
-    (IC.TEAM || []).forEach(function (seed) {
-      if (ids[seed.id]) return;
-      if (seed.email && emails[String(seed.email).toLowerCase()]) return;
-      list.push(IC.normalizeUser(seed, seed.id));
+    return out.filter(function (u) {
+      if (u.placeholder && !u.firebaseUid && !u.email) {
+        var nm = (u.name || "").trim().toLowerCase();
+        if (nm && names[nm] && out.some(function (o) { return o.id !== u.id && (o.name || "").trim().toLowerCase() === nm && (o.firebaseUid || o.email); })) {
+          return false;
+        }
+      }
+      return true;
     });
-    return list;
+  };
+
+  IC.purgeDroppedUsers = function (incoming, kept) {
+    var keep = {};
+    (kept || []).forEach(function (u) { if (u && u.id) keep[u.id] = true; });
+    (incoming || []).forEach(function (u) {
+      if (!u || !u.id || keep[u.id]) return;
+      var email = (u.email || "").trim().toLowerCase();
+      var uid = u.firebaseUid;
+      var dupEmail = Boolean(email && (kept || []).some(function (k) { return (k.email || "").trim().toLowerCase() === email; }));
+      var dupUid = Boolean(uid && (kept || []).some(function (k) { return k.firebaseUid === uid; }));
+      if (IC.isGhostSeed(u) || IC.GHOST_SEED_IDS[u.id] || dupEmail || dupUid) {
+        IC.cloudDelete("users", u.id);
+      }
+    });
   };
 
   IC.ensureUserProfile = function (fbUser) {
