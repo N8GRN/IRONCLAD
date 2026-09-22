@@ -149,6 +149,42 @@ window.IC = window.IC || {};
     });
   };
 
+  IC.mergeSettings = function (incoming) {
+    var prev = IC.state.settings || {};
+    var next = Object.assign({}, IC.clone(IC.SETTINGS), prev, incoming || {});
+    if (prev.seedCleared || next.seedCleared) next.seedCleared = true;
+    if (next.permissions) next.permissions = IC.normalizePermissions(next.permissions);
+    return next;
+  };
+
+  IC.seedCleared = function () {
+    return Boolean(IC.state.settings && IC.state.settings.seedCleared);
+  };
+
+  IC.dropSampleRecords = function (fromCloud) {
+    var dropCust = {};
+    (IC.state.customers || []).forEach(function (c) {
+      if (IC.isSampleCustomer(c)) dropCust[c.id] = true;
+    });
+    var dropJobs = (IC.state.jobs || []).filter(function (j) {
+      return IC.isSampleJob(j) || dropCust[j.customerId];
+    });
+    var dropJobIds = {};
+    dropJobs.forEach(function (j) { dropJobIds[j.id] = true; });
+    IC.state.customers = (IC.state.customers || []).filter(function (c) { return !dropCust[c.id]; });
+    IC.state.jobs = (IC.state.jobs || []).filter(function (j) { return !dropJobIds[j.id]; });
+    var dropNotes = (IC.state.notifications || []).filter(function (n) {
+      return n.jobId && dropJobIds[n.jobId];
+    });
+    IC.state.notifications = (IC.state.notifications || []).filter(function (n) { return !n.jobId || !dropJobIds[n.jobId]; });
+    if (fromCloud) {
+      Object.keys(dropCust).forEach(function (id) { IC.cloudDelete("customers", id); });
+      dropJobs.forEach(function (j) { IC.cloudDelete("jobs", j.id); });
+      dropNotes.forEach(function (n) { if (n.id) IC.cloudDelete("notifications", n.id); });
+    }
+    return { customers: Object.keys(dropCust).length, jobs: dropJobs.length };
+  };
+
   IC.loadLocal = function () {
     try {
       var raw = localStorage.getItem(IC.STORE_KEY);
@@ -156,7 +192,7 @@ window.IC = window.IC || {};
         var parsed = JSON.parse(raw);
         Object.assign(IC.state, {
           initialized: Boolean(parsed.initialized),
-          settings: Object.assign({}, IC.clone(IC.SETTINGS), parsed.settings || {}),
+          settings: IC.mergeSettings(parsed.settings || {}),
           team: IC.mergeRoster(parsed.team || []),
           crews: (parsed.crews && parsed.crews.length ? parsed.crews : IC.clone(IC.CREWS)).map(IC.normalizeCrew),
           catalog: IC.ensureCatalog(parsed.catalog),
@@ -201,10 +237,19 @@ window.IC = window.IC || {};
     var customers = IC.seedCustomers();
     var jobs = IC.seedJobs(customers);
     IC.state.initialized = true;
-    IC.state.customers = customers;
-    IC.state.jobs = jobs;
+    if (IC.state.settings && IC.state.settings.seedCleared) {
+      IC.state.customers = [];
+      IC.state.jobs = [];
+    } else {
+      IC.state.customers = customers;
+      IC.state.jobs = jobs;
+    }
     if (!IC.state.settings || !IC.state.settings.legalName) IC.state.settings = IC.clone(IC.SETTINGS);
-    else IC.state.settings = Object.assign({}, IC.clone(IC.SETTINGS), IC.state.settings);
+    else IC.state.settings = IC.mergeSettings(IC.state.settings);
+    if (IC.state.settings.seedCleared) {
+      IC.state.customers = (IC.state.customers || []).filter(function (c) { return !IC.isSampleCustomer(c); });
+      IC.state.jobs = (IC.state.jobs || []).filter(function (j) { return !IC.isSampleJob(j); });
+    }
     if (IC.state.settings.permissions) IC.state.settings.permissions = IC.normalizePermissions(IC.state.settings.permissions);
     if (!IC.state.team) IC.state.team = [];
     IC.state.team = IC.mergeRoster(IC.state.team);
@@ -224,12 +269,12 @@ window.IC = window.IC || {};
   IC.replaceCloud = function (data) {
     if (data.team) data.team = IC.mergeRoster(data.team);
     if (data.settings) {
-      data.settings = Object.assign({}, IC.clone(IC.SETTINGS), data.settings);
-      data.settings.permissions = IC.normalizePermissions(data.settings.permissions);
+      data.settings = IC.mergeSettings(data.settings);
     }
     if (data.catalog) data.catalog = IC.ensureCatalog(data.catalog);
     Object.assign(IC.state, data, { initialized: true });
     IC.state.catalog = IC.ensureCatalog(IC.state.catalog);
+    if (IC.seedCleared()) IC.dropSampleRecords(true);
     IC.emit();
   };
 
@@ -266,6 +311,10 @@ window.IC = window.IC || {};
   }
 
   IC.upsertCustomer = function (c) {
+    if (IC.seedCleared() && IC.isSampleCustomer(c)) {
+      IC.cloudDelete("customers", c.id);
+      return;
+    }
     IC.state.customers = upsertList(IC.state.customers, c);
     IC.emit();
     IC.cloudUpsert("customers", c.id, c);
@@ -278,6 +327,10 @@ window.IC = window.IC || {};
   };
 
   IC.upsertJob = function (j) {
+    if (IC.seedCleared() && (IC.isSampleJob(j) || IC.isSampleCustomer(IC.state.customers.find(function (c) { return c.id === j.customerId; })))) {
+      IC.cloudDelete("jobs", j.id);
+      return;
+    }
     IC.state.jobs = upsertList(IC.state.jobs, j);
     IC.emit();
     IC.cloudUpsert("jobs", j.id, j);
@@ -449,9 +502,10 @@ window.IC = window.IC || {};
   };
 
   IC.updateSettings = function (patch) {
-    IC.state.settings = Object.assign({}, IC.state.settings, patch);
+    IC.state.settings = IC.mergeSettings(patch);
     IC.emit();
     IC.cloudUpsert("meta", "settings", IC.state.settings);
+    if (IC.state.settings.seedCleared) IC.cloudUpsert("meta", "seedCleared", { cleared: true, at: IC.nowIso() });
   };
 
   IC.saveCatalog = function (catalog) {
@@ -850,9 +904,11 @@ window.IC = window.IC || {};
   };
 
   IC.clearSeedData = function () {
-    IC.state.customers = IC.state.customers.filter(function (c) { return !c.seeded; });
-    IC.state.jobs = IC.state.jobs.filter(function (j) { return !j.seeded; });
+    IC.state.settings = IC.mergeSettings({ seedCleared: true });
+    IC.dropSampleRecords(true);
     IC.emit();
+    IC.cloudUpsert("meta", "settings", IC.state.settings);
+    IC.cloudUpsert("meta", "seedCleared", { cleared: true, at: IC.nowIso() });
   };
 
   IC.newCustomerDraft = function () {

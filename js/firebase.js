@@ -60,6 +60,16 @@ window.IC = window.IC || {};
     if (!db || !id) return;
     if (!IC.getAuth() || !IC.getAuth().currentUser) return;
     if (col !== "users" && !IC.cloudEnabled()) return;
+    if (IC.seedCleared && IC.seedCleared()) {
+      if (col === "jobs" && IC.isSampleJob(data)) {
+        IC.cloudDelete(col, id);
+        return;
+      }
+      if (col === "customers" && IC.isSampleCustomer(data)) {
+        IC.cloudDelete(col, id);
+        return;
+      }
+    }
     db.collection(col).doc(id).set(JSON.parse(JSON.stringify(data))).catch(function (err) {
       console.warn("[ironclad] cloud upsert failed", col, id, err);
     });
@@ -155,20 +165,29 @@ window.IC = window.IC || {};
         crews: crewsSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
         notifications: notesSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
       };
-      if (meta.settings) payload.settings = Object.assign({}, IC.SETTINGS, meta.settings);
+      if (meta.settings) payload.settings = IC.mergeSettings ? IC.mergeSettings(meta.settings) : Object.assign({}, IC.SETTINGS, meta.settings);
+      if (meta.seedCleared && meta.seedCleared.cleared) {
+        payload.settings = Object.assign({}, payload.settings || IC.state.settings || {}, { seedCleared: true });
+      }
       if (users.length) payload.team = IC.mergeRoster(users);
       if (meta.catalog) payload.catalog = meta.catalog.catalog || meta.catalog;
+      if (payload.settings && payload.settings.seedCleared) {
+        payload.jobs = payload.jobs.filter(function (j) { return !IC.isSampleJob(j); });
+        payload.customers = payload.customers.filter(function (c) { return !IC.isSampleCustomer(c); });
+      }
       var hasData = payload.jobs.length + payload.customers.length + users.length > 0;
       if (hasData) {
         IC.replaceCloud(payload);
       } else {
         var s = IC.state;
+        var skipSamples = Boolean(s.settings && s.settings.seedCleared);
         var writes = []
-          .concat(s.jobs.map(function (j) { return db.collection("jobs").doc(j.id).set(JSON.parse(JSON.stringify(j))); }))
-          .concat(s.customers.map(function (c) { return db.collection("customers").doc(c.id).set(JSON.parse(JSON.stringify(c))); }))
+          .concat(s.jobs.filter(function (j) { return !skipSamples || !IC.isSampleJob(j); }).map(function (j) { return db.collection("jobs").doc(j.id).set(JSON.parse(JSON.stringify(j))); }))
+          .concat(s.customers.filter(function (c) { return !skipSamples || !IC.isSampleCustomer(c); }).map(function (c) { return db.collection("customers").doc(c.id).set(JSON.parse(JSON.stringify(c))); }))
           .concat(s.crews.map(function (c) { return db.collection("crews").doc(c.id).set(JSON.parse(JSON.stringify(c))); }))
           .concat(s.team.filter(function (u) { return u && u.id && !IC.isGhostSeed(u); }).map(function (u) { return db.collection("users").doc(u.id).set(JSON.parse(JSON.stringify(u))); }));
         writes.push(db.collection("meta").doc("settings").set(JSON.parse(JSON.stringify(s.settings))));
+        if (skipSamples) writes.push(db.collection("meta").doc("seedCleared").set({ cleared: true, at: IC.nowIso() }));
         writes.push(db.collection("meta").doc("catalog").set({ catalog: s.catalog, updatedAt: IC.nowIso() }));
         return Promise.all(writes).then(function () {
           IC.state.firebaseReady = true;
@@ -221,11 +240,25 @@ window.IC = window.IC || {};
     if (!db) return;
     notesPrimed = false;
     unsubscribers.push(db.collection("jobs").onSnapshot(function (snap) {
-      IC.state.jobs = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      var cleared = IC.seedCleared && IC.seedCleared();
+      IC.state.jobs = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).filter(function (j) {
+        if (cleared && IC.isSampleJob(j)) {
+          IC.cloudDelete("jobs", j.id);
+          return false;
+        }
+        return true;
+      });
       IC.emit();
     }));
     unsubscribers.push(db.collection("customers").onSnapshot(function (snap) {
-      IC.state.customers = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      var cleared = IC.seedCleared && IC.seedCleared();
+      IC.state.customers = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).filter(function (c) {
+        if (cleared && IC.isSampleCustomer(c)) {
+          IC.cloudDelete("customers", c.id);
+          return false;
+        }
+        return true;
+      });
       IC.emit();
     }));
     unsubscribers.push(db.collection("crews").onSnapshot(function (snap) {
@@ -265,10 +298,12 @@ window.IC = window.IC || {};
     unsubscribers.push(db.collection("meta").onSnapshot(function (snap) {
       snap.forEach(function (d) {
         if (d.id === "settings" && d.data()) {
-          IC.state.settings = Object.assign({}, IC.SETTINGS, IC.state.settings, d.data());
-          if (IC.state.settings.permissions) {
-            IC.state.settings.permissions = IC.normalizePermissions(IC.state.settings.permissions);
-          }
+          IC.state.settings = IC.mergeSettings(d.data());
+          if (IC.seedCleared()) IC.dropSampleRecords(true);
+        }
+        if (d.id === "seedCleared" && d.data() && d.data().cleared) {
+          IC.state.settings = IC.mergeSettings({ seedCleared: true });
+          IC.dropSampleRecords(true);
         }
         if (d.id === "catalog" && d.data()) {
           var cat = d.data().catalog || d.data();

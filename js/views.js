@@ -405,9 +405,9 @@ window.IC = window.IC || {};
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:8px">Quoted price</h3>' +
-      '<p class="muted" style="margin-bottom:12px">Leave blank to use the calculated proposal. A lower number shows as a discount on the customer Estimate. A higher number is hidden from the customer.</p>' +
+      '<p class="muted" style="margin-bottom:12px">This is the Proposal total (includes insurance). Leave it as-is to follow the calculated amount. A lower number shows as a discount on the customer Estimate. A higher number is hidden from the customer.</p>' +
       '<div class="form-grid two">' +
-      IC.field("Quoted price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: value.quotedTotal == null || value.quotedTotal === "" ? "" : value.quotedTotal, placeholder: c && c.listTotal != null ? String(c.listTotal) : "", "data-est": "num", "data-key": "quotedTotal", "data-null": "1" })) +
+      IC.field("Quoted price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: value.quotedTotal == null || value.quotedTotal === "" ? (c && c.total != null ? c.total : "") : value.quotedTotal, placeholder: c && c.total != null ? String(c.total) : "", "data-est": "num", "data-key": "quotedTotal", "data-null": "1" })) +
       "</div>" +
       (c && c.discountPercent > 0
         ? '<p class="tiny" style="margin-top:8px;color:var(--success)">' + c.discountPercent.toFixed(1) + "% discount · list " + IC.money(c.listTotal) + "</p>"
@@ -627,7 +627,7 @@ window.IC = window.IC || {};
       (IC.can(s, "materials", "read") ? IC.settingsCard("#/materials", "Materials catalog →", "Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.") : "") +
       (admin ? IC.settingsCard("#/settings/permissions", "Manage permissions →", "Control what Managers and Sales can see and edit.") : "") +
       (admin
-        ? '<div class="card"><h2 style="margin-bottom:8px">Sync</h2><p class="muted">Everyone who is signed in shares the same company jobs, customers, catalog, and team list from Firestore. Sample jobs can be removed once you are live.</p></div>' +
+        ? '<div class="card"><h2 style="margin-bottom:8px">Sync</h2><p class="muted">Everyone who is signed in shares the same company jobs, customers, catalog, and team list from Firestore. Removing samples is permanent for the whole company — they will not come back from other iPads.</p></div>' +
           IC.btn("Remove sample jobs & customers", { variant: "outline", data: 'data-act="clear-seed"' })
         : "") +
       "</div>";

@@ -421,25 +421,26 @@ window.IC = window.IC || {};
     if (!Number.isFinite(taxPct) || taxPct < 0) taxPct = 0;
     // Tax is on material COST (catalog prices) only — not on material margin, labor, permit, or delivery.
     var salesTax = round2(materialsSubtotal * (taxPct / 100));
-    var listTotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal + salesTax);
+    var jobSubtotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal + salesTax);
+    var insPct = settings.insurancePercent;
+    if (insPct == null || insPct === "") insPct = 1;
+    insPct = Number(insPct);
+    if (!Number.isFinite(insPct) || insPct < 0) insPct = 0;
+    var insuranceAmount = round2(jobSubtotal * (insPct / 100));
+    var listTotal = round2(jobSubtotal + insuranceAmount);
     var quotedRaw = est.quotedTotal;
     var quotedTotal = (quotedRaw == null || quotedRaw === "") ? listTotal : round2(Number(quotedRaw) || 0);
     var discountAmount = round2(listTotal - quotedTotal);
     var discountPercent = listTotal > 0 && discountAmount > 0.005 ? round2((discountAmount / listTotal) * 100) : 0;
     var salePrice = quotedTotal;
-    var insPct = settings.insurancePercent;
-    if (insPct == null || insPct === "") insPct = 1;
-    insPct = Number(insPct);
-    if (!Number.isFinite(insPct) || insPct < 0) insPct = 0;
-    var insuranceAmount = round2(salePrice * (insPct / 100));
-    var total = round2(salePrice + insuranceAmount);
+    var total = salePrice;
     var comm = IC.salespersonCommission(job, salePrice);
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));
     var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
     var profitBilled = round2(total - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount);
     var profitActual = round2(total - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount);
-    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee, measuredSquares);
+    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + insuranceAmount, measuredSquares);
 
     var costLines = lines.filter(function (l) { return l.key !== "labor"; }).slice();
     if (laborCostInstall > 0) {

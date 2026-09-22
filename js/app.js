@@ -568,7 +568,7 @@ window.IC = window.IC || {};
     }
     if (act === "clear-seed") {
       IC.clearSeedData();
-      IC.toast("Sample records removed");
+      IC.toast("Sample records removed for the company");
       return;
     }
     if (act === "catalog-cat") {
@@ -861,6 +861,9 @@ window.IC = window.IC || {};
     } else if (kind === "num") {
       var nk = el.getAttribute("data-key");
       var nv = el.value === "" && el.getAttribute("data-null") ? null : Number(el.value);
+      if (nk === "quotedTotal" && nv != null && est.computed && est.computed.listTotal != null) {
+        if (Math.abs(nv - est.computed.listTotal) < 0.005) nv = null;
+      }
       var np = {};
       np[nk] = nv;
       patchEstimate(jobE, np);

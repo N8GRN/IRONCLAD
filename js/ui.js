@@ -336,7 +336,7 @@ window.IC = window.IC || {};
     var prices = (est.computed && est.computed.structurePrices) || [];
     var c = est.computed;
     if (c && c.discountPercent > 0 && c.listTotal != null) {
-      prices = IC.structurePrices(est.structures, c.listTotal, (c.addonsSubtotal || 0) + (Number(c.deliveryFee) || 0), c.measuredSquares);
+      prices = IC.structurePrices(est.structures, c.listTotal, (c.addonsSubtotal || 0) + (Number(c.deliveryFee) || 0) + (Number(c.insuranceAmount) || 0), c.measuredSquares);
     }
     if (!prices.length) {
       rows.push({ qty: "", desc: "Replace roof with " + shingle + " on whole house", unit: "", total: est.computed && est.computed.total });
