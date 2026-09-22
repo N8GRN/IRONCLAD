@@ -389,14 +389,18 @@ window.IC = window.IC || {};
     var commLabel = c.commissionName
       ? "Sales Commission (" + c.commissionName + " " + (c.commissionPercent || 0) + "%)"
       : "Sales Commission";
-    var laborValue = opts.actual ? (c.laborCost != null ? c.laborCost : c.laborSubtotal) : c.laborSubtotal;
-    var profit = opts.actual && c.profitActual != null ? c.profitActual : c.profit;
+    var laborValue = opts.actual !== false
+      ? (c.laborCost != null ? c.laborCost : c.laborSubtotal)
+      : c.laborSubtotal;
+    var profit = opts.actual !== false && c.profitActual != null ? c.profitActual : c.profit;
     if (profit == null) profit = 0;
-    var itemSrc = opts.actual && c.costLines ? c.costLines : (c.lines || []);
+    var itemSrc = opts.actual !== false && c.costLines ? c.costLines : (c.lines || []);
+    var taxPct = c.salesTaxPercent != null ? c.salesTaxPercent : 7;
     var rows = [
       ["Materials", c.materialsSubtotal],
       ["Labor & tear-off", laborValue],
       [commLabel, commission],
+      ["Sales tax (" + (Number(taxPct) || 0) + "% on materials)", c.salesTax != null ? c.salesTax : 0],
       ["Other", c.otherCost != null ? c.otherCost : c.otherSubtotal],
       ["Gutters / siding", c.addonsSubtotal],
     ];

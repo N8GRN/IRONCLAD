@@ -339,7 +339,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .page-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
@@ -909,6 +909,30 @@ html[data-theme="dark"] button.text-link { color: var(--cream); }
 }
 .materials-entry:hover { background: var(--paper-2); }
 .materials-entry .icon { color: var(--navy); flex-shrink: 0; }
+
+.page-head .back { margin-right: 4px; }
+
+.perm-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.perm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.perm-table th,
+.perm-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.perm-table th {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+.perm-table td .check { margin: 0; }
 
 .card-head {
   display: flex;

@@ -62,7 +62,7 @@ window.IC = window.IC || {};
   };
 
   IC.jobSalesperson = function (job) {
-    var team = (IC.state && IC.state.team) || IC.TEAM || [];
+    var team = (IC.state && IC.state.team) || [];
     if (!job) return null;
     return team.find(function (t) { return t.id === job.ownerId; }) ||
       team.find(function (t) { return t.salesName && job.ownerName && t.salesName === job.ownerName; }) ||
@@ -141,6 +141,7 @@ window.IC = window.IC || {};
     if (person.status === "disabled") return "Off";
     if (person.title) return person.title;
     if (person.role === "admin") return "Admin";
+    if (person.role === "manager") return "Manager";
     if (person.role === "sales") return "Sales";
     return "Waiting";
   };
@@ -148,21 +149,74 @@ window.IC = window.IC || {};
   IC.isApproved = function (person) {
     if (!person) return false;
     if (person.status === "pending" || person.status === "disabled") return false;
-    return person.role === "admin" || person.role === "sales";
+    return person.role === "admin" || person.role === "manager" || person.role === "sales";
+  };
+
+  IC.isAdmin = function (person) {
+    return Boolean(person && person.role === "admin" && IC.isApproved(person));
+  };
+
+  IC.normalizePermissions = function (raw) {
+    var src = raw || {};
+    var out = {};
+    ["manager", "sales"].forEach(function (role) {
+      var def = IC.DEFAULT_PERMISSIONS[role] || {};
+      var have = src[role] || {};
+      out[role] = {};
+      (IC.PERM_RESOURCES || []).forEach(function (res) {
+        var d = def[res.id] || { read: false, write: false };
+        var h = have[res.id] || {};
+        var write = h.write != null ? Boolean(h.write) : Boolean(d.write);
+        var read = h.read != null ? Boolean(h.read) : Boolean(d.read);
+        if (write) read = true;
+        out[role][res.id] = { read: read, write: write };
+      });
+    });
+    return out;
+  };
+
+  IC.livePermissions = function () {
+    var saved = IC.state && IC.state.settings && IC.state.settings.permissions;
+    return IC.normalizePermissions(saved);
+  };
+
+  IC.can = function (session, resource, action) {
+    if (!session || !IC.isApproved(session)) return false;
+    if (session.role === "admin") return true;
+    var perms = IC.livePermissions();
+    var role = perms[session.role] || {};
+    var cell = role[resource] || { read: false, write: false };
+    if (action === "write") return Boolean(cell.write);
+    if (action === "read") return Boolean(cell.read) || Boolean(cell.write);
+    return false;
   };
 
   IC.canAssignSales = function (session) {
-    return session && session.role === "admin" && IC.isApproved(session);
+    return IC.isAdmin(session);
   };
 
   IC.canAssignCrew = function (session, job) {
     if (!session || !IC.isApproved(session)) return false;
-    if (session.role === "admin") return true;
+    if (session.role === "admin" || session.role === "manager") return true;
     return Boolean(session.salesName && job && job.ownerId === session.memberId);
   };
 
   IC.canManageTeam = function (session) {
-    return Boolean(session && session.role === "admin" && IC.isApproved(session));
+    return IC.can(session, "team", "write");
+  };
+
+  IC.salespeople = function () {
+    return ((IC.state && IC.state.team) || []).filter(function (t) {
+      return t.salesName && t.status !== "pending" && t.role !== "pending" && t.status !== "disabled";
+    });
+  };
+
+  IC.roleOptions = function () {
+    return [
+      { value: "admin", label: "Admin (full access)" },
+      { value: "manager", label: "Manager" },
+      { value: "sales", label: "Sales" },
+    ];
   };
 
   IC.authFriendly = function (err) {
