@@ -129,7 +129,7 @@ window.IC = window.IC || {};
         { categoryId: "lomance", itemName: IC.catalogDefaultName("lomance", "Black") },
       ],
       eaveLf: null, rakeLf: null, ridgeLf: null, hipLf: null, valleyLf: null,
-      pipeBoots: 4, broanBath: 0, broanKitchen: 0, broanVents: 0, chimneyLf: 0, wallFlashingLf: 0, ridgeVentLf: null,
+      pipeBoots: 4, broanBath: 0, broanKitchen: 0, broanVents: 0, chimneyCount: 0, chimneyLf: 0, wallFlashingLf: 0, ridgeVentLf: null,
       dumpster: settings.dumpsterDefault, permit: settings.permitDefault,
       extras: [],
       gutters: IC.normalizeAddon("gutters", { included: false }),
@@ -139,6 +139,7 @@ window.IC = window.IC || {};
       markupPercent: settings.markupPercent,
       laborRatePerSquare: settings.laborRatePerSquare,
       tearoffRatePerSquare: settings.tearoffRatePerSquare,
+      salesTaxPercent: settings.salesTaxPercent != null ? settings.salesTaxPercent : 7,
       quotedTotal: null,
       commissionAmount: 0,
       computed: emptySnapshot(),
@@ -244,7 +245,8 @@ window.IC = window.IC || {};
         var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
         labor += laborSq * laborRate * story;
         tearoff += sq * layers * tearRate;
-        laborCostInstall += laborSq * (Number(crewRates.installPerSq) || 0) * story;
+        var pitchRate = (crewRates.installByPitch && Number(crewRates.installByPitch[pitchLabel])) || Number(crewRates.installPerSq) || 0;
+        laborCostInstall += sq * pitchRate * story;
         if (layers > 0) {
           var tearCostRate = Number(crewRates["tearoff" + layers]) || 0;
           laborCostTearoff += sq * tearCostRate;
@@ -292,11 +294,17 @@ window.IC = window.IC || {};
     var billableSquares = laborSquares;
     if (steepSquares > 0) iceLf += 0.5 * (Number(est.wallFlashingLf) || 0);
 
-    var feltNeed = steepSquares * waste;
+    var feltNeed = steepSquares;
     var flatNeed = deadFlatSquares * waste;
     var iceNeedRolls = withWaste(lowSquares, wastePct) * 0.5 + (iceLf > 0 ? withWaste(iceLf, wastePct) / 60 : 0);
     var broanBath = Number(est.broanBath != null ? est.broanBath : est.broanVents) || 0;
     var broanKitchen = Number(est.broanKitchen) || 0;
+    var chimneyCount = Number(est.chimneyCount != null ? est.chimneyCount : 0) || 0;
+    var wallLf = Number(est.wallFlashingLf) || 0;
+    var stepFlashingLf = wallLf + chimneyCount * 10;
+    var stepBundles = ceilQty(stepFlashingLf / 50);
+    var chimneyPrice = Number(settings.chimneyEachPrice);
+    if (!Number.isFinite(chimneyPrice) || chimneyPrice < 0) chimneyPrice = 500;
 
     var materialQty = {
       shingle: { qty: ceilQty(materialSquares / (1 / 3)), unit: "bundle", need: materialSquares },
@@ -306,10 +314,10 @@ window.IC = window.IC || {};
       gutterApron: { qty: apronSticks, unit: "stick", need: eaveLf },
       iceWater: { qty: ceilQty(iceNeedRolls), unit: "roll", need: iceNeedRolls },
       felt: { qty: ceilQty(feltNeed / 10), unit: "roll", need: feltNeed },
-      ridgeVent: { qty: ceilQty(withWaste(ridgeVentLf, wastePct) / 30), unit: "roll", need: withWaste(ridgeVentLf, wastePct) },
+      ridgeVent: { qty: ceilQty(ridgeVentLf / 30), unit: "roll", need: ridgeVentLf },
       pipeBoots: { qty: est.pipeBoots, unit: "ea", need: est.pipeBoots },
-      flashing: { qty: est.structures.length, unit: "box", need: est.structures.length },
-      chimney: { qty: ceilQty(withWaste(est.chimneyLf, wastePct)), unit: "lf", need: withWaste(est.chimneyLf, wastePct) },
+      flashing: { qty: stepBundles, unit: "bundle", need: stepFlashingLf },
+      chimney: { qty: chimneyCount, unit: "ea", need: chimneyCount },
       wallFlashing: { qty: ceilQty(withWaste(est.wallFlashingLf, wastePct)), unit: "lf", need: withWaste(est.wallFlashingLf, wastePct) },
       baseSheet: { qty: ceilQty(flatNeed / 1), unit: "roll", need: flatNeed },
       capSheet: { qty: ceilQty(flatNeed / 2), unit: "roll", need: flatNeed },
@@ -326,16 +334,22 @@ window.IC = window.IC || {};
       if (qty <= 0) return;
       var item = IC.catalogItem(cat, p.itemName);
       if (!item) return;
+      var unitPrice = item.price;
+      if (cat === "chimney") unitPrice = chimneyPrice;
       var detail = p.itemName;
       if (cat === "iceWater") {
         var bits = [];
         if (lowSquares > 0) bits.push(round1(lowSquares) + " sq at ½ roll/sq");
         if (iceLf > 0) bits.push(round1(iceLf) + " lf at 60 lf/roll");
         if (bits.length) detail = p.itemName + " · " + bits.join(" + ");
+      } else if (cat === "flashing") {
+        detail = p.itemName + " · " + round1(wallLf) + " lf wall + " + chimneyCount + " chimney × 10 lf ÷ 50 lf/bundle";
+      } else if (cat === "chimney") {
+        detail = chimneyCount + " × " + IC.money(chimneyPrice);
       } else if (spec.need && category.coverageUnit !== "each") {
         detail = p.itemName + " · covers " + round1(spec.need) + " " + category.coverageUnit;
       }
-      lines.push(line("mat-" + cat, category.label, detail, qty, spec.unit, item.price, "material"));
+      lines.push(line("mat-" + cat, category.label, detail, qty, spec.unit, unitPrice, "material"));
     });
 
     if (broanBath > 0) {
@@ -390,7 +404,13 @@ window.IC = window.IC || {};
       lines.push(line("markup", "Material margin", est.markupPercent + "% on materials", 1, "ls", markupAmount, "other"));
       otherSubtotal = round2(otherSubtotal + markupAmount);
     }
-    var listTotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal);
+    var taxPct = est.salesTaxPercent;
+    if (taxPct == null || taxPct === "") taxPct = settings.salesTaxPercent;
+    if (taxPct == null || taxPct === "") taxPct = 7;
+    taxPct = Number(taxPct);
+    if (!Number.isFinite(taxPct) || taxPct < 0) taxPct = 0;
+    var salesTax = round2(materialsSubtotal * (taxPct / 100));
+    var listTotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal + salesTax);
     var quotedRaw = est.quotedTotal;
     var quotedTotal = (quotedRaw == null || quotedRaw === "") ? listTotal : round2(Number(quotedRaw) || 0);
     var discountAmount = round2(listTotal - quotedTotal);
@@ -400,13 +420,13 @@ window.IC = window.IC || {};
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));
     var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
-    var profitBilled = round2(salePrice - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission);
-    var profitActual = round2(salePrice - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission);
+    var profitBilled = round2(salePrice - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax);
+    var profitActual = round2(salePrice - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission - salesTax);
     var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal, measuredSquares);
 
     var costLines = lines.filter(function (l) { return l.key !== "labor" && l.key !== "tearoff"; }).slice();
     if (laborCostInstall > 0) {
-      costLines.unshift(line("labor-cost", "Install labor (crew)", laborSquares.toFixed(1) + " sq · " + IC.crewLabel(IC.crewForJob(job)), round2(laborSquares), "sq", round2(laborCostInstall / Math.max(laborSquares, 0.01)), "labor"));
+      costLines.unshift(line("labor-cost", "Install labor (crew)", round1(measuredSquares) + " measured sq by pitch · " + IC.crewLabel(IC.crewForJob(job)), round2(measuredSquares), "sq", round2(laborCostInstall / Math.max(measuredSquares, 0.01)), "labor"));
     }
     if (laborCostTearoff > 0) {
       costLines.splice(laborCostInstall > 0 ? 1 : 0, 0, line("tearoff-cost", "Tear-off (crew)", "Layer schedule from Labor catalog", 1, "ls", round2(laborCostTearoff), "labor"));
@@ -424,6 +444,7 @@ window.IC = window.IC || {};
       laborCostInstall: round2(laborCostInstall), laborCostTearoff: round2(laborCostTearoff),
       osbLaborCost: osbLaborCost, woodLaborCost: woodLaborCost,
       otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,
+      salesTax: salesTax, salesTaxPercent: taxPct,
       total: salePrice, listTotal: listTotal, quotedTotal: salePrice,
       discountPercent: discountPercent, discountAmount: discountAmount,
       billableSquares: billableSquares, measuredSquares: measuredSquares,
@@ -495,6 +516,10 @@ window.IC = window.IC || {};
     next.materials = IC.ensureEstimateMaterials(next);
     if (next.broanBath == null) next.broanBath = Number(next.broanVents) || 0;
     if (next.broanKitchen == null) next.broanKitchen = 0;
+    if (next.chimneyCount == null) next.chimneyCount = 0;
+    if (next.salesTaxPercent == null || next.salesTaxPercent === "") {
+      next.salesTaxPercent = settingsOf(settings).salesTaxPercent != null ? settingsOf(settings).salesTaxPercent : 7;
+    }
     next.computed = IC.computeEstimate(next, settings, job);
     next.updatedAt = new Date().toISOString();
     return next;
