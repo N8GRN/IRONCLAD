@@ -156,8 +156,8 @@ window.IC = window.IC || {};
         notifications: notesSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }),
       };
       if (meta.settings) payload.settings = meta.settings;
-      if (users.length) payload.team = users;
-      else if (meta.team && meta.team.team) payload.team = meta.team.team;
+      if (users.length) payload.team = IC.mergeRoster(users);
+      else if (meta.team && meta.team.team) payload.team = IC.mergeRoster(meta.team.team);
       if (meta.catalog) payload.catalog = meta.catalog.catalog || meta.catalog;
       var hasData = payload.jobs.length + payload.customers.length + users.length > 0;
       if (hasData) {
@@ -198,10 +198,23 @@ window.IC = window.IC || {};
   function showIncomingNote(n) {
     if (!n || seenNotes[n.id]) return;
     seenNotes[n.id] = true;
-    var me = IC.state.session && IC.state.session.memberId;
-    if (!me || n.userId !== me || n.read) return;
+    if (!IC.noteIsForSession(n, IC.state.session) || n.read) return;
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    try { new Notification(n.title || "IRONCLAD", { body: n.body || "", icon: IC.asset("brand/logo.png") }); }
+    var title = n.title || "IRONCLAD";
+    var body = n.body || "";
+    var icon = IC.asset("brand/logo.png");
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (reg && reg.showNotification) {
+          return reg.showNotification(title, { body: body, icon: icon, badge: IC.asset("icon-192.png"), data: { jobId: n.jobId || "" } });
+        }
+        try { new Notification(title, { body: body, icon: icon }); } catch (e) { /* ignore */ }
+      }).catch(function () {
+        try { new Notification(title, { body: body, icon: icon }); } catch (e) { /* ignore */ }
+      });
+      return;
+    }
+    try { new Notification(title, { body: body, icon: icon }); }
     catch (e) { /* ignore */ }
   }
 
@@ -220,19 +233,22 @@ window.IC = window.IC || {};
     }));
     unsubscribers.push(db.collection("crews").onSnapshot(function (snap) {
       if (!snap.docs.length) return;
-      IC.state.crews = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      IC.state.crews = snap.docs.map(function (d) { return IC.normalizeCrew(Object.assign({ id: d.id }, d.data())); });
       IC.emit();
     }));
     unsubscribers.push(db.collection("users").onSnapshot(function (snap) {
       if (!snap.docs.length) return;
-      IC.state.team = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      IC.state.team = IC.mergeRoster(snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }));
       var s = IC.state.session;
       if (s) {
         var me = IC.state.team.find(function (t) {
           return t.id === s.memberId || (s.firebaseUid && t.firebaseUid === s.firebaseUid) ||
             (s.email && t.email && t.email.toLowerCase() === s.email.toLowerCase());
         });
-        if (me) IC.state.session = IC.memberToSession(me, s.mode, s.firebaseUid);
+        if (me) {
+          me = IC.promoteIfBootstrap(IC.normalizeUser(me, me.id));
+          IC.state.session = IC.memberToSession(me, s.mode, s.firebaseUid);
+        }
       }
       IC.emit();
     }));
@@ -287,36 +303,91 @@ window.IC = window.IC || {};
 
   IC.isBootstrapAdmin = function (email) {
     var e = (email || "").trim().toLowerCase();
+    if (!e) return false;
     return (IC.ADMIN_EMAILS || []).some(function (x) { return String(x).toLowerCase() === e; });
+  };
+
+  IC.promoteIfBootstrap = function (user) {
+    if (!user) return user;
+    var email = (user.email || "").trim();
+    if (!IC.isBootstrapAdmin(email)) return user;
+    var next = Object.assign({}, user);
+    next.role = "admin";
+    next.status = "active";
+    next.active = true;
+    next.placeholder = false;
+    if (!next.title || next.title === "Waiting" || next.title === "Sales") next.title = "Admin";
+    var seed = (IC.TEAM || []).find(function (t) {
+      return t.email && t.email.toLowerCase() === email.toLowerCase();
+    });
+    var local = email.split("@")[0];
+    if (!next.name || next.name === "Teammate" || next.name === local) {
+      next.name = (seed && seed.name) || "Nate";
+    }
+    return next;
   };
 
   IC.normalizeUser = function (raw, id) {
     raw = raw || {};
     var role = raw.role === "admin" || raw.role === "sales" ? raw.role : "pending";
     var status = raw.status || (role === "pending" ? "pending" : "active");
-    return {
+    var user = {
       id: id || raw.id,
       name: raw.name || "Teammate",
       email: raw.email || "",
+      phone: raw.phone || "",
       role: status === "pending" ? "pending" : role,
       title: raw.title || "",
       salesName: raw.salesName || null,
+      commissionPercent: (function () {
+        if (raw.commissionPercent != null && raw.commissionPercent !== "") {
+          var n = Number(raw.commissionPercent);
+          return Number.isFinite(n) ? n : 0;
+        }
+        var seed = (IC.TEAM || []).find(function (t) {
+          return (id && t.id === id) || (raw.id && t.id === raw.id) ||
+            (raw.email && t.email && String(t.email).toLowerCase() === String(raw.email).toLowerCase());
+        });
+        return seed && seed.commissionPercent != null ? Number(seed.commissionPercent) || 0 : 0;
+      })(),
       active: status === "active",
       status: status,
       firebaseUid: raw.firebaseUid || null,
       placeholder: Boolean(raw.placeholder),
+      notifyPrefs: IC.normalizeNotifyPrefs(raw.notifyPrefs, { role: status === "pending" ? "pending" : role }),
       createdAt: raw.createdAt || IC.nowIso(),
       lastLoginAt: raw.lastLoginAt || null,
     };
+    return IC.promoteIfBootstrap(user);
+  };
+
+  IC.mergeRoster = function (cloudUsers) {
+    var list = (cloudUsers || []).map(function (u) {
+      return IC.normalizeUser(Object.assign({}, u), u.id);
+    });
+    var emails = {};
+    var ids = {};
+    list.forEach(function (u) {
+      if (u.id) ids[u.id] = true;
+      if (u.email) emails[String(u.email).toLowerCase()] = true;
+    });
+    (IC.TEAM || []).forEach(function (seed) {
+      if (ids[seed.id]) return;
+      if (seed.email && emails[String(seed.email).toLowerCase()]) return;
+      list.push(IC.normalizeUser(seed, seed.id));
+    });
+    return list;
   };
 
   IC.ensureUserProfile = function (fbUser) {
     var db = IC.getDb();
     var email = (fbUser.email || "").trim();
     var uid = fbUser.uid;
-    var display = (fbUser.displayName || email.split("@")[0] || "Teammate").trim();
+    var display = (fbUser.displayName || "").trim();
     var finish = function (user) {
-      user = IC.normalizeUser(user, user.id);
+      user = Object.assign({}, user, { firebaseUid: uid, email: email });
+      if (display && (!user.name || user.name === "Teammate")) user.name = display;
+      user = IC.normalizeUser(user, user.id || uid);
       user.lastLoginAt = IC.nowIso();
       user.firebaseUid = uid;
       user.email = email;
@@ -328,11 +399,11 @@ window.IC = window.IC || {};
       if (local) return Promise.resolve(finish(Object.assign({}, local, { firebaseUid: uid, email: email })));
       if (IC.isBootstrapAdmin(email)) {
         return Promise.resolve(finish({
-          id: uid, name: display, email: email, role: "admin", title: "Admin", status: "active", firebaseUid: uid,
+          id: uid, name: display || "Nate", email: email, role: "admin", title: "Admin", status: "active", firebaseUid: uid,
         }));
       }
       return Promise.resolve(finish({
-        id: uid, name: display, email: email, role: "pending", title: "Waiting", status: "pending", firebaseUid: uid,
+        id: uid, name: display || "Teammate", email: email, role: "pending", title: "Waiting", status: "pending", firebaseUid: uid,
       }));
     }
     return db.collection("users").doc(uid).get().then(function (byUid) {
@@ -345,14 +416,14 @@ window.IC = window.IC || {};
         var byAddr = IC.matchMember(email);
         if (byAddr) return finish(Object.assign({}, byAddr, { firebaseUid: uid, email: email, placeholder: false }));
         if (IC.isBootstrapAdmin(email)) {
-          var nate = IC.state.team.find(function (t) { return t.id === "nate"; });
+          var nate = IC.state.team.find(function (t) { return t.id === "nate" || IC.isBootstrapAdmin(t.email); });
           if (nate) return finish(Object.assign({}, nate, { email: email, firebaseUid: uid, role: "admin", status: "active", placeholder: false }));
           return finish({
-            id: uid, name: display, email: email, role: "admin", title: "Admin", status: "active", firebaseUid: uid,
+            id: uid, name: display || "Nate", email: email, role: "admin", title: "Admin", status: "active", firebaseUid: uid,
           });
         }
         return finish({
-          id: uid, name: display, email: email, role: "pending", title: "Waiting", status: "pending", firebaseUid: uid,
+          id: uid, name: display || "Teammate", email: email, role: "pending", title: "Waiting", status: "pending", firebaseUid: uid,
         });
       });
     });
@@ -413,29 +484,30 @@ window.IC = window.IC || {};
   };
 
   IC.registerPush = function (userId) {
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
-    if (!IC.firebaseAvailable() || !firebase.messaging) return;
-    Notification.requestPermission().then(function (perm) {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) return Promise.resolve();
+    if (!IC.firebaseAvailable() || !firebase.messaging) return Promise.resolve();
+    return Notification.requestPermission().then(function (perm) {
       if (perm !== "granted") return;
       var messaging = firebase.messaging();
-      return navigator.serviceWorker.register("firebase-messaging-sw.js").then(function (reg) {
+      return navigator.serviceWorker.register("sw.js").then(function (reg) {
         return messaging.getToken({ vapidKey: IC.VAPID, serviceWorkerRegistration: reg });
       }).then(function (token) {
         var db = IC.getDb();
-        var who = userId || (IC.state.session && IC.state.session.memberId);
+        var s = IC.state.session;
+        var who = userId || (s && (s.memberId || s.firebaseUid));
         if (token && db && IC.getAuth() && IC.getAuth().currentUser && who) {
           db.collection("fcmTokens").doc(token).set({
-            userId: who,
-            email: IC.state.session && IC.state.session.email || "",
+            userId: s && s.memberId || who,
+            firebaseUid: s && s.firebaseUid || "",
+            email: s && s.email || "",
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             platform: navigator.userAgent,
           });
         }
         messaging.onMessage(function (payload) {
           var n = (payload && payload.notification) || {};
-          var me = IC.state.session && IC.state.session.memberId;
           var target = (payload && payload.data && payload.data.userId) || "";
-          if (target && me && target !== me) return;
+          if (target && s && IC.personIds(s).indexOf(target) < 0) return;
           try { new Notification(n.title || "IRONCLAD", { body: n.body || "", icon: IC.asset("brand/logo.png") }); }
           catch (e) { /* ignore */ }
         });
