@@ -16,7 +16,7 @@ window.IC = window.IC || {};
       initialized: false,
       firebaseReady: false,
       settings: IC.clone(IC.SETTINGS),
-      team: IC.clone(IC.TEAM),
+      team: [],
       crews: IC.clone(IC.CREWS),
       catalog: IC.ensureCatalog(null),
       customers: [],
@@ -65,9 +65,9 @@ window.IC = window.IC || {};
   };
 
   IC.defaultNotifyPrefs = function (member) {
-    var admin = member && member.role === "admin";
+    var lead = member && (member.role === "admin" || member.role === "manager");
     return {
-      jobCreated: Boolean(admin),
+      jobCreated: Boolean(lead),
       jobAssigned: true,
       statusChanged: true,
       jobScheduled: false,
@@ -156,8 +156,8 @@ window.IC = window.IC || {};
         var parsed = JSON.parse(raw);
         Object.assign(IC.state, {
           initialized: Boolean(parsed.initialized),
-          settings: parsed.settings || IC.clone(IC.SETTINGS),
-          team: IC.fillTeamTitles(parsed.team && parsed.team.length ? parsed.team : IC.clone(IC.TEAM)),
+          settings: Object.assign({}, IC.clone(IC.SETTINGS), parsed.settings || {}),
+          team: IC.mergeRoster(parsed.team || []),
           crews: (parsed.crews && parsed.crews.length ? parsed.crews : IC.clone(IC.CREWS)).map(IC.normalizeCrew),
           catalog: IC.ensureCatalog(parsed.catalog),
           customers: parsed.customers || [],
@@ -204,7 +204,10 @@ window.IC = window.IC || {};
     IC.state.customers = customers;
     IC.state.jobs = jobs;
     if (!IC.state.settings || !IC.state.settings.legalName) IC.state.settings = IC.clone(IC.SETTINGS);
-    if (!IC.state.team.length) IC.state.team = IC.clone(IC.TEAM);
+    else IC.state.settings = Object.assign({}, IC.clone(IC.SETTINGS), IC.state.settings);
+    if (IC.state.settings.permissions) IC.state.settings.permissions = IC.normalizePermissions(IC.state.settings.permissions);
+    if (!IC.state.team) IC.state.team = [];
+    IC.state.team = IC.mergeRoster(IC.state.team);
     if (!IC.state.crews.length) IC.state.crews = IC.clone(IC.CREWS);
     IC.state.crews = (IC.state.crews || []).map(IC.normalizeCrew);
     IC.state.catalog = IC.ensureCatalog(IC.state.catalog);
@@ -219,7 +222,11 @@ window.IC = window.IC || {};
   };
 
   IC.replaceCloud = function (data) {
-    if (data.team) data.team = IC.fillTeamTitles(data.team);
+    if (data.team) data.team = IC.mergeRoster(data.team);
+    if (data.settings) {
+      data.settings = Object.assign({}, IC.clone(IC.SETTINGS), data.settings);
+      data.settings.permissions = IC.normalizePermissions(data.settings.permissions);
+    }
     if (data.catalog) data.catalog = IC.ensureCatalog(data.catalog);
     Object.assign(IC.state, data, { initialized: true });
     IC.state.catalog = IC.ensureCatalog(IC.state.catalog);
@@ -227,30 +234,25 @@ window.IC = window.IC || {};
   };
 
   IC.fillTeamTitles = function (team) {
-    var defaults = {};
-    IC.TEAM.forEach(function (t) { defaults[t.id] = t; });
-    var list = (team || []).map(function (m) {
-      var d = defaults[m.id];
+    return (team || []).map(function (m) {
       var status = m.status || (m.role === "pending" ? "pending" : "active");
       var next = Object.assign({}, m, { status: status });
       if (!next.title) {
         if (status === "pending") next.title = "Waiting";
-        else if (d && d.title) next.title = d.title;
-        else next.title = next.role === "admin" ? "Admin" : (next.role === "sales" ? "Sales" : "Waiting");
+        else if (next.role === "admin") next.title = "Admin";
+        else if (next.role === "manager") next.title = "Manager";
+        else if (next.role === "sales") next.title = "Sales";
+        else next.title = "Waiting";
       }
       if (next.commissionPercent == null || next.commissionPercent === "") {
-        next.commissionPercent = d && d.commissionPercent != null ? d.commissionPercent : 0;
+        next.commissionPercent = 0;
       } else {
         next.commissionPercent = Number(next.commissionPercent) || 0;
       }
-      if (next.phone == null) next.phone = (d && d.phone) || "";
+      if (next.phone == null) next.phone = "";
       next.notifyPrefs = IC.normalizeNotifyPrefs(next.notifyPrefs, next);
       return next;
     });
-    IC.TEAM.forEach(function (seed) {
-      if (!list.some(function (m) { return m.id === seed.id; })) list.push(Object.assign({}, seed));
-    });
-    return list;
   };
 
   function upsertList(list, item) {
@@ -401,7 +403,7 @@ window.IC = window.IC || {};
     if (which === "customer") {
       var actor = IC.state.session && IC.state.session.memberId;
       IC.state.team.filter(function (t) {
-        return (t.role === "admin" && IC.isApproved(t)) || t.id === job.ownerId;
+        return ((t.role === "admin" || t.role === "manager") && IC.isApproved(t)) || t.id === job.ownerId;
       }).forEach(function (r) {
         if (r.id === actor) return;
         IC.notify({
@@ -459,7 +461,7 @@ window.IC = window.IC || {};
   };
 
   IC.updateCatalogItem = function (catId, itemId, patch) {
-    if (!IC.canManageTeam(IC.state.session)) return;
+    if (!IC.can(IC.state.session, "materials", "write")) return;
     var oldName = null;
     var nextName = null;
     var catalog = IC.liveCatalog().map(function (cat) {
@@ -507,7 +509,7 @@ window.IC = window.IC || {};
   };
 
   IC.addCatalogItem = function (catId, draft) {
-    if (!IC.canManageTeam(IC.state.session)) return null;
+    if (!IC.can(IC.state.session, "materials", "write")) return null;
     draft = draft || {};
     var name = String(draft.name || "").trim();
     if (!name) {
@@ -549,7 +551,7 @@ window.IC = window.IC || {};
   };
 
   IC.setCatalogItemActive = function (catId, itemId, active) {
-    if (!IC.canManageTeam(IC.state.session)) return;
+    if (!IC.can(IC.state.session, "materials", "write")) return;
     var cat = IC.catalogCategory(catId);
     if (!cat) return;
     if (!active) {
@@ -563,7 +565,7 @@ window.IC = window.IC || {};
   };
 
   IC.removeCatalogItem = function (catId, itemId) {
-    if (!IC.canManageTeam(IC.state.session)) return;
+    if (!IC.can(IC.state.session, "materials", "write")) return;
     var cat = IC.catalogCategory(catId);
     if (!cat) return;
     var remaining = cat.items.filter(function (it) { return it.id !== itemId; });
@@ -580,7 +582,7 @@ window.IC = window.IC || {};
   };
 
   IC.bumpCatalogPrices = function (catId, percent) {
-    if (!IC.canManageTeam(IC.state.session)) return;
+    if (!IC.can(IC.state.session, "materials", "write")) return;
     var pct = Number(percent);
     if (!Number.isFinite(pct) || pct === 0) {
       IC.toast("Enter a percent, like 5 or -3");
@@ -618,7 +620,6 @@ window.IC = window.IC || {};
       }
     }
     IC.emit();
-    IC.cloudUpsert("meta", "team", { team: team });
     team.forEach(function (u) { IC.cloudUpsert("users", u.id, u); });
   };
 
@@ -662,7 +663,12 @@ window.IC = window.IC || {};
       next.role = "admin";
       next.status = "active";
       next.active = true;
-      if (!next.title || next.title === "Waiting" || next.title === "Sales") next.title = "Admin";
+      if (!next.title || next.title === "Waiting" || next.title === "Sales" || next.title === "Manager") next.title = "Admin";
+    } else if (patch && patch.role === "manager") {
+      next.role = "manager";
+      next.status = "active";
+      next.active = true;
+      if (!next.title || next.title === "Waiting" || next.title === "Sales") next.title = "Manager";
     } else if (patch && patch.role === "sales") {
       next.role = "sales";
       next.status = "active";
@@ -683,7 +689,7 @@ window.IC = window.IC || {};
           name: user.name || seat.name,
           status: "active",
           active: true,
-          role: next.role === "admin" ? "admin" : (seat.role === "admin" ? "admin" : "sales"),
+          role: next.role === "admin" ? "admin" : (next.role === "manager" ? "manager" : (seat.role === "admin" ? "admin" : seat.role || "sales")),
           title: next.title || seat.title,
           salesName: next.salesName || seat.salesName,
           placeholder: false,
@@ -706,8 +712,8 @@ window.IC = window.IC || {};
     if (!IC.canManageTeam(IC.state.session)) return null;
     draft = draft || {};
     var name = String(draft.name || "").trim() || "New teammate";
-    var role = draft.role === "admin" ? "admin" : "sales";
-    var title = String(draft.title || "").trim() || (role === "admin" ? "Admin" : "Sales");
+    var role = draft.role === "admin" ? "admin" : (draft.role === "manager" ? "manager" : "sales");
+    var title = String(draft.title || "").trim() || (role === "admin" ? "Admin" : (role === "manager" ? "Manager" : "Sales"));
     var salesName = String(draft.salesName || "").trim();
     if (!salesName && role === "sales") salesName = name;
     var member = {
@@ -745,6 +751,7 @@ window.IC = window.IC || {};
       return;
     }
     IC.updateTeam(IC.state.team.filter(function (t) { return t.id !== id; }));
+    IC.cloudDelete("users", id);
   };
 
   IC.markNotificationRead = function (id) {
@@ -819,7 +826,7 @@ window.IC = window.IC || {};
   IC.notifyNewJob = function (job) {
     if (!job) return;
     (IC.state.team || []).forEach(function (m) {
-      if (m.role !== "admin") return;
+      if (m.role !== "admin" && m.role !== "manager") return;
       if (!IC.wantsNotify(m, "jobCreated")) return;
       IC.notifyMember(m, {
         title: "New job entered",
@@ -911,6 +918,22 @@ window.IC = window.IC || {};
   IC.enterLocal = function (member) {
     IC.initIfEmpty();
     IC.setSession(IC.memberToSession(member, "offline", null));
+  };
+
+  IC.updatePermissions = function (role, resource, action, on) {
+    if (!IC.isAdmin(IC.state.session)) return;
+    if (role !== "manager" && role !== "sales") return;
+    var perms = IC.livePermissions();
+    perms[role] = perms[role] || {};
+    perms[role][resource] = perms[role][resource] || { read: false, write: false };
+    if (action === "write") {
+      perms[role][resource].write = Boolean(on);
+      if (on) perms[role][resource].read = true;
+    } else if (action === "read") {
+      perms[role][resource].read = Boolean(on);
+      if (!on) perms[role][resource].write = false;
+    }
+    IC.updateSettings({ permissions: IC.normalizePermissions(perms) });
   };
 
   IC.toast = function (msg) {
