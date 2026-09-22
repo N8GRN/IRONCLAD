@@ -81,13 +81,17 @@ window.IC = window.IC || {};
         : "Your account is in. Nate or Matt still need to give you Sales or Admin rights before you can see jobs.") +
       "</p>" +
       '<p class="tiny" style="margin-top:12px">' + IC.esc(s.email || "") + "</p>" +
-      '<div style="margin-top:16px">' + IC.btn("Sign out", { variant: "outline", class: "btn-block", data: 'data-act="sign-out"' }) + "</div>" +
+      '<div style="margin-top:16px">' +
+      IC.btn("Check access again", { class: "btn-block", data: 'data-act="refresh-access"' }) +
+      '<div style="height:8px"></div>' +
+      IC.btn("Sign out", { variant: "outline", class: "btn-block", data: 'data-act="sign-out"' }) +
+      "</div>" +
       "</div></div></div>";
   };
 
   IC.viewShell = function (inner, route) {
     var s = session();
-    var unread = IC.state.notifications.filter(function (n) { return n.userId === s.memberId && !n.read; }).length;
+    var unread = IC.state.notifications.filter(function (n) { return IC.noteIsForSession(n, s) && !n.read; }).length;
     var nav = [
       { to: "#/", id: "home", label: "Home", icon: "home" },
       { to: "#/jobs", id: "jobs", label: "Jobs", icon: "briefcase" },
@@ -96,7 +100,7 @@ window.IC = window.IC || {};
     ];
     var isActive = function (id) {
       if (id === "home") return route.name === "home";
-      return route.name === id || (id === "jobs" && route.name === "job") || (id === "customers" && route.name === "customer");
+      return route.name === id || (id === "jobs" && (route.name === "job" || route.name === "customer-quote" || route.name === "job-sheet" || route.name === "job-cost")) || (id === "customers" && route.name === "customer");
     };
     var sideLinks = nav.map(function (item) {
       return '<a href="' + item.to + '" class="' + (isActive(item.id) ? "active" : "") + '">' + IC.icon(item.icon) + "<span>" + item.label + "</span></a>";
@@ -105,6 +109,7 @@ window.IC = window.IC || {};
       '<nav class="nav-side">' + sideLinks + "</nav>" +
       '<div class="nav-foot"><a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
       (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" +
+      (s.role === "admin" ? '<a href="#/labor" class="' + (route.name === "labor" ? "active" : "") + '">' + IC.icon("hammer") + "<span>Labor</span></a>" : "") +
       (s.role === "admin" ? '<a href="#/materials" class="' + (route.name === "materials" ? "active" : "") + '">' + IC.icon("box") + "<span>Materials</span></a>" : "") +
       '<a href="#/settings" class="' + (route.name === "settings" ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" +
       '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + IC.esc(IC.roleLabel(s)) + (s.mode === "offline" || !IC.ui.online ? " · offline" : "") + "</span></div></div></aside>" +
@@ -122,7 +127,7 @@ window.IC = window.IC || {};
   IC.viewHome = function () {
     var s = session();
     var jobs = mineJobs();
-    var unread = IC.state.notifications.filter(function (n) { return n.userId === s.memberId && !n.read; });
+    var unread = IC.state.notifications.filter(function (n) { return IC.noteIsForSession(n, s) && !n.read; });
     var today = new Date().toISOString().slice(0, 10);
     var upcoming = jobs.filter(function (j) { return j.scheduledDate; })
       .sort(function (a, b) { return (a.scheduledDate || "").localeCompare(b.scheduledDate || ""); }).slice(0, 5);
@@ -207,13 +212,15 @@ window.IC = window.IC || {};
     var customer = IC.state.customers.find(function (c) { return c.id === job.customerId; });
     var settings = IC.state.settings;
     var tab = IC.ui.jobTab || "Overview";
-    var tabs = ["Overview", "Estimate", "Quote", "Contract"].map(function (t) {
+    if (tab === "Estimate") tab = "Assessment";
+    if (tab === "Quote") tab = "Summary";
+    var tabs = ["Overview", "Assessment", "Summary", "Contract"].map(function (t) {
       return '<button type="button" class="' + (tab === t ? "on" : "") + '" data-act="job-tab" data-tab="' + t + '">' + t + "</button>";
     }).join("");
     var body = "";
     if (tab === "Overview") body = IC.viewJobOverview(job, customer);
-    else if (tab === "Estimate") body = IC.viewEstimator(job);
-    else if (tab === "Quote") body = IC.viewQuote(job, settings);
+    else if (tab === "Assessment") body = IC.viewEstimator(job);
+    else if (tab === "Summary") body = IC.viewJobSummary(job);
     else body = IC.viewJobContract(job, customer, settings);
     return '<div class="page"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">' +
       '<a class="back" href="#/jobs">' + IC.icon("back") + "</a>" +
@@ -258,7 +265,16 @@ window.IC = window.IC || {};
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeGutters" data-id="' + job.id + '"' + (job.includeGutters ? " checked" : "") + " /> Gutters</label>" +
       '<label class="check"><input type="checkbox" data-act="job-flag" data-flag="includeSiding" data-id="' + job.id + '"' + (job.includeSiding ? " checked" : "") + " /> Siding</label>" +
       IC.field("Notes", IC.textarea({ value: job.notes, "data-act": "job-notes", "data-id": job.id }), "span-2") +
-      "</div></div><div style='display:grid;gap:1rem'><div class='card'><h2 style='margin-bottom:8px'>Customer</h2>" +
+      "</div></div><div style='display:grid;gap:1rem'><div class='card'><div class='card-head'><h2>Customer</h2>" +
+      (customer
+        ? '<div class="icon-row">' +
+          '<button type="button" class="btn btn-outline btn-icon" data-act="job-calendar" data-id="' + job.id + '" aria-label="Add to calendar" title="Add to calendar">' + IC.icon("calendar") + "</button>" +
+          (IC.mapsUrl(customer)
+            ? '<a class="btn btn-outline btn-icon" href="' + IC.esc(IC.mapsUrl(customer)) + '" target="_blank" rel="noopener" aria-label="Navigate" title="Navigate">' + IC.icon("nav") + "</a>"
+            : '<button type="button" class="btn btn-outline btn-icon" data-act="job-navigate" data-id="' + job.id + '" aria-label="Navigate" title="Navigate">' + IC.icon("nav") + "</button>") +
+          "</div>"
+        : "") +
+      "</div>" +
       (customer
         ? '<a href="#/customers/' + customer.id + '"><p style="font-weight:600">' + IC.esc(customer.firstName + " " + customer.lastName) + '</p><p class="muted">' + IC.esc(customer.street) + '</p><p class="muted">' + IC.esc(customer.city + ", " + customer.state + " " + customer.zip) + '</p><p style="margin-top:8px">' + IC.esc(IC.formatPhone(customer.phone)) + "</p><p>" + IC.esc(customer.email) + "</p></a>"
         : '<p class="muted">Customer record missing.</p>') +
@@ -269,26 +285,55 @@ window.IC = window.IC || {};
 
   IC.viewEstimator = function (job) {
     var settings = IC.state.settings;
-    var value = job.estimate || IC.withComputed(IC.defaultEstimate(settings), settings);
+    var value = IC.withComputed(job.estimate || IC.defaultEstimate(settings), settings, job);
     var c = value.computed;
     var gutters = IC.normalizeAddon("gutters", value.gutters);
     var siding = IC.normalizeAddon("siding", value.siding);
     var structures = value.structures.map(function (st, i) {
+      var facets = IC.structureFacets(st);
+      var facetRows = facets.map(function (f, fi) {
+        return '<div class="facet-row"><div class="facet-head"><p class="field-label">Facet ' + (fi + 1) + "</p>" +
+          (facets.length > 1 ? IC.btn(IC.icon("trash"), { variant: "ghost", size: "sm", data: 'data-act="est-del-facet" data-sid="' + st.id + '" data-fid="' + f.id + '"' }) : "") +
+          "</div><div class=\"form-grid two\">" +
+          IC.field("Squares", IC.input({ type: "number", min: "0", step: "0.1", value: f.squares, "data-est": "facet", "data-sid": st.id, "data-fid": f.id, "data-key": "squares", "data-num": "1" })) +
+          IC.field("Pitch", IC.select({ "data-est": "facet", "data-sid": st.id, "data-fid": f.id, "data-key": "pitch", value: f.pitch }, IC.PITCHES.map(function (x) { return { value: x, label: x }; }))) +
+          IC.field("Tear-off", IC.select({ "data-est": "facet", "data-sid": st.id, "data-fid": f.id, "data-key": "tearoff", value: f.tearoff }, IC.TEAROFF.map(function (x) { return { value: x, label: x }; }))) +
+          "</div></div>";
+      }).join("");
       return '<section class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3>Structure ' + (i + 1) + "</h3>" +
         (value.structures.length > 1 ? IC.btn(IC.icon("trash"), { variant: "ghost", data: 'data-act="est-del-struct" data-sid="' + st.id + '"' }) : "") + "</div>" +
         '<div class="form-grid two">' +
         IC.field("Name", IC.input({ value: st.name, "data-est": "struct", "data-sid": st.id, "data-key": "name" })) +
-        IC.field("Squares", IC.input({ type: "number", min: "0", step: "0.1", value: st.squares, "data-est": "struct", "data-sid": st.id, "data-key": "squares", "data-num": "1" })) +
         IC.field("Type", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "type", value: st.type }, IC.ROOF_TYPES.map(function (x) { return { value: x, label: x }; }))) +
         IC.field("Stories", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "level", value: st.level }, IC.STORIES.map(function (x) { return { value: x, label: x }; }))) +
-        IC.field("Pitch", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "pitch", value: st.pitch }, IC.PITCHES.map(function (x) { return { value: x, label: x }; }))) +
-        IC.field("Tear-off", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "tearoff", value: st.tearoff }, IC.TEAROFF.map(function (x) { return { value: x, label: x }; }))) +
         IC.field("Sheathing", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "sheathing", value: st.sheathing }, IC.SHEATHING.map(function (x) { return { value: x, label: x }; }))) +
         IC.field("Replace sheathing (sheets)", IC.input({ type: "number", min: "0", step: "1", value: st.sheathingSheets != null ? st.sheathingSheets : "", placeholder: "e.g. 10", "data-est": "struct", "data-sid": st.id, "data-key": "sheathingSheets", "data-num": "1" })) +
-        "</div></section>";
+        IC.field("Replace wood (boards)", IC.input({ type: "number", min: "0", step: "1", value: st.woodBoards != null ? st.woodBoards : "", placeholder: "e.g. 8", "data-est": "struct", "data-sid": st.id, "data-key": "woodBoards", "data-num": "1" })) +
+        IC.field("Vent", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "ventType", value: st.ventType === "box" ? "box" : "ridge" }, [
+          { value: "ridge", label: "Ridge vents" },
+          { value: "box", label: "Box vents" },
+        ])) +
+        (st.ventType === "box"
+          ? IC.field("Box vent qty", IC.input({ type: "number", min: "0", step: "1", value: st.boxVentQty || 0, "data-est": "struct", "data-sid": st.id, "data-key": "boxVentQty", "data-num": "1" })) +
+            IC.field("Box vent color", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "boxVentColor", value: st.boxVentColor || "Black" },
+              (IC.catalogActiveItems("boxVent") || []).map(function (it) { return { value: it.name, label: it.name }; })))
+          : "") +
+        "</div>" +
+        '<div class="facet-block"><p class="field-label" style="margin-bottom:8px">Facets</p>' +
+        '<p class="tiny muted" style="margin-bottom:10px">4/12+ : felt + ice on eaves/valleys/½ wall flashing. 2/12–3.9/12 : Ice & Water at ½ roll/sq, no felt. Flat Roof : Base sheet + MuleHide cap + custom edge metal (no shingles, felt, ice, starter, drip, or hip).</p>' +
+        facetRows +
+        '<div style="margin-top:8px">' + IC.btn(IC.icon("plus") + " Add facet", { variant: "outline", size: "sm", data: 'data-act="est-add-facet" data-sid="' + st.id + '"' }) + "</div></div>" +
+        '<div class="facet-block"><p class="field-label" style="margin-bottom:8px">Linears for this structure</p>' +
+        '<p class="tiny muted" style="margin-bottom:10px">Leave blank to auto from this structure’s squares. Drip edge = rakes, then 10% + 1 stick. Gutter apron = eaves, then 10%.</p>' +
+        '<div class="form-grid two">' +
+        [["eaveLf", "Eaves (lf)"], ["rakeLf", "Rakes (lf)"], ["ridgeLf", "Ridge (lf)"], ["hipLf", "Hips (lf)"], ["valleyLf", "Valleys (lf)"]].map(function (pair) {
+          return IC.field(pair[1], IC.input({ type: "number", min: "0", placeholder: "auto", value: st[pair[0]] == null || st[pair[0]] === "" ? "" : st[pair[0]], "data-est": "struct", "data-sid": st.id, "data-key": pair[0], "data-num": "1", "data-null": "1" }));
+        }).join("") +
+        "</div></div></section>";
     }).join("");
-    var linears = [["eaveLf", "Eaves (lf)"], ["rakeLf", "Rakes (lf)"], ["ridgeLf", "Ridge (lf)"], ["hipLf", "Hips (lf)"], ["valleyLf", "Valleys (lf)"], ["ridgeVentLf", "Ridge vent (lf)"]];
-    var materials = IC.liveCatalog().map(function (cat) {
+    var materials = IC.liveCatalog().filter(function (cat) {
+      return cat.id !== "broan" && cat.id !== "boxVent" && cat.id !== "lomance";
+    }).map(function (cat) {
       var pick = value.materials.find(function (m) { return m.categoryId === cat.id; });
       var active = cat.items.filter(function (item) { return item.active !== false; });
       var current = pick && pick.itemName;
@@ -313,18 +358,17 @@ window.IC = window.IC || {};
     return '<div class="page" data-job="' + job.id + '"><div class="no-print" style="display:flex;justify-content:flex-end">' +
       IC.btn("Save estimate", { variant: "outline", data: 'data-act="save-est"' }) + "</div>" + structures +
       IC.btn(IC.icon("plus") + " Add structure", { variant: "outline", data: 'data-act="est-add-struct"' }) +
-      '<section class="card"><h3 style="margin-bottom:8px">Linear measurements</h3><p class="muted" style="margin-bottom:12px">Leave blank to auto-estimate from squares. Enter real numbers from the measure.</p>' +
-      '<div class="form-grid two">' + linears.map(function (pair) {
-        return IC.field(pair[1], IC.input({ type: "number", min: "0", placeholder: "auto", value: value[pair[0]] == null ? "" : value[pair[0]], "data-est": "num", "data-key": pair[0], "data-null": "1" }));
-      }).join("") +
+      '<section class="card"><h3 style="margin-bottom:8px">Counts</h3><p class="muted" style="margin-bottom:12px">Job-wide pieces. Eaves, rakes, ridge, hips, and valleys live on each structure.</p>' +
+      '<div class="form-grid two">' +
       IC.field("Pipe boots", IC.input({ type: "number", min: "0", value: value.pipeBoots, "data-est": "num", "data-key": "pipeBoots" })) +
-      IC.field("Broan vents", IC.input({ type: "number", min: "0", value: value.broanVents, "data-est": "num", "data-key": "broanVents" })) +
+      IC.field("Broan 4\" (bath)", IC.input({ type: "number", min: "0", value: value.broanBath != null ? value.broanBath : value.broanVents || 0, "data-est": "num", "data-key": "broanBath" })) +
+      IC.field("Broan 8\" (kitchen)", IC.input({ type: "number", min: "0", value: value.broanKitchen || 0, "data-est": "num", "data-key": "broanKitchen" })) +
       IC.field("Chimney flashing lf", IC.input({ type: "number", min: "0", value: value.chimneyLf, "data-est": "num", "data-key": "chimneyLf" })) +
       IC.field("Wall flashing lf", IC.input({ type: "number", min: "0", value: value.wallFlashingLf, "data-est": "num", "data-key": "wallFlashingLf" })) +
       "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:12px">Materials</h3><div class="form-grid two">' + materials + "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:12px">Add-ons & job costs</h3><div class="form-grid two">' +
-      IC.field("Labor $/square", IC.input({ type: "number", value: value.laborRatePerSquare, "data-est": "num", "data-key": "laborRatePerSquare" })) +
+      IC.field("Price $/square", IC.input({ type: "number", value: value.laborRatePerSquare, "data-est": "num", "data-key": "laborRatePerSquare" })) +
       IC.field("Waste %", IC.input({ type: "number", value: value.wastePercent, "data-est": "num", "data-key": "wastePercent" })) +
       IC.field("Material margin %", IC.input({ type: "number", value: value.markupPercent, "data-est": "num", "data-key": "markupPercent" })) +
       IC.field("Tear-off $/sq / layer", IC.input({ type: "number", value: value.tearoffRatePerSquare, "data-est": "num", "data-key": "tearoffRatePerSquare" })) +
@@ -349,21 +393,50 @@ window.IC = window.IC || {};
       "</div>" +
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
-      '<section class="navy-sum"><div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px"><div><p class="field-label" style="color:rgba(251,248,241,.7)">Proposal total</p><p class="big">' + IC.money(c.total) + "</p></div><p class='tiny' style='color:rgba(251,248,241,.8)'>" + c.measuredSquares.toFixed(1) + " sq measured<br>" + c.billableSquares.toFixed(1) + " sq billed</p></div>" +
-      '<dl style="margin-top:1rem;font-size:.9rem"><div style="display:flex;justify-content:space-between"><dt style="opacity:.8">Materials</dt><dd class="tabular">' + IC.money(c.materialsSubtotal) + "</dd></div>" +
-      '<div style="display:flex;justify-content:space-between"><dt style="opacity:.8">Labor & tear-off</dt><dd class="tabular">' + IC.money(c.laborSubtotal) + "</dd></div>" +
-      '<div style="display:flex;justify-content:space-between"><dt style="opacity:.8">Other</dt><dd class="tabular">' + IC.money(c.otherSubtotal) + "</dd></div>" +
-      '<div style="display:flex;justify-content:space-between"><dt style="opacity:.8">Gutters / siding</dt><dd class="tabular">' + IC.money(c.addonsSubtotal) + "</dd></div></dl>" +
-      "<ul>" + c.lines.map(function (l) {
-        return "<li><span>" + IC.esc(l.label) + (l.detail ? " — " + IC.esc(l.detail) : "") + " (" + l.qty + " " + IC.esc(l.unit) + ')</span><span class="tabular">' + IC.money(l.amount) + "</span></li>";
-      }).join("") + "</ul></section></div>";
+      '<section class="card"><h3 style="margin-bottom:8px">Quoted price</h3>' +
+      '<p class="muted" style="margin-bottom:12px">Leave blank to use the calculated proposal. A lower number shows as a discount on the customer Estimate. A higher number is hidden from the customer.</p>' +
+      '<div class="form-grid two">' +
+      IC.field("Quoted price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: value.quotedTotal == null || value.quotedTotal === "" ? "" : value.quotedTotal, placeholder: c && c.listTotal != null ? String(c.listTotal) : "", "data-est": "num", "data-key": "quotedTotal", "data-null": "1" })) +
+      "</div>" +
+      (c && c.discountPercent > 0
+        ? '<p class="tiny" style="margin-top:8px;color:var(--success)">' + c.discountPercent.toFixed(1) + "% discount · list " + IC.money(c.listTotal) + "</p>"
+        : (c && c.listTotal != null && c.total > c.listTotal + 0.005
+          ? '<p class="tiny" style="margin-top:8px">Raised from list ' + IC.money(c.listTotal) + " — increase is not shown on the customer Estimate.</p>"
+          : "")) +
+      "</section>" +
+      IC.navySumHtml(c, { heading: "Proposal total" }) + "</div>";
+  };
+
+  IC.viewJobSummary = function (job) {
+    return '<div class="page" style="display:grid;gap:12px">' +
+      '<a class="card materials-entry" href="#/jobs/' + job.id + '/customer-quote"><div><h2 style="margin-bottom:4px">Customer quote</h2><p class="muted">What the homeowner sees. Price per structure and a total — no labor or material breakdown.</p></div>' + IC.icon("arrow") + "</a>" +
+      '<a class="card materials-entry" href="#/jobs/' + job.id + '/job-sheet"><div><h2 style="margin-bottom:4px">Job Sheet</h2><p class="muted">Materials only, with qty and amount. For the lumber yard order.</p></div>' + IC.icon("arrow") + "</a>" +
+      '<a class="card materials-entry" href="#/jobs/' + job.id + '/job-cost"><div><h2 style="margin-bottom:4px">Job cost</h2><p class="muted">Internal rollup using crew pay from Labor — materials, actual labor, commission, other, add-ons, and profit.</p></div>' + IC.icon("arrow") + "</a>" +
+      "</div>";
+  };
+
+  IC.viewDocPage = function (job, kind) {
+    var settings = IC.state.settings;
+    var customer = IC.state.customers.find(function (c) { return c.id === job.customerId; });
+    var live = Object.assign({}, job, { estimate: IC.withComputed(job.estimate || IC.defaultEstimate(settings), settings, job) });
+    var titles = { "customer-quote": "Customer quote", "job-sheet": "Job Sheet", "job-cost": "Job cost" };
+    var shareActs = { "customer-quote": "share-customer-quote", "job-sheet": "share-job-sheet", "job-cost": "share-job-cost" };
+    var body = kind === "customer-quote"
+      ? IC.customerQuoteHtml(live, customer, settings)
+      : kind === "job-sheet"
+        ? IC.jobSheetHtml(live, settings.legalName)
+        : IC.jobCostHtml(live);
+    return '<div class="page"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">' +
+      '<a class="back" href="#/jobs/' + job.id + '">' + IC.icon("back") + "</a>" +
+      '<div style="min-width:0;flex:1"><p class="kicker muted">Job #' + job.number + '</p><h1 class="title" style="font-size:1.6rem">' + IC.esc(titles[kind] || "Document") + "</h1></div></div>" +
+      '<div class="no-print" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">' +
+      IC.btn(IC.icon("share") + " Share", { data: 'data-act="' + shareActs[kind] + '"' }) +
+      IC.btn("Print", { variant: "outline", data: 'data-act="print"' }) + "</div>" +
+      body + "</div>";
   };
 
   IC.viewQuote = function (job, settings) {
-    return '<div class="page"><div class="no-print" style="display:flex;flex-wrap:wrap;gap:8px">' +
-      IC.btn(IC.icon("share") + " Share quote", { data: 'data-act="share-quote"' }) +
-      IC.btn("Print", { variant: "outline", data: 'data-act="print"' }) + "</div>" +
-      IC.quoteHtml(job, settings.legalName) + "</div>";
+    return IC.viewDocPage(job, "job-sheet");
   };
 
   IC.viewJobContract = function (job, customer, settings) {
@@ -465,11 +538,28 @@ window.IC = window.IC || {};
 
   IC.viewNotifications = function () {
     var s = session();
-    var mine = IC.state.notifications.filter(function (n) { return n.userId === s.memberId; });
+    var mine = IC.state.notifications.filter(function (n) { return IC.noteIsForSession(n, s); })
+      .sort(function (a, b) { return String(b.createdAt || "").localeCompare(String(a.createdAt || "")); });
+    var me = IC.state.team.find(function (t) { return t.id === s.memberId || (s.firebaseUid && t.firebaseUid === s.firebaseUid); }) || s;
+    var prefs = IC.normalizeNotifyPrefs(me.notifyPrefs, me);
+    var options = [
+      { key: "jobCreated", label: "A new job is created" },
+      { key: "jobAssigned", label: "I have been assigned a new job" },
+      { key: "statusChanged", label: "The status of my project changed" },
+      { key: "jobScheduled", label: "My project has been scheduled" },
+      { key: "jobComplete", label: "My project is complete" },
+    ];
     return '<div class="page"><header class="page-head"><div><p class="kicker muted">Inbox</p><h1 class="title">Alerts</h1></div><div style="display:flex;gap:8px">' +
       IC.btn("Mark all read", { variant: "outline", size: "sm", data: 'data-act="mark-all"' }) +
       IC.btn("Enable push", { variant: "outline", size: "sm", data: 'data-act="enable-push"' }) +
-      "</div></header><p class='muted'>You’ll get an alert when a job is assigned to you, a crew is scheduled on your job, or your customer signs. iPhone push works after Add to Home Screen (iOS 16.4+).</p>" +
+      "</div></header>" +
+      '<section class="card notify-prefs"><h2 style="margin-bottom:6px">Notifications</h2>' +
+      '<p class="muted" style="margin-bottom:12px">Choose which push notifications you want to receive. This iPad must Allow Notifications (and be added to the Home Screen on iPhone/iPad).</p>' +
+      options.map(function (opt) {
+        return '<label class="check"><input type="checkbox" data-act="notify-pref" data-pref="' + opt.key + '"' + (prefs[opt.key] ? " checked" : "") + " /><span>" + opt.label + "</span></label>";
+      }).join("") +
+      "</section>" +
+      '<h2 style="margin:1.25rem 0 8px">Inbox</h2>' +
       (mine.length ? '<ul style="display:grid;gap:8px;list-style:none;padding:0;margin:0">' + mine.map(function (n) {
         var inner = '<p style="font-weight:600">' + IC.esc(n.title) + '</p><p class="muted">' + IC.esc(n.body) + '</p><p class="tiny">' + IC.formatDate(n.createdAt) + "</p>";
         return '<li><div class="card"' + (n.read ? ' style="opacity:.7"' : "") + ">" +
@@ -490,6 +580,7 @@ window.IC = window.IC || {};
       ])) +
       IC.field("Shown as", IC.input({ value: d.title, "data-udraft": "title", placeholder: "Admin, Owner, Sales…" })) +
       IC.field("Owns jobs as", IC.input({ value: d.salesName, "data-udraft": "salesName", placeholder: "Blank if they don’t own jobs" })) +
+      IC.field("Commission %", IC.input({ type: "number", min: "0", step: "0.1", value: d.commissionPercent != null ? d.commissionPercent : 0, "data-udraft": "commissionPercent", placeholder: "e.g. 6" })) +
       '</div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem">' +
       IC.btn("Cancel", { variant: "ghost", data: 'data-act="close-modal"' }) +
       IC.btn("Add seat", { data: 'data-act="save-teammate"' }) + "</div></div></div>";
@@ -501,7 +592,7 @@ window.IC = window.IC || {};
     var admin = s.role === "admin";
     var dis = admin ? "" : " disabled";
     var rates = [
-      ["laborRatePerSquare", "Labor $ / square"],
+      ["laborRatePerSquare", "Price $ / square"],
       ["wastePercent", "Waste %"],
       ["markupPercent", "Material margin %"],
       ["tearoffRatePerSquare", "Tear-off $ / sq / layer"],
@@ -519,7 +610,8 @@ window.IC = window.IC || {};
       }).join("") +
       "</div></div>" +
       (admin
-        ? '<a class="card materials-entry" href="#/materials"><div><h2 style="margin-bottom:4px">Materials catalog</h2><p class="muted">Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.</p></div>' + IC.icon("arrow") + "</a>"
+        ? '<a class="card materials-entry" href="#/labor"><div><h2 style="margin-bottom:4px">Labor catalog</h2><p class="muted">Crew pay rates: install, tear-off, OSB, and wood. Used on Job cost — not on the customer price.</p></div>' + IC.icon("arrow") + "</a>" +
+          '<a class="card materials-entry" href="#/materials"><div><h2 style="margin-bottom:4px">Materials catalog</h2><p class="muted">Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.</p></div>' + IC.icon("arrow") + "</a>"
         : "") +
       '<div class="card"><h2 style="margin-bottom:12px">On the paperwork</h2><div class="form-grid two">' +
       IC.field("Legal name", IC.input({ value: settings.legalName, "data-set": "legalName", disabled: !admin })) +
@@ -530,6 +622,7 @@ window.IC = window.IC || {};
       IC.field("City", IC.input({ value: settings.city, "data-set": "city", disabled: !admin })) +
       IC.field("State", IC.input({ value: settings.state, "data-set": "state", disabled: !admin })) +
       IC.field("ZIP", IC.input({ value: settings.zip, "data-set": "zip", disabled: !admin })) +
+      IC.field("Website", IC.input({ value: settings.website, "data-set": "website", disabled: !admin, placeholder: "https://ironcladroofing.com" })) +
       IC.field("Workmanship warranty (years)", IC.input({ type: "number", value: settings.warrantyWorkmanshipYears, "data-set": "warrantyWorkmanshipYears", "data-num": "1", disabled: !admin })) +
       IC.field("Payment terms", IC.textarea({ value: settings.paymentTerms, "data-set": "paymentTerms", disabled: !admin }), "span-2") +
       IC.field("Contract introduction", IC.textarea({ value: settings.contractIntro, "data-set": "contractIntro", disabled: !admin }), "span-2") +
@@ -568,7 +661,9 @@ window.IC = window.IC || {};
             IC.field("Role", IC.select({ "data-team": "role", "data-id": m.id, value: m.role === "admin" ? "admin" : "sales", disabled: !admin }, [{ value: "admin", label: "Admin (full access)" }, { value: "sales", label: "Sales" }])) +
             IC.field("Shown as", IC.input({ value: IC.roleLabel(m), "data-team": "title", "data-id": m.id, placeholder: "Admin, Owner, Sales…", disabled: !admin })) +
             IC.field("Owns jobs as", IC.input({ value: m.salesName || "", "data-team": "salesName", "data-id": m.id, placeholder: "Name on jobs, or blank", disabled: !admin })) +
-            IC.field("Email", IC.input({ value: m.email, type: "email", "data-team": "email", "data-id": m.id, disabled: !admin, placeholder: m.placeholder ? "Creates an account, then you grant access" : "" }), "span-2") +
+            IC.field("Commission %", IC.input({ type: "number", min: "0", step: "0.1", value: m.commissionPercent != null ? m.commissionPercent : 0, "data-team": "commissionPercent", "data-id": m.id, disabled: !admin, placeholder: "e.g. 6" })) +
+            IC.field("Email", IC.input({ value: m.email, type: "email", "data-team": "email", "data-id": m.id, disabled: !admin, placeholder: m.placeholder ? "Creates an account, then you grant access" : "" })) +
+            IC.field("Phone", IC.input({ value: m.phone || "", type: "tel", "data-team": "phone", "data-id": m.id, disabled: !admin, placeholder: "(765) 555-0100" })) +
             "</div>" +
             (m.placeholder && !m.email ? '<p class="tiny" style="margin-top:8px">No login yet — they create an account, then you grant access and can link it to this seat.</p>' : "") +
             (admin
@@ -595,6 +690,54 @@ window.IC = window.IC || {};
         : "") +
       (admin ? IC.btn("Remove sample jobs & customers", { variant: "outline", data: 'data-act="clear-seed"' }) : "") +
       "</div>";
+  };
+
+  IC.viewLabor = function () {
+    var s = session();
+    if (!s || s.role !== "admin") {
+      return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1></div></header><div class="card"><p class="muted">Only admins (Nate and Matt) can edit crew labor rates.</p></div></div>';
+    }
+    var crews = (IC.state.crews || []).map(IC.normalizeCrew);
+    if (!crews.length) {
+      return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1></div>' +
+        IC.btn(IC.icon("plus") + " Add crew", { variant: "outline", data: 'data-act="add-crew"' }) +
+        "</header><div class=\"card\"><p class=\"muted\">No crews yet. Add Crew 1 from here — it syncs with the job’s crew picker.</p></div></div>";
+    }
+    var crewId = IC.ui.laborCrew || (crews[0] && crews[0].id);
+    var crew = crews.find(function (c) { return c.id === crewId; }) || crews[0];
+    IC.ui.laborCrew = crew.id;
+    var labor = crew.labor;
+    var pills = crews.map(function (c) {
+      var on = c.id === crew.id;
+      return '<button type="button" class="' + (on ? "on" : "") + '" data-act="labor-crew" data-id="' + c.id + '">' + IC.esc(IC.crewLabel(c)) + "</button>";
+    }).join("");
+    var rateFields = [
+      ["installPerSq", "Install labor (crew pay) $/sq", "What we pay this crew per square. Assessment Price $/square is what the customer is charged."],
+      ["tearoff1", "1-layer tear-off $/sq", ""],
+      ["tearoff2", "2-layer tear-off $/sq", ""],
+      ["tearoff3", "3-layer tear-off $/sq", ""],
+      ["tearoff4", "4-layer tear-off $/sq", ""],
+      ["tearoff5", "5-layer tear-off $/sq", ""],
+      ["osbPerSheet", "OSB replacement $/sheet", "Crew pay to replace a sheet."],
+      ["woodPerBoard", "Wood $/board", "Crew pay per board."],
+    ];
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1><p class="muted" style="margin-top:4px">Rates we pay each crew. The Assessment Price $/square is the customer price — the company keeps the difference. Job cost uses these numbers.</p></div>' +
+      IC.btn(IC.icon("plus") + " Add crew", { variant: "outline", data: 'data-act="add-crew"' }) +
+      "</header>" +
+      '<div class="card"><div class="cat-pills" role="tablist" aria-label="Crew">' + pills + "</div>" +
+      '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(IC.crewLabel(crew)) + '</h2><p class="tiny">Synced with the crew roster on jobs.</p></div></div>' +
+      '<div class="form-grid two" style="margin-bottom:12px">' +
+      IC.field("Crew name", IC.input({ value: crew.name, "data-crew": "name", "data-id": crew.id })) +
+      IC.field("Foreman", IC.input({ value: crew.foreman, "data-crew": "foreman", "data-id": crew.id, placeholder: "Alejandro" })) +
+      "</div>" +
+      '<h3 style="margin:8px 0">Pay rates</h3>' +
+      '<div class="form-grid two">' +
+      rateFields.map(function (r) {
+        return IC.field(r[1], IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor[r[0]], "data-labor": r[0], "data-id": crew.id, "aria-label": r[1] }));
+      }).join("") +
+      "</div>" +
+      '<p class="tiny muted" style="margin-top:12px">Tear-off is a flat $/sq for that layer count (2-layer is $' + Number(labor.tearoff2).toFixed(0) + "/sq, not twice 1-layer).</p>" +
+      "</div></div>";
   };
 
   IC.viewMaterials = function () {
