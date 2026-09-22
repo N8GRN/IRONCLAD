@@ -275,8 +275,10 @@ window.IC = window.IC || {};
     var resolved = IC.resolvedTheme(pref);
     document.documentElement.setAttribute("data-theme", resolved);
     document.documentElement.setAttribute("data-theme-pref", pref);
+    var splash = document.getElementById("ic-splash");
+    var splashUp = splash && !splash.classList.contains("is-done") && !splash.classList.contains("is-leaving");
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", resolved === "dark" ? "#101820" : "#0d3b6e");
+    if (meta && !splashUp) meta.setAttribute("content", resolved === "dark" ? "#101820" : "#0d3b6e");
   };
 
   IC.statusTone = function (status) {

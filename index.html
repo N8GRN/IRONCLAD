@@ -4,10 +4,106 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>IRONCLAD CRM</title>
-    <meta name="theme-color" content="#0d3b6e" />
+    <meta name="theme-color" content="#f3efe6" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="IRONCLAD" />
     <meta name="description" content="Roofing CRM, estimator, and service agreements for Ironclad Roofing LLC." />
+    <style>
+      html, body {
+        margin: 0;
+        min-height: 100dvh;
+        background: #f3efe6;
+        color: #1a2332;
+      }
+      .ic-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 4000;
+        display: grid;
+        place-items: center;
+        background: #f3efe6;
+        padding: env(safe-area-inset-top, 0) 24px env(safe-area-inset-bottom, 0);
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .ic-splash-stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: -4vh;
+      }
+      .ic-splash-mark {
+        width: 112px;
+        height: auto;
+        display: block;
+      }
+      .ic-splash-navy,
+      .ic-splash-red {
+        transform-box: fill-box;
+        transform-origin: 50% 100%;
+      }
+      .ic-splash-navy {
+        fill: #0d3b6e;
+        animation: ic-gable 720ms cubic-bezier(0.2, 0, 0, 1) 60ms both;
+      }
+      .ic-splash-red {
+        fill: #9a1f1a;
+        animation: ic-gable 720ms cubic-bezier(0.2, 0, 0, 1) 240ms both;
+      }
+      .ic-splash-name {
+        margin: 22px 0 0;
+        font-family: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
+        font-weight: 600;
+        font-size: 22px;
+        letter-spacing: 0.28em;
+        color: #0d3b6e;
+        padding-left: 0.28em;
+        animation: ic-rise 640ms cubic-bezier(0.2, 0, 0, 1) 520ms both;
+      }
+      .ic-splash-rule {
+        width: 48px;
+        height: 2px;
+        margin-top: 14px;
+        background: #9a1f1a;
+        transform-origin: 50% 50%;
+        animation: ic-rule 500ms cubic-bezier(0.2, 0, 0, 1) 780ms both;
+      }
+      .ic-splash-tag {
+        margin: 12px 0 0;
+        font-family: "Figtree", ui-sans-serif, system-ui, sans-serif;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: #9a1f1a;
+        padding-left: 0.32em;
+        animation: ic-rise 640ms cubic-bezier(0.2, 0, 0, 1) 880ms both;
+      }
+      .ic-splash.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 380ms ease;
+      }
+      .ic-splash.is-done { display: none; }
+      @keyframes ic-gable {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes ic-rise {
+        from { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+        to { opacity: 1; transform: none; filter: blur(0); }
+      }
+      @keyframes ic-rule {
+        from { transform: scaleX(0); opacity: 0; }
+        to { transform: scaleX(1); opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ic-splash-navy, .ic-splash-red, .ic-splash-name, .ic-splash-rule, .ic-splash-tag {
+          animation: none;
+        }
+      }
+    </style>
     <script>
       (function () {
         try {
@@ -15,9 +111,8 @@
           var dark = p === "dark" || (p !== "light" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
           document.documentElement.setAttribute("data-theme-pref", p);
-          var m = document.querySelector('meta[name="theme-color"]');
-          if (m) m.setAttribute("content", dark ? "#101820" : "#0d3b6e");
         } catch (e) {}
+        window.__icSplashAt = Date.now();
       })();
     </script>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -32,11 +127,18 @@
     <link rel="stylesheet" href="css/app.css" />
   </head>
   <body>
-    <div id="app">
-      <div style="min-height:100dvh;display:grid;place-items:center;font-family:system-ui,sans-serif;color:#1a2332;background:#f3efe6">
-        <p>Loading IRONCLAD…</p>
+    <div id="ic-splash" class="ic-splash" role="status" aria-live="polite" aria-label="Loading IRONCLAD">
+      <div class="ic-splash-stage">
+        <svg class="ic-splash-mark" viewBox="0 0 80 64" aria-hidden="true">
+          <path class="ic-splash-navy" d="M8 56V36L28 12l20 24v20H8z" />
+          <path class="ic-splash-red" d="M32 56V36L52 12l20 24v20H32z" />
+        </svg>
+        <p class="ic-splash-name">IRONCLAD</p>
+        <div class="ic-splash-rule" aria-hidden="true"></div>
+        <p class="ic-splash-tag">Unbreakable quality</p>
       </div>
     </div>
+    <div id="app"></div>
 
     <!-- Firebase compat SDK (same project as before: ironclad-127a5) -->
     <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js"></script>
@@ -56,5 +158,6 @@
     <script src="js/ui.js"></script>
     <script src="js/views.js"></script>
     <script src="js/app.js"></script>
+    <script src="js/preview-bridge.js"></script>
   </body>
 </html>
