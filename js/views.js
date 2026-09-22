@@ -611,6 +611,7 @@ window.IC = window.IC || {};
   IC.viewSettings = function (page) {
     if (page === "company") return IC.viewSettingsCompany();
     if (page === "defaults") return IC.viewSettingsDefaults();
+    if (page === "calculations") return IC.viewSettingsCalculations();
     if (page === "team") return IC.viewSettingsTeam();
     if (page === "crews") return IC.viewSettingsCrews();
     if (page === "permissions") return IC.viewSettingsPermissions();
@@ -638,6 +639,7 @@ window.IC = window.IC || {};
       "</div></div>" +
       IC.settingsCard("#/settings/company", "Company profile →", "Legal name, address, phone, warranty, insurance, and contract language.") +
       IC.settingsCard("#/settings/defaults", "Estimate defaults →", "Price $/square, waste, tax rate, chimney price, dumpster, permit, and delivery.") +
+      (admin ? IC.settingsCard("#/settings/calculations", "Estimate calculations →", "Coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
       (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team →", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
       (admin ? IC.settingsCard("#/settings/crews", "Crews →", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
       (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog →", "Crew pay rates by pitch, tear-off, OSB, and wood. Used on Job cost — not the customer price.") : "") +
@@ -692,6 +694,59 @@ window.IC = window.IC || {};
       rates.map(function (r) { return IC.field(r[1], IC.input({ type: "number", value: settings[r[0]], "data-set": r[0], "data-num": "1", disabled: !admin })); }).join("") +
       "</div></div>";
     return IC.settingsPage("Estimate defaults", body);
+  };
+
+  IC.viewSettingsCalculations = function () {
+    var admin = IC.isAdmin(session());
+    if (!admin) {
+      return IC.settingsPage("Estimate calculations", '<div class="card"><p class="muted">Only an admin can change how the takeoff is counted.</p></div>');
+    }
+    var settings = IC.state.settings || IC.SETTINGS;
+    function num(key, fallback) {
+      var n = Number(settings[key]);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    function field(key, label, hint, step) {
+      var val = settings[key];
+      if (val == null || val === "") val = IC.SETTINGS[key];
+      return '<label class="field"><span class="field-label">' + IC.esc(label) + "</span>" +
+        IC.input({ type: "number", min: "0", step: step || "1", value: val, "data-set": key, "data-num": "1" }) +
+        '<span class="tiny calc-hint">' + hint + "</span></label>";
+    }
+    function group(title, blurb, fields) {
+      return '<section class="card"><h2 style="margin-bottom:6px">' + title + '</h2><p class="muted" style="margin-bottom:12px">' + blurb + '</p><div class="form-grid two">' + fields + "</div></section>";
+    }
+    var waste = num("wastePercent", 12);
+    var perSq = num("shingleBundlesPerSquare", 3);
+    var bundles = Math.max(0, Math.ceil(20 * (1 + waste / 100) * perSq - 1e-9));
+    var body =
+      '<div class="card"><h2 style="margin-bottom:6px">Shop standard</h2>' +
+      '<p class="muted">These numbers apply the next time any job is opened — including jobs already written. Pitch rules stay fixed: felt on 4/12 and steeper, ice on 2/12–3.9/12 and on eaves and valleys, drip edge on rakes only.</p>' +
+      '<p style="margin-top:12px;font-weight:600">20 squares at ' + waste + "% waste orders " + bundles + " shingle bundles (" + perSq + " per square).</p></div>" +
+      group("Shingles", "Uses the waste % on that job, not a second waste number.",
+        field("shingleBundlesPerSquare", "Shingle bundles / square", "Bundles ordered per roofing square, after that job’s waste %.", "0.1") +
+        field("hipRidgeLfPerBundle", "Hip & ridge lf / bundle", "Feet of hip plus ridge one bundle covers, after that job’s waste %.", "1") +
+        field("starterLfPerBundle", "Starter lf / bundle", "Feet of eaves plus rakes one starter bundle covers, after that job’s waste %.", "1")) +
+      group("Edge metal", "Drip and gutter apron do not use the job waste %. They use the percent below.",
+        field("edgeStickFeet", "Stick length (ft)", "Length of one drip-edge or gutter-apron stick.", "1") +
+        field("edgeWastePercent", "Edge waste %", "Extra length on rakes (drip) and eaves (apron).", "1") +
+        field("dripExtraSticks", "Extra drip sticks", "Added once on every structure that has rakes. Apron does not get this extra.", "1")) +
+      group("Underlayment", "Felt is steep slope only, with no waste. Ice on low slope is rolls per square. Ice on eaves and valleys uses the job waste %.",
+        field("feltSquaresPerRoll", "Felt squares / roll", "Steep squares one felt roll covers. No waste is added.", "0.1") +
+        field("iceLfPerRoll", "Ice lf / roll", "Eave and valley feet one ice roll covers on 4/12 and steeper, plus half the wall flashing.", "1") +
+        field("iceRollsPerLowSquare", "Ice rolls / low-slope sq", "Rolls per square on 2/12–3.9/12. That pitch gets ice instead of felt.", "0.1")) +
+      group("Ventilation", "Ridge vent is ridge feet only. Box vents stay a count on the job.",
+        field("ridgeVentLfPerRoll", "Ridge vent lf / roll", "Ridge feet one roll covers. No waste is added.", "1")) +
+      group("Flashing", "Step flashing is wall footage plus a set length per chimney. Chimney flashing is a sell price, not a catalog SKU.",
+        field("stepLfPerBundle", "Step flashing lf / bundle", "Feet in one bundle of step flashing.", "1") +
+        field("stepLfPerChimney", "Step flashing lf / chimney", "Added for each chimney, on top of the wall flashing footage.", "1") +
+        field("chimneyEachPrice", "Chimney flashing $ / each", "Customer price per chimney. Same number as Estimate defaults.", "1")) +
+      group("Flat roof", "Base and cap use the job waste %. Custom edge metal stays a price in the materials catalog.",
+        field("baseSheetSquaresPerRoll", "Base sheet squares / roll", "Squares one base-sheet roll covers, after that job’s waste %.", "0.1") +
+        field("capSheetSquaresPerRoll", "Cap sheet squares / roll", "Squares one cap-sheet roll covers, after that job’s waste %.", "0.1")) +
+      group("Decking", "Only used when a structure has a replace % instead of a sheet count.",
+        field("sheathingSqftPerSheet", "Sheathing sq ft / sheet", "Square feet per OSB or plywood sheet.", "1"));
+    return IC.settingsPage("Estimate calculations", body);
   };
 
   IC.viewSettingsTeam = function () {

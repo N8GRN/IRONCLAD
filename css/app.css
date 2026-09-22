@@ -131,6 +131,7 @@ label.field {
   text-transform: uppercase;
   color: var(--muted);
 }
+.calc-hint { line-height: 1.35; }
 
 button, .btn {
   display: inline-flex;

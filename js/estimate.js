@@ -225,6 +225,26 @@ window.IC = window.IC || {};
     var laborRate = Number(est.laborRatePerSquare) || 0;
     var tearRate = Number(est.tearoffRatePerSquare) || 0;
     var crewRates = IC.crewLaborRates(IC.crewForJob(job));
+    function calcNum(key, fallback, allowZero) {
+      var n = Number(settings[key]);
+      if (!Number.isFinite(n)) return fallback;
+      if (allowZero) return n < 0 ? fallback : n;
+      return n > 0 ? n : fallback;
+    }
+    var shinglePerSq = calcNum("shingleBundlesPerSquare", 3);
+    var hipPerBundle = calcNum("hipRidgeLfPerBundle", 28);
+    var starterPerBundle = calcNum("starterLfPerBundle", 105);
+    var stickFeet = calcNum("edgeStickFeet", 10);
+    var edgeWaste = 1 + calcNum("edgeWastePercent", 10, true) / 100;
+    var dripExtra = calcNum("dripExtraSticks", 1, true);
+    var feltPerRoll = calcNum("feltSquaresPerRoll", 10);
+    var icePerRoll = calcNum("iceLfPerRoll", 60);
+    var icePerLowSq = calcNum("iceRollsPerLowSquare", 0.5);
+    var ridgeVentPerRoll = calcNum("ridgeVentLfPerRoll", 30);
+    var stepPerBundle = calcNum("stepLfPerBundle", 50);
+    var stepPerChimney = calcNum("stepLfPerChimney", 10, true);
+    var basePerRoll = calcNum("baseSheetSquaresPerRoll", 1);
+    var capPerRoll = calcNum("capSheetSquaresPerRoll", 2);
 
     var eaveLf = 0, rakeLf = 0, ridgeLf = 0, hipLf = 0, valleyLf = 0, ridgeVentLf = 0;
     var dripSticks = 0, apronSticks = 0, iceLf = 0, customEdgeLf = 0;
@@ -276,8 +296,8 @@ window.IC = window.IC || {};
       if (allFlat) {
         customEdgeLf += lin.eaveLf + lin.rakeLf;
       } else {
-        if (lin.rakeLf > 0) dripSticks += ceilQty(lin.rakeLf * 1.1 / 10) + 1;
-        if (lin.eaveLf > 0) apronSticks += ceilQty(lin.eaveLf * 1.1 / 10);
+        if (lin.rakeLf > 0) dripSticks += ceilQty(lin.rakeLf * edgeWaste / stickFeet) + dripExtra;
+        if (lin.eaveLf > 0) apronSticks += ceilQty(lin.eaveLf * edgeWaste / stickFeet);
         starterLf += lin.eaveLf + lin.rakeLf;
         hipRidgeLf += lin.hipLf + lin.ridgeLf;
       }
@@ -299,31 +319,31 @@ window.IC = window.IC || {};
 
     var feltNeed = steepSquares;
     var flatNeed = deadFlatSquares * waste;
-    var iceNeedRolls = withWaste(lowSquares, wastePct) * 0.5 + (iceLf > 0 ? withWaste(iceLf, wastePct) / 60 : 0);
+    var iceNeedRolls = withWaste(lowSquares, wastePct) * icePerLowSq + (iceLf > 0 ? withWaste(iceLf, wastePct) / icePerRoll : 0);
     var broanBath = Number(est.broanBath != null ? est.broanBath : est.broanVents) || 0;
     var broanKitchen = Number(est.broanKitchen) || 0;
     var chimneyCount = Number(est.chimneyCount != null ? est.chimneyCount : 0) || 0;
     var wallLf = Number(est.wallFlashingLf) || 0;
-    var stepFlashingLf = wallLf + chimneyCount * 10;
-    var stepBundles = ceilQty(stepFlashingLf / 50);
+    var stepFlashingLf = wallLf + chimneyCount * stepPerChimney;
+    var stepBundles = ceilQty(stepFlashingLf / stepPerBundle);
     var chimneyPrice = Number(settings.chimneyEachPrice);
     if (!Number.isFinite(chimneyPrice) || chimneyPrice < 0) chimneyPrice = 500;
 
     var materialQty = {
-      shingle: { qty: ceilQty(materialSquares / (1 / 3)), unit: "bundle", need: materialSquares },
-      hipRidge: { qty: ceilQty(withWaste(hipRidgeLf, wastePct) / 28), unit: "bundle", need: withWaste(hipRidgeLf, wastePct) },
-      starter: { qty: ceilQty(withWaste(starterLf, wastePct) / 105), unit: "bundle", need: withWaste(starterLf, wastePct) },
+      shingle: { qty: ceilQty(materialSquares * shinglePerSq), unit: "bundle", need: materialSquares },
+      hipRidge: { qty: ceilQty(withWaste(hipRidgeLf, wastePct) / hipPerBundle), unit: "bundle", need: withWaste(hipRidgeLf, wastePct) },
+      starter: { qty: ceilQty(withWaste(starterLf, wastePct) / starterPerBundle), unit: "bundle", need: withWaste(starterLf, wastePct) },
       dripEdge: { qty: dripSticks, unit: "stick", need: rakeLf },
       gutterApron: { qty: apronSticks, unit: "stick", need: eaveLf },
       iceWater: { qty: ceilQty(iceNeedRolls), unit: "roll", need: iceNeedRolls },
-      felt: { qty: ceilQty(feltNeed / 10), unit: "roll", need: feltNeed },
-      ridgeVent: { qty: ceilQty(ridgeVentLf / 30), unit: "roll", need: ridgeVentLf },
+      felt: { qty: ceilQty(feltNeed / feltPerRoll), unit: "roll", need: feltNeed },
+      ridgeVent: { qty: ceilQty(ridgeVentLf / ridgeVentPerRoll), unit: "roll", need: ridgeVentLf },
       pipeBoots: { qty: est.pipeBoots, unit: "ea", need: est.pipeBoots },
       flashing: { qty: stepBundles, unit: "bundle", need: stepFlashingLf },
       chimney: { qty: chimneyCount, unit: "ea", need: chimneyCount },
       wallFlashing: { qty: ceilQty(withWaste(est.wallFlashingLf, wastePct)), unit: "lf", need: withWaste(est.wallFlashingLf, wastePct) },
-      baseSheet: { qty: ceilQty(flatNeed / 1), unit: "roll", need: flatNeed },
-      capSheet: { qty: ceilQty(flatNeed / 2), unit: "roll", need: flatNeed },
+      baseSheet: { qty: ceilQty(flatNeed / basePerRoll), unit: "roll", need: flatNeed },
+      capSheet: { qty: ceilQty(flatNeed / capPerRoll), unit: "roll", need: flatNeed },
       customEdge: { qty: ceilQty(withWaste(customEdgeLf, wastePct)), unit: "lf", need: withWaste(customEdgeLf, wastePct) },
       lomance: { qty: 0, unit: "ea", need: 0 },
     };
@@ -342,11 +362,11 @@ window.IC = window.IC || {};
       var detail = p.itemName;
       if (cat === "iceWater") {
         var bits = [];
-        if (lowSquares > 0) bits.push(round1(lowSquares) + " sq at ½ roll/sq");
-        if (iceLf > 0) bits.push(round1(iceLf) + " lf at 60 lf/roll");
+        if (lowSquares > 0) bits.push(round1(lowSquares) + " sq at " + icePerLowSq + " roll/sq");
+        if (iceLf > 0) bits.push(round1(iceLf) + " lf at " + icePerRoll + " lf/roll");
         if (bits.length) detail = p.itemName + " · " + bits.join(" + ");
       } else if (cat === "flashing") {
-        detail = p.itemName + " · " + round1(wallLf) + " lf wall + " + chimneyCount + " chimney × 10 lf ÷ 50 lf/bundle";
+        detail = p.itemName + " · " + round1(wallLf) + " lf wall + " + chimneyCount + " chimney × " + stepPerChimney + " lf ÷ " + stepPerBundle + " lf/bundle";
       } else if (cat === "chimney") {
         detail = chimneyCount + " × " + IC.money(chimneyPrice);
       } else if (spec.need && category.coverageUnit !== "each") {
