@@ -24,7 +24,54 @@ window.IC = window.IC || {};
     return o;
   };
 
+  IC.normalizePitch = function (pitch) {
+    if (pitch === "2/12 - 3/12") return "2/12 - 3.9/12";
+    if (pitch === "0 - 2/12" || pitch === "0/12 - 1.9/12") return "Flat Roof";
+    return pitch || "4/12 - 7/12";
+  };
+
+  IC.isLowSlopePitch = function (pitch) {
+    return IC.normalizePitch(pitch) === "2/12 - 3.9/12";
+  };
+
+  IC.isDeadFlatPitch = function (pitch) {
+    return IC.normalizePitch(pitch) === "Flat Roof";
+  };
+
+  IC.structureIsAllFlat = function (st) {
+    var facets = IC.structureFacets(st);
+    return facets.length > 0 && facets.every(function (f) { return IC.isDeadFlatPitch(f.pitch); });
+  };
+
+  IC.emptyFacet = function (name, from) {
+    from = from || {};
+    return {
+      id: IC.uid(),
+      name: name || "Facet 1",
+      squares: Number(from.squares) || 0,
+      pitch: IC.normalizePitch(from.pitch || "4/12 - 7/12"),
+      tearoff: from.tearoff || "1-Layer",
+    };
+  };
+
+  IC.structureFacets = function (st) {
+    st = st || {};
+    if (Array.isArray(st.facets) && st.facets.length) {
+      return st.facets.map(function (f, i) {
+        return {
+          id: f.id || ("facet-" + i),
+          name: f.name || ("Facet " + (i + 1)),
+          squares: Number(f.squares) || 0,
+          pitch: IC.normalizePitch(f.pitch || st.pitch || "4/12 - 7/12"),
+          tearoff: f.tearoff || st.tearoff || "1-Layer",
+        };
+      });
+    }
+    return [IC.emptyFacet("Facet 1", st)];
+  };
+
   IC.emptyStructure = function (name) {
+    var facet = IC.emptyFacet("Facet 1", { squares: 20, pitch: "4/12 - 7/12", tearoff: "1-Layer" });
     return {
       id: IC.uid(),
       name: name || "House",
@@ -35,7 +82,18 @@ window.IC = window.IC || {};
       tearoff: "1-Layer",
       sheathing: "OSB / Plywood",
       sheathingSheets: 0,
+      woodBoards: 0,
       notes: "",
+      facets: [facet],
+      eaveLf: null,
+      rakeLf: null,
+      ridgeLf: null,
+      hipLf: null,
+      valleyLf: null,
+      ridgeVentLf: null,
+      ventType: "ridge",
+      boxVentQty: 0,
+      boxVentColor: "Black",
     };
   };
 
@@ -59,15 +117,19 @@ window.IC = window.IC || {};
         { categoryId: "iceWater", itemName: IC.catalogDefaultName("iceWater", "Rhino") },
         { categoryId: "felt", itemName: IC.catalogDefaultName("felt", "Rhino") },
         { categoryId: "ridgeVent", itemName: IC.catalogDefaultName("ridgeVent", "SkyRunner LTE") },
+        { categoryId: "boxVent", itemName: IC.catalogDefaultName("boxVent", "Black") },
         { categoryId: "broan", itemName: IC.catalogDefaultName("broan", "4 in") },
         { categoryId: "pipeBoots", itemName: IC.catalogDefaultName("pipeBoots", "Black") },
         { categoryId: "flashing", itemName: IC.catalogDefaultName("flashing", "Black") },
         { categoryId: "chimney", itemName: IC.catalogDefaultName("chimney", "Black") },
         { categoryId: "wallFlashing", itemName: IC.catalogDefaultName("wallFlashing", "Black") },
+        { categoryId: "baseSheet", itemName: IC.catalogDefaultName("baseSheet", "Base Sheet") },
+        { categoryId: "capSheet", itemName: IC.catalogDefaultName("capSheet", "MuleHide") },
+        { categoryId: "customEdge", itemName: IC.catalogDefaultName("customEdge", "Custom edge metal") },
         { categoryId: "lomance", itemName: IC.catalogDefaultName("lomance", "Black") },
       ],
       eaveLf: null, rakeLf: null, ridgeLf: null, hipLf: null, valleyLf: null,
-      pipeBoots: 4, broanVents: 0, chimneyLf: 0, wallFlashingLf: 0, ridgeVentLf: null,
+      pipeBoots: 4, broanBath: 0, broanKitchen: 0, broanVents: 0, chimneyLf: 0, wallFlashingLf: 0, ridgeVentLf: null,
       dumpster: settings.dumpsterDefault, permit: settings.permitDefault,
       extras: [],
       gutters: IC.normalizeAddon("gutters", { included: false }),
@@ -77,6 +139,8 @@ window.IC = window.IC || {};
       markupPercent: settings.markupPercent,
       laborRatePerSquare: settings.laborRatePerSquare,
       tearoffRatePerSquare: settings.tearoffRatePerSquare,
+      quotedTotal: null,
+      commissionAmount: 0,
       computed: emptySnapshot(),
       updatedAt: new Date().toISOString(),
     };
@@ -94,66 +158,166 @@ window.IC = window.IC || {};
     };
   }
 
+  function numOrNull(v) {
+    if (v == null || v === "") return null;
+    var n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  IC.structureLinears = function (st) {
+    var sq = IC.structureFacets(st).reduce(function (s, f) { return s + (Number(f.squares) || 0); }, 0);
+    var auto = autoLinear(sq);
+    var eave = numOrNull(st.eaveLf);
+    var rake = numOrNull(st.rakeLf);
+    var ridge = numOrNull(st.ridgeLf);
+    var hip = numOrNull(st.hipLf);
+    var valley = numOrNull(st.valleyLf);
+    var ridgeVent = numOrNull(st.ridgeVentLf);
+    if (eave == null) eave = auto.eaveLf;
+    if (rake == null) rake = auto.rakeLf;
+    if (ridge == null) ridge = auto.ridgeLf;
+    if (hip == null) hip = auto.hipLf;
+    if (valley == null) valley = auto.valleyLf;
+    if (ridgeVent == null) ridgeVent = ridge;
+    return { eaveLf: eave, rakeLf: rake, ridgeLf: ridge, hipLf: hip, valleyLf: valley, ridgeVentLf: ridgeVent, squares: sq };
+  };
+
+  function withWaste(need, percent) {
+    return (Number(need) || 0) * (1 + (Number(percent) || 0) / 100);
+  }
+
   function line(key, label, detail, qty, unit, unitPrice, kind) {
     var q = round2(qty);
     return { key: key, label: label, detail: detail, qty: q, unit: unit, unitPrice: unitPrice, amount: round2(q * unitPrice), kind: kind };
   }
 
-  IC.computeEstimate = function (est, settings) {
+  IC.crewForJob = function (job) {
+    var crews = ((IC.state && IC.state.crews) || []).map(IC.normalizeCrew);
+    var active = crews.filter(function (c) { return c.active !== false; });
+    if (job && job.crewId) {
+      var hit = crews.find(function (c) { return c.id === job.crewId; });
+      if (hit) return hit;
+    }
+    return active[0] || crews[0] || IC.normalizeCrew({ id: "default", name: "Crew" });
+  };
+
+  IC.crewLaborRates = function (crew) {
+    return IC.normalizeCrew(crew).labor;
+  };
+
+  IC.tearoffLayerCount = function (label) {
+    return IC.TEAROFF_LAYERS[label] || 0;
+  };
+
+  IC.computeEstimate = function (est, settings, job) {
     settings = settingsOf(settings);
     var lines = [];
-    var measuredSquares = est.structures.reduce(function (s, x) { return s + (Number(x.squares) || 0); }, 0);
-    var auto = autoLinear(measuredSquares);
-    var eaveLf = est.eaveLf != null ? est.eaveLf : auto.eaveLf;
-    var rakeLf = est.rakeLf != null ? est.rakeLf : auto.rakeLf;
-    var ridgeLf = est.ridgeLf != null ? est.ridgeLf : auto.ridgeLf;
-    var hipLf = est.hipLf != null ? est.hipLf : auto.hipLf;
-    var valleyLf = est.valleyLf != null ? est.valleyLf : auto.valleyLf;
-    var starterLf = eaveLf + rakeLf;
-    var iceSquares = Math.max(eaveLf * 3 + valleyLf * 3, 0) / 100;
-    var ridgeVentLf = est.ridgeVentLf != null ? est.ridgeVentLf : ridgeLf;
-    var billableSquares = 0, labor = 0, tearoff = 0, sheathingSheets = 0;
+    var measuredSquares = 0, materialSquares = 0, laborSquares = 0, labor = 0, tearoff = 0, sheathingSheets = 0, woodBoards = 0;
+    var steepSquares = 0, lowSquares = 0, deadFlatSquares = 0;
+    var laborCostInstall = 0, laborCostTearoff = 0;
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     var siding = IC.normalizeAddon("siding", est.siding);
+    var waste = 1 + (Number(est.wastePercent) || 0) / 100;
+    var wastePct = Number(est.wastePercent) || 0;
+    var laborRate = Number(est.laborRatePerSquare) || 0;
+    var tearRate = Number(est.tearoffRatePerSquare) || 0;
+    var crewRates = IC.crewLaborRates(IC.crewForJob(job));
+
+    var eaveLf = 0, rakeLf = 0, ridgeLf = 0, hipLf = 0, valleyLf = 0, ridgeVentLf = 0;
+    var dripSticks = 0, apronSticks = 0, iceLf = 0, customEdgeLf = 0;
+    var starterLf = 0, hipRidgeLf = 0;
+    var boxByColor = {};
 
     est.structures.forEach(function (st) {
-      var sq = Number(st.squares) || 0;
-      var pitch = IC.PITCH_FACTOR[st.pitch] || 1.14;
-      var waste = 1 + (Number(est.wastePercent) || 0) / 100;
-      var billed = sq * pitch * waste;
-      billableSquares += billed;
-      labor += billed * (Number(est.laborRatePerSquare) || 0) * (IC.STORY_LABOR[st.level] || 1);
-      tearoff += sq * (IC.TEAROFF_LAYERS[st.tearoff] || 0) * (Number(est.tearoffRatePerSquare) || 0);
+      var story = IC.STORY_LABOR[st.level] || 1;
+      var hasSteep = false;
+      IC.structureFacets(st).forEach(function (f) {
+        var sq = Number(f.squares) || 0;
+        var pitchLabel = IC.normalizePitch(f.pitch);
+        var pitch = IC.PITCH_FACTOR[pitchLabel] || 1.14;
+        measuredSquares += sq;
+        if (IC.isDeadFlatPitch(pitchLabel)) deadFlatSquares += sq;
+        else if (IC.isLowSlopePitch(pitchLabel)) lowSquares += sq;
+        else { steepSquares += sq; hasSteep = true; }
+        var laborSq = sq * pitch * waste;
+        laborSquares += laborSq;
+        var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
+        labor += laborSq * laborRate * story;
+        tearoff += sq * layers * tearRate;
+        laborCostInstall += laborSq * (Number(crewRates.installPerSq) || 0) * story;
+        if (layers > 0) {
+          var tearCostRate = Number(crewRates["tearoff" + layers]) || 0;
+          laborCostTearoff += sq * tearCostRate;
+        }
+      });
       var sheetsHere = 0;
       if (st.sheathingSheets != null && st.sheathingSheets !== "") {
         sheetsHere = Number(st.sheathingSheets) || 0;
       } else {
         var pct = Number(st.sheathingReplacePct) || 0;
         var per = Math.max(Number(settings.sheathingSqftPerSheet) || 32, 1);
-        sheetsHere = ceilQty((sq * 100 * (pct / 100)) / per);
+        var sqForSheets = IC.structureFacets(st).reduce(function (s, f) { return s + (Number(f.squares) || 0); }, 0);
+        sheetsHere = ceilQty((sqForSheets * 100 * (pct / 100)) / per);
       }
       sheathingSheets += sheetsHere;
+      woodBoards += Number(st.woodBoards) || 0;
+      var lin = IC.structureLinears(st);
+      eaveLf += lin.eaveLf;
+      rakeLf += lin.rakeLf;
+      ridgeLf += lin.ridgeLf;
+      hipLf += lin.hipLf;
+      valleyLf += lin.valleyLf;
+      var allFlat = IC.structureIsAllFlat(st);
+      if (allFlat) {
+        customEdgeLf += lin.eaveLf + lin.rakeLf;
+      } else {
+        if (lin.rakeLf > 0) dripSticks += ceilQty(lin.rakeLf * 1.1 / 10) + 1;
+        if (lin.eaveLf > 0) apronSticks += ceilQty(lin.eaveLf * 1.1 / 10);
+        starterLf += lin.eaveLf + lin.rakeLf;
+        hipRidgeLf += lin.hipLf + lin.ridgeLf;
+      }
+      if (hasSteep) iceLf += lin.eaveLf + lin.valleyLf;
+      var ventType = st.ventType === "box" ? "box" : "ridge";
+      if (ventType === "ridge") {
+        ridgeVentLf += lin.ridgeLf;
+      } else {
+        var bq = Number(st.boxVentQty) || 0;
+        var bcol = st.boxVentColor || "Black";
+        if (bq > 0) boxByColor[bcol] = (boxByColor[bcol] || 0) + bq;
+      }
     });
-    billableSquares = round2(billableSquares);
+    var shingleSquares = (measuredSquares - deadFlatSquares) * waste;
+    materialSquares = round2(shingleSquares);
+    laborSquares = round2(laborSquares);
+    var billableSquares = laborSquares;
+    if (steepSquares > 0) iceLf += 0.5 * (Number(est.wallFlashingLf) || 0);
+
+    var feltNeed = steepSquares * waste;
+    var flatNeed = deadFlatSquares * waste;
+    var iceNeedRolls = withWaste(lowSquares, wastePct) * 0.5 + (iceLf > 0 ? withWaste(iceLf, wastePct) / 60 : 0);
+    var broanBath = Number(est.broanBath != null ? est.broanBath : est.broanVents) || 0;
+    var broanKitchen = Number(est.broanKitchen) || 0;
 
     var materialQty = {
-      shingle: { qty: ceilQty(billableSquares / (1 / 3)), unit: "bundle", need: billableSquares },
-      hipRidge: { qty: ceilQty((hipLf + ridgeLf) / 20), unit: "bundle", need: hipLf + ridgeLf },
-      starter: { qty: ceilQty(starterLf / 105), unit: "bundle", need: starterLf },
-      dripEdge: { qty: ceilQty(eaveLf / 10), unit: "stick", need: eaveLf },
-      gutterApron: { qty: ceilQty(eaveLf / 10), unit: "stick", need: eaveLf },
-      iceWater: { qty: ceilQty(iceSquares / 2), unit: "roll", need: iceSquares },
-      felt: { qty: ceilQty(billableSquares / 4), unit: "roll", need: billableSquares },
-      ridgeVent: { qty: ceilQty(ridgeVentLf / 4), unit: "pc", need: ridgeVentLf },
-      broan: { qty: est.broanVents, unit: "ea", need: est.broanVents },
+      shingle: { qty: ceilQty(materialSquares / (1 / 3)), unit: "bundle", need: materialSquares },
+      hipRidge: { qty: ceilQty(withWaste(hipRidgeLf, wastePct) / 28), unit: "bundle", need: withWaste(hipRidgeLf, wastePct) },
+      starter: { qty: ceilQty(withWaste(starterLf, wastePct) / 105), unit: "bundle", need: withWaste(starterLf, wastePct) },
+      dripEdge: { qty: dripSticks, unit: "stick", need: rakeLf },
+      gutterApron: { qty: apronSticks, unit: "stick", need: eaveLf },
+      iceWater: { qty: ceilQty(iceNeedRolls), unit: "roll", need: iceNeedRolls },
+      felt: { qty: ceilQty(feltNeed / 10), unit: "roll", need: feltNeed },
+      ridgeVent: { qty: ceilQty(withWaste(ridgeVentLf, wastePct) / 30), unit: "roll", need: withWaste(ridgeVentLf, wastePct) },
       pipeBoots: { qty: est.pipeBoots, unit: "ea", need: est.pipeBoots },
       flashing: { qty: est.structures.length, unit: "box", need: est.structures.length },
-      chimney: { qty: ceilQty(est.chimneyLf), unit: "lf", need: est.chimneyLf },
-      wallFlashing: { qty: ceilQty(est.wallFlashingLf), unit: "lf", need: est.wallFlashingLf },
+      chimney: { qty: ceilQty(withWaste(est.chimneyLf, wastePct)), unit: "lf", need: withWaste(est.chimneyLf, wastePct) },
+      wallFlashing: { qty: ceilQty(withWaste(est.wallFlashingLf, wastePct)), unit: "lf", need: withWaste(est.wallFlashingLf, wastePct) },
+      baseSheet: { qty: ceilQty(flatNeed / 1), unit: "roll", need: flatNeed },
+      capSheet: { qty: ceilQty(flatNeed / 2), unit: "roll", need: flatNeed },
+      customEdge: { qty: ceilQty(withWaste(customEdgeLf, wastePct)), unit: "lf", need: withWaste(customEdgeLf, wastePct) },
       lomance: { qty: 0, unit: "ea", need: 0 },
     };
 
-    ["shingle", "hipRidge", "starter", "dripEdge", "gutterApron", "iceWater", "felt", "ridgeVent", "broan", "pipeBoots", "flashing", "chimney", "wallFlashing", "lomance"].forEach(function (cat) {
+    ["shingle", "hipRidge", "starter", "dripEdge", "gutterApron", "iceWater", "felt", "ridgeVent", "pipeBoots", "flashing", "chimney", "wallFlashing", "baseSheet", "capSheet", "customEdge", "lomance"].forEach(function (cat) {
       var p = est.materials.find(function (m) { return m.categoryId === cat; });
       var spec = materialQty[cat];
       var category = IC.catalogCategory(cat);
@@ -162,19 +326,45 @@ window.IC = window.IC || {};
       if (qty <= 0) return;
       var item = IC.catalogItem(cat, p.itemName);
       if (!item) return;
-      var detail = spec.need && category.coverageUnit !== "each"
-        ? p.itemName + " · covers " + round1(spec.need) + " " + category.coverageUnit
-        : p.itemName;
+      var detail = p.itemName;
+      if (cat === "iceWater") {
+        var bits = [];
+        if (lowSquares > 0) bits.push(round1(lowSquares) + " sq at ½ roll/sq");
+        if (iceLf > 0) bits.push(round1(iceLf) + " lf at 60 lf/roll");
+        if (bits.length) detail = p.itemName + " · " + bits.join(" + ");
+      } else if (spec.need && category.coverageUnit !== "each") {
+        detail = p.itemName + " · covers " + round1(spec.need) + " " + category.coverageUnit;
+      }
       lines.push(line("mat-" + cat, category.label, detail, qty, spec.unit, item.price, "material"));
     });
 
+    if (broanBath > 0) {
+      var bathItem = IC.catalogItem("broan", "4 in");
+      if (bathItem) lines.push(line("mat-broan-4", "Broan 4\" (bath)", bathItem.name, broanBath, "ea", bathItem.price, "material"));
+    }
+    if (broanKitchen > 0) {
+      var kitItem = IC.catalogItem("broan", "8 in");
+      if (kitItem) lines.push(line("mat-broan-8", "Broan 8\" (kitchen)", kitItem.name, broanKitchen, "ea", kitItem.price, "material"));
+    }
+    Object.keys(boxByColor).forEach(function (col) {
+      var bItem = IC.catalogItem("boxVent", col);
+      if (!bItem) return;
+      lines.push(line("mat-boxVent-" + col, "Box vents", bItem.name, boxByColor[col], "ea", bItem.price, "material"));
+    });
+
     if (labor > 0) {
-      lines.push(line("labor", "Install labor", billableSquares.toFixed(1) + " billable sq after pitch & waste", round2(billableSquares), "sq", round2(labor / Math.max(billableSquares, 0.01)), "labor"));
+      lines.push(line("labor", "Install labor", laborSquares.toFixed(1) + " labor sq after pitch & waste", round2(laborSquares), "sq", round2(labor / Math.max(laborSquares, 0.01)), "labor"));
     }
     if (tearoff > 0) {
-      lines.push(line("tearoff", "Tear-off & haul", est.structures.map(function (s) { return s.name + ": " + s.tearoff; }).join("; "), 1, "ls", round2(tearoff), "labor"));
+      var tearNote = est.structures.map(function (s) {
+        return s.name + ": " + IC.structureFacets(s).map(function (f) { return f.tearoff; }).join(" / ");
+      }).join("; ");
+      lines.push(line("tearoff", "Tear-off & haul", tearNote, 1, "ls", round2(tearoff), "labor"));
     }
     var sheets = ceilQty(sheathingSheets);
+    var boards = ceilQty(woodBoards);
+    var osbLaborCost = round2(sheets * (Number(crewRates.osbPerSheet) || 0));
+    var woodLaborCost = round2(boards * (Number(crewRates.woodPerBoard) || 0));
     if (sheets > 0) {
       lines.push(line("sheathing", "Sheathing replacement", sheets + " sheets OSB/plywood", sheets, "sheet", settings.sheathingSheetPrice, "other"));
     }
@@ -200,19 +390,112 @@ window.IC = window.IC || {};
       lines.push(line("markup", "Material margin", est.markupPercent + "% on materials", 1, "ls", markupAmount, "other"));
       otherSubtotal = round2(otherSubtotal + markupAmount);
     }
-    var total = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal);
+    var listTotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal);
+    var quotedRaw = est.quotedTotal;
+    var quotedTotal = (quotedRaw == null || quotedRaw === "") ? listTotal : round2(Number(quotedRaw) || 0);
+    var discountAmount = round2(listTotal - quotedTotal);
+    var discountPercent = listTotal > 0 && discountAmount > 0.005 ? round2((discountAmount / listTotal) * 100) : 0;
+    var salePrice = quotedTotal;
+    var comm = IC.salespersonCommission(job, salePrice);
+    var commission = comm.amount;
+    var otherCost = round2(otherSubtotal - (markupAmount || 0));
+    var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
+    var profitBilled = round2(salePrice - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission);
+    var profitActual = round2(salePrice - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission);
+    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal, measuredSquares);
+
+    var costLines = lines.filter(function (l) { return l.key !== "labor" && l.key !== "tearoff"; }).slice();
+    if (laborCostInstall > 0) {
+      costLines.unshift(line("labor-cost", "Install labor (crew)", laborSquares.toFixed(1) + " sq · " + IC.crewLabel(IC.crewForJob(job)), round2(laborSquares), "sq", round2(laborCostInstall / Math.max(laborSquares, 0.01)), "labor"));
+    }
+    if (laborCostTearoff > 0) {
+      costLines.splice(laborCostInstall > 0 ? 1 : 0, 0, line("tearoff-cost", "Tear-off (crew)", "Layer schedule from Labor catalog", 1, "ls", round2(laborCostTearoff), "labor"));
+    }
+    if (osbLaborCost > 0) {
+      costLines.push(line("osb-labor", "OSB replacement (crew)", sheets + " sheets", sheets, "sheet", Number(crewRates.osbPerSheet) || 0, "labor"));
+    }
+    if (woodLaborCost > 0) {
+      costLines.push(line("wood-labor", "Wood boards (crew)", boards + " boards", boards, "board", Number(crewRates.woodPerBoard) || 0, "labor"));
+    }
+
     return {
-      lines: lines, materialsSubtotal: materialsSubtotal, laborSubtotal: laborSubtotal,
+      lines: lines, costLines: costLines,
+      materialsSubtotal: materialsSubtotal, laborSubtotal: laborSubtotal, laborCost: laborCost,
+      laborCostInstall: round2(laborCostInstall), laborCostTearoff: round2(laborCostTearoff),
+      osbLaborCost: osbLaborCost, woodLaborCost: woodLaborCost,
       otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,
-      total: total, billableSquares: billableSquares, measuredSquares: measuredSquares,
+      total: salePrice, listTotal: listTotal, quotedTotal: salePrice,
+      discountPercent: discountPercent, discountAmount: discountAmount,
+      billableSquares: billableSquares, measuredSquares: measuredSquares,
+      materialSquares: materialSquares, laborSquares: laborSquares,
+      commissionAmount: commission, commissionPercent: comm.percent, commissionName: comm.name,
+      otherCost: otherCost, profit: profitBilled, profitActual: profitActual,
+      structurePrices: structurePrices,
+      crewId: IC.crewForJob(job).id, crewName: IC.crewLabel(IC.crewForJob(job)),
     };
   };
 
-  IC.withComputed = function (est, settings) {
+  IC.salespersonCommission = function (job, total) {
+    var person = IC.jobSalesperson(job);
+    var pct = IC.commissionRate(person);
+    return {
+      percent: pct,
+      amount: round2((Number(total) || 0) * pct / 100),
+      name: person ? (person.salesName || person.name || "") : "",
+      personId: person ? person.id : "",
+    };
+  };
+
+  IC.structurePrices = function (structures, total, addonsSubtotal, measuredSquares) {
+    var roof = round2((Number(total) || 0) - (Number(addonsSubtotal) || 0));
+    var measured = Number(measuredSquares) || 0;
+    return (structures || []).map(function (st) {
+      var sq = IC.structureFacets(st).reduce(function (s, f) { return s + (Number(f.squares) || 0); }, 0);
+      var share = measured > 0 ? round2(roof * (sq / measured)) : 0;
+      return { id: st.id, name: st.name || "Structure", squares: sq, price: share };
+    });
+  };
+
+  IC.ensureEstimateMaterials = function (est) {
+    var mats = ((est && est.materials) || []).slice();
+    var have = {};
+    mats.forEach(function (m) { if (m && m.categoryId) have[m.categoryId] = true; });
+    (IC.liveCatalog() || IC.CATALOG || []).forEach(function (cat) {
+      if (have[cat.id]) return;
+      mats.push({ categoryId: cat.id, itemName: IC.catalogDefaultName(cat.id) });
+    });
+    return mats;
+  };
+
+  IC.jobSheetLines = function (est) {
+    var lines = (est && est.computed && est.computed.lines) || [];
+    return lines.filter(function (l) {
+      return l.kind === "material" || l.key === "sheathing";
+    });
+  };
+
+  IC.withComputed = function (est, settings, job) {
     var next = Object.assign({}, est);
     next.gutters = IC.normalizeAddon("gutters", est.gutters);
     next.siding = IC.normalizeAddon("siding", est.siding);
-    next.computed = IC.computeEstimate(next, settings);
+    next.structures = (est.structures || []).map(function (st, i) {
+      var n = Object.assign({}, st);
+      n.facets = IC.structureFacets(st);
+      n.squares = n.facets.reduce(function (s, f) { return s + (Number(f.squares) || 0); }, 0);
+      n.ventType = n.ventType === "box" ? "box" : "ridge";
+      if (n.boxVentQty == null) n.boxVentQty = 0;
+      if (!n.boxVentColor) n.boxVentColor = "Black";
+      if (i === 0) {
+        ["eaveLf", "rakeLf", "ridgeLf", "hipLf", "valleyLf", "ridgeVentLf"].forEach(function (k) {
+          if (numOrNull(n[k]) == null && numOrNull(est[k]) != null) n[k] = est[k];
+        });
+      }
+      return n;
+    });
+    next.materials = IC.ensureEstimateMaterials(next);
+    if (next.broanBath == null) next.broanBath = Number(next.broanVents) || 0;
+    if (next.broanKitchen == null) next.broanKitchen = 0;
+    next.computed = IC.computeEstimate(next, settings, job);
     next.updatedAt = new Date().toISOString();
     return next;
   };
