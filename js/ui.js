@@ -400,13 +400,19 @@ window.IC = window.IC || {};
     if (profit == null) profit = 0;
     var itemSrc = opts.actual !== false && c.costLines ? c.costLines : (c.lines || []);
     var taxPct = c.salesTaxPercent != null ? c.salesTaxPercent : 7;
+    var deliveryFee = Number(c.deliveryFee);
+    if (!Number.isFinite(deliveryFee) || deliveryFee < 0) deliveryFee = 0;
+    var otherVal = Number(c.otherCost != null ? c.otherCost : c.otherSubtotal) || 0;
+    var otherWithoutDelivery = Math.round((otherVal - deliveryFee) * 100) / 100;
+    if (otherWithoutDelivery < 0) otherWithoutDelivery = 0;
     var rows = [
       ["Materials", c.materialsSubtotal],
       ["Labor & tear-off", laborValue],
+      ["Delivery fee", deliveryFee],
       [commLabel, commission],
-      ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
-      ["Other", c.otherCost != null ? c.otherCost : c.otherSubtotal],
+      ["Other", otherWithoutDelivery],
       ["Gutters / siding", c.addonsSubtotal],
+      ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
     ];
     var itemized = opts.itemized !== false
       ? "<ul>" + itemSrc.map(function (l) {

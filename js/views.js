@@ -383,7 +383,7 @@ window.IC = window.IC || {};
       IC.field("Delivery fee", IC.input({ type: "number", min: "0", step: "0.01", value: value.deliveryFee != null ? value.deliveryFee : 65, "data-est": "num", "data-key": "deliveryFee" })) +
       IC.field("Sales tax %", IC.input({ type: "number", min: "0", step: "0.1", value: value.salesTaxPercent != null ? value.salesTaxPercent : 7, "data-est": "num", "data-key": "salesTaxPercent" })) +
       "</div>" +
-      '<p class="tiny muted" style="margin-top:8px">Sales tax is on material cost only — not on material margin, labor, permit, or delivery.</p>' +
+      '<p class="tiny muted" style="margin-top:8px">Delivery fee is not taxed. Sales tax is on material cost only — not on material margin, labor, permit, or delivery.</p>' +
       '<div class="addon-block"><label class="check"><input type="checkbox" data-est="gutter-on"' + (gutters.included ? " checked" : "") + ' /><span style="font-weight:600">Include gutters (lump sum)</span></label>' +
       (gutters.included
         ? '<div class="addon-fields">' +
