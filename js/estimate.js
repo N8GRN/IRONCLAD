@@ -214,9 +214,10 @@ window.IC = window.IC || {};
   IC.computeEstimate = function (est, settings, job) {
     settings = settingsOf(settings);
     var lines = [];
-    var measuredSquares = 0, materialSquares = 0, laborSquares = 0, labor = 0, tearoff = 0, sheathingSheets = 0, woodBoards = 0;
+    var measuredSquares = 0, materialSquares = 0, laborSquares = 0, labor = 0, sheathingSheets = 0, woodBoards = 0;
     var steepSquares = 0, lowSquares = 0, deadFlatSquares = 0;
     var laborCostInstall = 0, laborCostTearoff = 0;
+    var wasteDisposal = 0, tearoffLayerSquares = 0;
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     var siding = IC.normalizeAddon("siding", est.siding);
     var waste = 1 + (Number(est.wastePercent) || 0) / 100;
@@ -245,7 +246,8 @@ window.IC = window.IC || {};
         laborSquares += laborSq;
         var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
         labor += laborSq * laborRate * story;
-        tearoff += sq * layers * tearRate;
+        tearoffLayerSquares += sq * layers;
+        wasteDisposal += sq * layers * tearRate;
         var pitchRate = (crewRates.installByPitch && Number(crewRates.installByPitch[pitchLabel])) || Number(crewRates.installPerSq) || 0;
         laborCostInstall += sq * pitchRate * story;
         if (layers > 0) {
@@ -370,11 +372,15 @@ window.IC = window.IC || {};
     if (labor > 0) {
       lines.push(line("labor", "Install labor", laborSquares.toFixed(1) + " labor sq after pitch & waste", round2(laborSquares), "sq", round2(labor / Math.max(laborSquares, 0.01)), "labor"));
     }
-    if (tearoff > 0) {
-      var tearNote = est.structures.map(function (s) {
+    wasteDisposal = round2(wasteDisposal);
+    tearoffLayerSquares = round2(tearoffLayerSquares);
+    if (wasteDisposal > 0) {
+      var wasteNote = est.structures.map(function (s) {
         return s.name + ": " + IC.structureFacets(s).map(function (f) { return f.tearoff; }).join(" / ");
       }).join("; ");
-      lines.push(line("tearoff", "Tear-off & haul", tearNote, 1, "ls", round2(tearoff), "labor"));
+      var wasteLine = line("waste-disposal", "Waste disposal", wasteNote + " · " + round1(tearoffLayerSquares) + " sq-layers × $" + Number(tearRate).toFixed(2), tearoffLayerSquares, "sq-lyr", tearRate, "other");
+      lines.push(wasteLine);
+      wasteDisposal = wasteLine.amount;
     }
     var sheets = ceilQty(sheathingSheets);
     var boards = ceilQty(woodBoards);
@@ -421,15 +427,21 @@ window.IC = window.IC || {};
     var discountAmount = round2(listTotal - quotedTotal);
     var discountPercent = listTotal > 0 && discountAmount > 0.005 ? round2((discountAmount / listTotal) * 100) : 0;
     var salePrice = quotedTotal;
+    var insPct = settings.insurancePercent;
+    if (insPct == null || insPct === "") insPct = 1;
+    insPct = Number(insPct);
+    if (!Number.isFinite(insPct) || insPct < 0) insPct = 0;
+    var insuranceAmount = round2(salePrice * (insPct / 100));
+    var total = round2(salePrice + insuranceAmount);
     var comm = IC.salespersonCommission(job, salePrice);
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));
     var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
-    var profitBilled = round2(salePrice - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax);
-    var profitActual = round2(salePrice - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission - salesTax);
+    var profitBilled = round2(total - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount);
+    var profitActual = round2(total - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount);
     var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee, measuredSquares);
 
-    var costLines = lines.filter(function (l) { return l.key !== "labor" && l.key !== "tearoff"; }).slice();
+    var costLines = lines.filter(function (l) { return l.key !== "labor"; }).slice();
     if (laborCostInstall > 0) {
       costLines.unshift(line("labor-cost", "Install labor (crew)", round1(measuredSquares) + " measured sq by pitch · " + IC.crewLabel(IC.crewForJob(job)), round2(measuredSquares), "sq", round2(laborCostInstall / Math.max(measuredSquares, 0.01)), "labor"));
     }
@@ -442,6 +454,9 @@ window.IC = window.IC || {};
     if (woodLaborCost > 0) {
       costLines.push(line("wood-labor", "Wood boards (crew)", boards + " boards", boards, "board", Number(crewRates.woodPerBoard) || 0, "labor"));
     }
+    if (insuranceAmount > 0) {
+      costLines.push(line("insurance", "Insurance", insPct + "% of job price", 1, "ls", insuranceAmount, "other"));
+    }
 
     return {
       lines: lines, costLines: costLines,
@@ -451,7 +466,9 @@ window.IC = window.IC || {};
       otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,
       salesTax: salesTax, salesTaxPercent: taxPct,
       deliveryFee: deliveryFee,
-      total: salePrice, listTotal: listTotal, quotedTotal: salePrice,
+      wasteDisposal: wasteDisposal,
+      insuranceAmount: insuranceAmount, insurancePercent: insPct,
+      total: total, listTotal: listTotal, quotedTotal: salePrice,
       discountPercent: discountPercent, discountAmount: discountAmount,
       billableSquares: billableSquares, measuredSquares: measuredSquares,
       materialSquares: materialSquares, laborSquares: laborSquares,

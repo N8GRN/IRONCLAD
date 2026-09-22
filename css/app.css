@@ -1071,6 +1071,10 @@ html[data-theme="dark"] .tabbar {
 html[data-theme="dark"] .list-row {
   border-bottom-color: var(--line);
 }
+html[data-theme="dark"] .tone-scheduled {
+  background: rgba(158, 196, 234, 0.18);
+  color: var(--navy);
+}
 
 @media (min-width: 640px) {
   .form-grid.two, .grid-2, .sm-2 { grid-template-columns: 1fr 1fr; }

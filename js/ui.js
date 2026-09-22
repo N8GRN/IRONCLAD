@@ -363,6 +363,11 @@ window.IC = window.IC || {};
     if (gutters.included) rows.push({ qty: "", desc: gutters.description, unit: "", total: gutters.price });
     var siding = IC.normalizeAddon("siding", est.siding);
     if (siding.included) rows.push({ qty: "", desc: siding.description, unit: "", total: siding.price });
+    var insuranceAmount = c && Number(c.insuranceAmount);
+    if (Number.isFinite(insuranceAmount) && insuranceAmount > 0) {
+      var insPct = c.insurancePercent != null ? c.insurancePercent : 1;
+      rows.push({ qty: "", desc: "Insurance (" + insPct + "%)", unit: "", total: insuranceAmount });
+    }
     return rows;
   };
 
@@ -402,17 +407,32 @@ window.IC = window.IC || {};
     var taxPct = c.salesTaxPercent != null ? c.salesTaxPercent : 7;
     var deliveryFee = Number(c.deliveryFee);
     if (!Number.isFinite(deliveryFee) || deliveryFee < 0) deliveryFee = 0;
+    var wasteDisposal = Number(c.wasteDisposal);
+    if (!Number.isFinite(wasteDisposal) || wasteDisposal < 0) wasteDisposal = 0;
+    var tearoffCrew = Number(c.laborCostTearoff);
+    if (!Number.isFinite(tearoffCrew) || tearoffCrew < 0) tearoffCrew = 0;
+    var laborOnly = Number(laborValue) || 0;
+    if (opts.actual !== false) {
+      laborOnly = Math.round((laborOnly - tearoffCrew) * 100) / 100;
+      if (laborOnly < 0) laborOnly = 0;
+    }
     var otherVal = Number(c.otherCost != null ? c.otherCost : c.otherSubtotal) || 0;
-    var otherWithoutDelivery = Math.round((otherVal - deliveryFee) * 100) / 100;
-    if (otherWithoutDelivery < 0) otherWithoutDelivery = 0;
+    var otherRemainder = Math.round((otherVal - deliveryFee - wasteDisposal) * 100) / 100;
+    if (otherRemainder < 0) otherRemainder = 0;
+    var insuranceAmount = Number(c.insuranceAmount);
+    if (!Number.isFinite(insuranceAmount) || insuranceAmount < 0) insuranceAmount = 0;
+    var insPct = c.insurancePercent != null ? c.insurancePercent : 1;
     var rows = [
       ["Materials", c.materialsSubtotal],
-      ["Labor & tear-off", laborValue],
+      ["Labor", laborOnly],
+      ["Tear-off (crew)", tearoffCrew],
+      ["Waste disposal", wasteDisposal],
       ["Delivery fee", deliveryFee],
       [commLabel, commission],
-      ["Other", otherWithoutDelivery],
+      ["Other", otherRemainder],
       ["Gutters / siding", c.addonsSubtotal],
       ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
+      ["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount],
     ];
     var itemized = opts.itemized !== false
       ? "<ul>" + itemSrc.map(function (l) {
@@ -438,6 +458,6 @@ window.IC = window.IC || {};
     if (!c) return '<article class="paper-doc" id="job-cost-sheet"><p class="muted">Build an assessment first.</p></article>';
     return '<article class="paper-doc job-cost-doc" id="job-cost-sheet"><header class="doc-head"><img src="' + IC.asset("brand/logo.png") + '" alt="" />' +
       '<div style="text-align:right"><p style="font-family:var(--font-display);font-size:1.25rem;color:var(--navy)">Job cost</p><p class="muted">#' + job.number + " · " + IC.esc(job.customerName) + "</p></div></header>" +
-      '<div style="margin-top:1.25rem">' + IC.navySumHtml(c, { heading: "Proposed total", id: "", actual: true, commissionNote: "Labor & tear-off here is what we pay the crew (Labor catalog). Proposal total is the customer price. Profit uses actual crew cost, not the Price $/square on Assessment." }) + "</div></article>";
+      '<div style="margin-top:1.25rem">' + IC.navySumHtml(c, { heading: "Proposed total", id: "", actual: true, commissionNote: "Labor and Tear-off (crew) are what we pay the crew (Labor catalog). Waste disposal is landfill dump cost (squares × layers × Tear-off $/sq / layer). Proposal total is the customer price. Profit uses actual crew cost, not the Price $/square on Assessment." }) + "</div></article>";
   };
 })(window.IC);

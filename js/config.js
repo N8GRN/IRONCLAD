@@ -150,6 +150,7 @@ IC.SETTINGS = {
   sheathingSqftPerSheet: 32,
   salesTaxPercent: 7,
   chimneyEachPrice: 500,
+  insurancePercent: 1,
   permissions: IC.clone ? IC.clone(IC.DEFAULT_PERMISSIONS) : JSON.parse(JSON.stringify(IC.DEFAULT_PERMISSIONS)),
   contractIntro:
     "This Residential Roofing Service Agreement (“Agreement”) is entered into by and between Ironclad Roofing LLC (“Contractor”) and the Customer named below. Contractor agrees to furnish labor, materials, and equipment to perform the work described herein at the property listed below, in a good and workmanlike manner consistent with industry standards.",

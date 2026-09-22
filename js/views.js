@@ -143,10 +143,12 @@ window.IC = window.IC || {};
     var row = function (j, meta) {
       return '<a class="job-row" href="#/jobs/' + j.id + '"><div><p><span class="tabular muted">#' + j.number + "</span> " + IC.esc(j.customerName) + '</p><p class="tiny">' + IC.esc(meta) + "</p></div>" + IC.badge(j.status) + "</a>";
     };
+    var greet = String((s && s.salesName) || "").trim().split(/\s+/)[0];
+    if (!greet) greet = String((s && s.name) || "").trim().split(/\s+/)[0];
     var stack = function (items, empty) {
       return items && items.length ? '<div class="job-stack">' + items.join("") + "</div>" : empty;
     };
-    return '<div class="page"><header class="page-head"><div><p class="kicker">Ironclad Roofing</p><h1 class="hero">Let’s go to work, ' + IC.esc(s.name) + '.</h1></div><a href="#/jobs">' + IC.btn("New job " + IC.icon("arrow")) + "</a></header>" +
+    return '<div class="page"><header class="page-head"><div><p class="kicker">Ironclad Roofing</p><h1 class="hero">Let’s go to work, ' + IC.esc(greet) + '.</h1></div><a href="#/jobs">' + IC.btn("New job " + IC.icon("arrow")) + "</a></header>" +
       '<div class="grid-stats">' + stats + "</div>" +
       (unread[0] ? '<div class="card" style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><p class="kicker">Needs you</p><p style="font-weight:600">' + IC.esc(unread[0].title) + '</p><p class="muted">' + IC.esc(unread[0].body) + '</p></div><a href="#/notifications">' + IC.btn("Alerts", { variant: "outline", size: "sm" }) + "</a></div>" : "") +
       '<div class="grid-2"><div class="card"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' + IC.icon("userplus") + "<h2>Unassigned</h2></div>" +
@@ -377,13 +379,13 @@ window.IC = window.IC || {};
       IC.field("Price $/square", IC.input({ type: "number", value: value.laborRatePerSquare, "data-est": "num", "data-key": "laborRatePerSquare" })) +
       IC.field("Waste %", IC.input({ type: "number", value: value.wastePercent, "data-est": "num", "data-key": "wastePercent" })) +
       IC.field("Material margin %", IC.input({ type: "number", value: value.markupPercent, "data-est": "num", "data-key": "markupPercent" })) +
-      IC.field("Tear-off $/sq / layer", IC.input({ type: "number", value: value.tearoffRatePerSquare, "data-est": "num", "data-key": "tearoffRatePerSquare" })) +
+      IC.field("Tear-off $/sq / layer", IC.input({ type: "number", min: "0", step: "0.01", value: value.tearoffRatePerSquare, "data-est": "num", "data-key": "tearoffRatePerSquare" })) +
       IC.field("Dumpster", IC.input({ type: "number", value: value.dumpster, "data-est": "num", "data-key": "dumpster" })) +
       IC.field("Permit", IC.input({ type: "number", value: value.permit, "data-est": "num", "data-key": "permit" })) +
       IC.field("Delivery fee", IC.input({ type: "number", min: "0", step: "0.01", value: value.deliveryFee != null ? value.deliveryFee : 65, "data-est": "num", "data-key": "deliveryFee" })) +
       IC.field("Sales tax %", IC.input({ type: "number", min: "0", step: "0.1", value: value.salesTaxPercent != null ? value.salesTaxPercent : 7, "data-est": "num", "data-key": "salesTaxPercent" })) +
       "</div>" +
-      '<p class="tiny muted" style="margin-top:8px">Delivery fee is not taxed. Sales tax is on material cost only — not on material margin, labor, permit, or delivery.</p>' +
+      '<p class="tiny muted" style="margin-top:8px">Tear-off $/sq / layer is landfill dump cost: measured squares × tear-off layers × this rate (dump trailers). Dumpster is extra, for rented boxes on commercial or large jobs. Delivery fee is not taxed. Sales tax is on material cost only.</p>' +
       '<div class="addon-block"><label class="check"><input type="checkbox" data-est="gutter-on"' + (gutters.included ? " checked" : "") + ' /><span style="font-weight:600">Include gutters (lump sum)</span></label>' +
       (gutters.included
         ? '<div class="addon-fields">' +
@@ -617,7 +619,7 @@ window.IC = window.IC || {};
         return '<button type="button" class="' + (on ? "on" : "") + '" data-act="set-theme" data-theme="' + opt.id + '">' + opt.label + "</button>";
       }).join("") +
       "</div></div>" +
-      IC.settingsCard("#/settings/company", "Company profile →", "Legal name, address, phone, warranty, and contract language.") +
+      IC.settingsCard("#/settings/company", "Company profile →", "Legal name, address, phone, warranty, insurance, and contract language.") +
       IC.settingsCard("#/settings/defaults", "Estimate defaults →", "Price $/square, waste, tax rate, chimney price, dumpster, permit, and delivery.") +
       (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team →", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
       (admin ? IC.settingsCard("#/settings/crews", "Crews →", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
@@ -646,9 +648,11 @@ window.IC = window.IC || {};
       IC.field("ZIP", IC.input({ value: settings.zip, "data-set": "zip", disabled: !admin })) +
       IC.field("Website", IC.input({ value: settings.website, "data-set": "website", disabled: !admin, placeholder: "https://ironcladroofing.com" })) +
       IC.field("Workmanship warranty (years)", IC.input({ type: "number", value: settings.warrantyWorkmanshipYears, "data-set": "warrantyWorkmanshipYears", "data-num": "1", disabled: !admin })) +
+      IC.field("Insurance %", IC.input({ type: "number", min: "0", step: "0.01", value: settings.insurancePercent != null && settings.insurancePercent !== "" ? settings.insurancePercent : 1, "data-set": "insurancePercent", "data-num": "1", disabled: !admin })) +
       IC.field("Payment terms", IC.textarea({ value: settings.paymentTerms, "data-set": "paymentTerms", disabled: !admin }), "span-2") +
       IC.field("Contract introduction", IC.textarea({ value: settings.contractIntro, "data-set": "contractIntro", disabled: !admin }), "span-2") +
-      "</div></div>";
+      "</div>" +
+      '<p class="tiny muted" style="margin-top:8px">Insurance % is applied to each job as a percent of the proposed job price, then added to the Proposed Total (1% of $15,000 = $150 → $15,150).</p></div>';
     return IC.settingsPage("Company profile", body);
   };
 
@@ -659,7 +663,7 @@ window.IC = window.IC || {};
       ["laborRatePerSquare", "Price $ / square"],
       ["wastePercent", "Waste %"],
       ["markupPercent", "Material margin %"],
-      ["tearoffRatePerSquare", "Tear-off $ / sq / layer"],
+      ["tearoffRatePerSquare", "Tear-off $ / sq / layer (dump)"],
       ["dumpsterDefault", "Dumpster default"],
       ["permitDefault", "Permit default"],
       ["deliveryFeeDefault", "Delivery fee default"],
