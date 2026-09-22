@@ -560,8 +560,9 @@ window.IC = window.IC || {};
       { key: "jobScheduled", label: "My project has been scheduled" },
       { key: "jobComplete", label: "My project is complete" },
     ];
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Inbox</p><h1 class="title">Alerts</h1></div><div style="display:flex;gap:8px">' +
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Inbox</p><h1 class="title">Alerts</h1></div><div style="display:flex;flex-wrap:wrap;gap:8px">' +
       IC.btn("Mark all read", { variant: "outline", size: "sm", data: 'data-act="mark-all"' }) +
+      (mine.length ? IC.btn("Clear inbox", { variant: "outline", size: "sm", data: 'data-act="clear-inbox"' }) : "") +
       IC.btn("Enable push", { variant: "outline", size: "sm", data: 'data-act="enable-push"' }) +
       "</div></header>" +
       '<section class="card notify-prefs"><h2 style="margin-bottom:6px">Notifications</h2>' +
@@ -571,10 +572,15 @@ window.IC = window.IC || {};
       }).join("") +
       "</section>" +
       '<h2 style="margin:1.25rem 0 8px">Inbox</h2>' +
-      (mine.length ? '<ul style="display:grid;gap:8px;list-style:none;padding:0;margin:0">' + mine.map(function (n) {
+      (mine.length ? '<ul class="alert-list">' + mine.map(function (n) {
         var inner = '<p style="font-weight:600">' + IC.esc(n.title) + '</p><p class="muted">' + IC.esc(n.body) + '</p><p class="tiny">' + IC.formatDate(n.createdAt) + "</p>";
-        return '<li><div class="card"' + (n.read ? ' style="opacity:.7"' : "") + ">" +
-          (n.jobId ? '<a href="#/jobs/' + n.jobId + '" data-act="read-note" data-id="' + n.id + '">' + inner + "</a>" : inner) + "</div></li>";
+        var body = n.jobId
+          ? '<a class="alert-body" href="#/jobs/' + n.jobId + '" data-act="read-note" data-id="' + n.id + '">' + inner + "</a>"
+          : '<div class="alert-body" data-act="read-note" data-id="' + n.id + '">' + inner + "</div>";
+        return '<li><div class="card alert-row"' + (n.read ? ' style="opacity:.7"' : "") + ">" +
+          body +
+          IC.btn(IC.icon("trash"), { variant: "ghost", class: "btn-icon", data: 'data-act="delete-note" data-id="' + n.id + '" aria-label="Delete alert"' }) +
+          "</div></li>";
       }).join("") + "</ul>" : '<div class="card"><p class="muted">No alerts yet.</p></div>') + "</div>";
   };
 

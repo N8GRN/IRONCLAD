@@ -180,6 +180,30 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   padding: 1.1rem 1.2rem;
 }
 
+.alert-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.alert-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.alert-row .alert-body {
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.alert-row .btn-icon {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.alert-row .btn-icon:hover:not(:disabled) { color: var(--red); }
+
 .badge {
   display: inline-flex;
   align-items: center;

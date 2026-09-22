@@ -22,6 +22,7 @@ window.IC = window.IC || {};
       customers: [],
       jobs: [],
       notifications: [],
+      dismissedNoteIds: {},
       session: null,
     };
   }
@@ -133,6 +134,7 @@ window.IC = window.IC || {};
         customers: s.customers,
         jobs: s.jobs,
         notifications: s.notifications,
+        dismissedNoteIds: s.dismissedNoteIds || {},
       }));
       if (s.session) localStorage.setItem(IC.SESSION_KEY, JSON.stringify(s.session));
       else localStorage.removeItem(IC.SESSION_KEY);
@@ -199,7 +201,9 @@ window.IC = window.IC || {};
           customers: parsed.customers || [],
           jobs: parsed.jobs || [],
           notifications: parsed.notifications || [],
+          dismissedNoteIds: parsed.dismissedNoteIds || {},
         });
+        IC.state.notifications = IC.ingestNotifications(IC.state.notifications);
       }
       var ses = localStorage.getItem(IC.SESSION_KEY);
       if (ses) {
@@ -275,6 +279,7 @@ window.IC = window.IC || {};
     Object.assign(IC.state, data, { initialized: true });
     IC.state.catalog = IC.ensureCatalog(IC.state.catalog);
     if (IC.seedCleared()) IC.dropSampleRecords(true);
+    IC.state.notifications = IC.ingestNotifications(IC.state.notifications || [], true);
     IC.emit();
   };
 
@@ -827,6 +832,70 @@ window.IC = window.IC || {};
       return next;
     });
     IC.emit();
+  };
+
+  IC.dismissNoteId = function (id) {
+    if (!id) return;
+    IC.state.dismissedNoteIds = IC.state.dismissedNoteIds || {};
+    IC.state.dismissedNoteIds[id] = true;
+  };
+
+  IC.isDismissedNote = function (id) {
+    return Boolean(id && IC.state.dismissedNoteIds && IC.state.dismissedNoteIds[id]);
+  };
+
+  IC.ingestNotifications = function (list, fromCloud) {
+    var incoming = list || [];
+    var keep = [];
+    incoming.forEach(function (n) {
+      if (!n || !n.id) return;
+      if (IC.isDismissedNote(n.id)) {
+        if (fromCloud) IC.cloudDelete("notifications", n.id);
+        return;
+      }
+      keep.push(n);
+    });
+    return keep;
+  };
+
+  IC.deleteNotification = function (id) {
+    if (!id) return;
+    var row = (IC.state.notifications || []).find(function (n) { return n.id === id; });
+    if (row && IC.state.session && !IC.noteIsForSession(row, IC.state.session)) return;
+    IC.dismissNoteId(id);
+    IC.state.notifications = (IC.state.notifications || []).filter(function (n) { return n.id !== id; });
+    IC.emit();
+    IC.cloudDelete("notifications", id);
+  };
+
+  IC.clearMyNotifications = function (session) {
+    var s = session || IC.state.session;
+    if (!s) return 0;
+    var drop = (IC.state.notifications || []).filter(function (n) { return IC.noteIsForSession(n, s); });
+    drop.forEach(function (n) { if (n && n.id) IC.dismissNoteId(n.id); });
+    var dropIds = {};
+    drop.forEach(function (n) { if (n && n.id) dropIds[n.id] = true; });
+    IC.state.notifications = (IC.state.notifications || []).filter(function (n) { return !dropIds[n.id]; });
+    IC.emit();
+    var db = IC.getDb && IC.getDb();
+    var authed = IC.getAuth && IC.getAuth() && IC.getAuth().currentUser;
+    if (db && authed && drop.length) {
+      try {
+        var batch = db.batch();
+        drop.forEach(function (n) {
+          if (n.id) batch.delete(db.collection("notifications").doc(n.id));
+        });
+        batch.commit().catch(function (err) {
+          console.warn("[ironclad] clear inbox batch failed", err);
+          drop.forEach(function (n) { if (n.id) IC.cloudDelete("notifications", n.id); });
+        });
+      } catch (err) {
+        drop.forEach(function (n) { if (n.id) IC.cloudDelete("notifications", n.id); });
+      }
+    } else {
+      drop.forEach(function (n) { if (n.id) IC.cloudDelete("notifications", n.id); });
+    }
+    return drop.length;
   };
 
   IC.notify = function (n) {

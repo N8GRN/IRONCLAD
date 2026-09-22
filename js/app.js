@@ -471,6 +471,20 @@ window.IC = window.IC || {};
       if (s) IC.markAllRead(s);
       return;
     }
+    if (act === "delete-note") {
+      IC.deleteNotification(t.getAttribute("data-id"));
+      IC.toast("Alert removed");
+      return;
+    }
+    if (act === "clear-inbox") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!s) return;
+      if (!confirm("Remove all alerts from your inbox?")) return;
+      var n = IC.clearMyNotifications(s);
+      IC.toast(n ? "Inbox cleared" : "Inbox is already empty");
+      return;
+    }
     if (act === "enable-push") {
       if (s) IC.registerPush(s.firebaseUid || s.memberId);
       IC.toast("Push requested");

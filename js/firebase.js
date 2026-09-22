@@ -292,7 +292,7 @@ window.IC = window.IC || {};
       } else {
         list.forEach(showIncomingNote);
       }
-      IC.state.notifications = list;
+      IC.state.notifications = IC.ingestNotifications(list, true);
       IC.emit();
     }));
     unsubscribers.push(db.collection("meta").onSnapshot(function (snap) {
