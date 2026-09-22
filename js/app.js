@@ -26,6 +26,7 @@ window.IC = window.IC || {};
     if (parts[0] === "customers" && parts[1]) return { name: "customer", id: parts[1] };
     if (parts[0] === "customers") return { name: "customers" };
     if (parts[0] === "schedule") return { name: "schedule" };
+    if (parts[0] === "settings" && parts[1]) return { name: "settings", page: parts[1] };
     if (parts[0] === "settings") return { name: "settings" };
     if (parts[0] === "labor") return { name: "labor" };
     if (parts[0] === "materials") return { name: "materials" };
@@ -82,6 +83,7 @@ window.IC = window.IC || {};
         iid: active.getAttribute("data-iid"),
         fid: active.getAttribute("data-fid"),
         labor: active.getAttribute("data-labor"),
+        pitch: active.getAttribute("data-pitch"),
         ui: active.getAttribute("data-ui"),
         name: active.getAttribute("name"),
         idAttr: active.getAttribute("data-id"),
@@ -133,7 +135,7 @@ window.IC = window.IC || {};
       else if (route.name === "customers") inner = IC.viewCustomers();
       else if (route.name === "customer") inner = IC.viewCustomer(route.id);
       else if (route.name === "schedule") inner = IC.viewSchedule();
-      else if (route.name === "settings") inner = IC.viewSettings();
+      else if (route.name === "settings") inner = IC.viewSettings(route.page);
       else if (route.name === "labor") inner = IC.viewLabor();
       else if (route.name === "materials") inner = IC.viewMaterials();
       else if (route.name === "notifications") inner = IC.viewNotifications();
@@ -159,7 +161,7 @@ window.IC = window.IC || {};
           same("data-draft", restore.draft) && same("data-cdraft", restore.cdraft) &&
           same("data-udraft", restore.udraft) && same("data-mat", restore.mat) &&
           same("data-iid", restore.iid) && same("data-fid", restore.fid) && same("data-ui", restore.ui) &&
-          same("data-labor", restore.labor) &&
+          same("data-labor", restore.labor) && same("data-pitch", restore.pitch) &&
           same("name", restore.name) && same("data-id", restore.idAttr);
         if (ok) match = n;
       });
@@ -503,6 +505,7 @@ window.IC = window.IC || {};
       return;
     }
     if (act === "add-crew") {
+      if (!IC.isAdmin(s) && !IC.can(s, "labor", "write")) return;
       var crew = IC.normalizeCrew({ id: IC.uid(), name: "Crew " + (IC.state.crews.length + 1), foreman: "", phone: "", notes: "", active: true });
       IC.upsertCrew(crew);
       IC.ui.laborCrew = crew.id;
@@ -657,12 +660,23 @@ window.IC = window.IC || {};
       if (to) IC.grantUser(el.getAttribute("data-id"), { role: "sales", linkTo: to });
       return;
     }
+    if (act === "perm") {
+      IC.updatePermissions(el.getAttribute("data-role"), el.getAttribute("data-resource"), el.getAttribute("data-perm"), el.checked);
+      return;
+    }
     if (act === "catalog-show-off") { IC.ui.catalogShowOff = el.checked; IC.render(); return; }
     if (el.hasAttribute("data-labor")) {
+      if (!IC.can(IC.state.session, "labor", "write")) return;
       var laborCrew = IC.state.crews.find(function (c) { return c.id === el.getAttribute("data-id"); });
       if (!laborCrew) return;
       var rates = Object.assign({}, IC.normalizeCrew(laborCrew).labor);
-      rates[el.getAttribute("data-labor")] = Number(el.value);
+      var laborKey = el.getAttribute("data-labor");
+      if (laborKey === "installByPitch") {
+        rates.installByPitch = Object.assign({}, rates.installByPitch || {});
+        rates.installByPitch[el.getAttribute("data-pitch")] = Number(el.value);
+      } else {
+        rates[laborKey] = Number(el.value);
+      }
       IC.upsertCrew(Object.assign({}, IC.normalizeCrew(laborCrew), { labor: rates }));
       return;
     }
@@ -726,6 +740,7 @@ window.IC = window.IC || {};
       return;
     }
     if (el.hasAttribute("data-set")) {
+      if (!IC.isAdmin(IC.state.session)) return;
       var key = el.getAttribute("data-set");
       var val = el.getAttribute("data-num") ? Number(el.value) : el.value;
       var p = {};
@@ -734,6 +749,7 @@ window.IC = window.IC || {};
       return;
     }
     if (el.hasAttribute("data-team")) {
+      if (!IC.canManageTeam(IC.state.session)) return;
       var field = el.getAttribute("data-team");
       var id = el.getAttribute("data-id");
       if (field === "role" && el.value !== "admin") {
@@ -756,13 +772,16 @@ window.IC = window.IC || {};
         if (field === "role" && el.value === "sales" && !n.salesName) {
           n.salesName = n.name || null;
         }
-        if (field === "role" && el.value === "admin" && (!n.title || n.title === "Sales")) {
-          n.title = n.title && n.title !== "Sales" ? n.title : "Admin";
+        if (field === "role" && el.value === "admin" && (!n.title || n.title === "Sales" || n.title === "Manager")) {
+          n.title = n.title && n.title !== "Sales" && n.title !== "Manager" ? n.title : "Admin";
         }
-        if (field === "role" && el.value === "sales" && (!n.title || n.title === "Admin")) {
+        if (field === "role" && el.value === "manager" && (!n.title || n.title === "Sales" || n.title === "Admin")) {
+          n.title = "Manager";
+        }
+        if (field === "role" && el.value === "sales" && (!n.title || n.title === "Admin" || n.title === "Manager")) {
           n.title = "Sales";
         }
-        if (field === "role" && (el.value === "admin" || el.value === "sales")) {
+        if (field === "role" && (el.value === "admin" || el.value === "manager" || el.value === "sales")) {
           n.status = "active";
           n.active = true;
           n.role = el.value;
@@ -777,8 +796,9 @@ window.IC = window.IC || {};
       IC.ui.addUserDraft[uk] = el.value;
       if (uk === "role") {
         var title = IC.ui.addUserDraft.title;
-        if (el.value === "admin" && (!title || title === "Sales")) IC.ui.addUserDraft.title = "Admin";
-        if (el.value === "sales" && (!title || title === "Admin")) IC.ui.addUserDraft.title = "Sales";
+        if (el.value === "admin" && (!title || title === "Sales" || title === "Manager")) IC.ui.addUserDraft.title = "Admin";
+        if (el.value === "manager" && (!title || title === "Sales" || title === "Admin")) IC.ui.addUserDraft.title = "Manager";
+        if (el.value === "sales" && (!title || title === "Admin" || title === "Manager")) IC.ui.addUserDraft.title = "Sales";
         IC.render();
       }
       if (uk === "name" && IC.ui.addUserDraft.role === "sales" && !IC.ui.addUserDraft.salesName) {
@@ -789,6 +809,7 @@ window.IC = window.IC || {};
     if (el.hasAttribute("data-crew")) {
       var crew = IC.state.crews.find(function (c) { return c.id === el.getAttribute("data-id"); });
       if (!crew) return;
+      if (!IC.isAdmin(IC.state.session) && !IC.can(IC.state.session, "labor", "write")) return;
       var nc = Object.assign({}, crew);
       nc[el.getAttribute("data-crew")] = el.value;
       IC.upsertCrew(nc);
