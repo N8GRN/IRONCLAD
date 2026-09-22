@@ -18,12 +18,16 @@ window.IC = window.IC || {};
     var parts = hash.split("/").filter(Boolean);
     if (!parts.length) return { name: "home" };
     if (parts[0] === "login") return { name: "login" };
+    if (parts[0] === "jobs" && parts[1] && parts[2] === "customer-quote") return { name: "customer-quote", id: parts[1] };
+    if (parts[0] === "jobs" && parts[1] && parts[2] === "job-sheet") return { name: "job-sheet", id: parts[1] };
+    if (parts[0] === "jobs" && parts[1] && parts[2] === "job-cost") return { name: "job-cost", id: parts[1] };
     if (parts[0] === "jobs" && parts[1]) return { name: "job", id: parts[1] };
     if (parts[0] === "jobs") return { name: "jobs" };
     if (parts[0] === "customers" && parts[1]) return { name: "customer", id: parts[1] };
     if (parts[0] === "customers") return { name: "customers" };
     if (parts[0] === "schedule") return { name: "schedule" };
     if (parts[0] === "settings") return { name: "settings" };
+    if (parts[0] === "labor") return { name: "labor" };
     if (parts[0] === "materials") return { name: "materials" };
     if (parts[0] === "notifications") return { name: "notifications" };
     if (parts[0] === "sign" && parts[1]) return { name: "sign", token: parts[1] };
@@ -38,12 +42,15 @@ window.IC = window.IC || {};
 
   function currentJob() {
     var r = IC.parseRoute();
-    return r.name === "job" ? IC.state.jobs.find(function (j) { return j.id === r.id; }) : null;
+    if (r.name === "job" || r.name === "customer-quote" || r.name === "job-sheet" || r.name === "job-cost") {
+      return IC.state.jobs.find(function (j) { return j.id === r.id; }) || null;
+    }
+    return null;
   }
 
   function currentEstimate(job) {
     var settings = IC.state.settings;
-    return job.estimate || IC.withComputed(IC.defaultEstimate(settings), settings);
+    return IC.withComputed(job.estimate || IC.defaultEstimate(settings), settings, job);
   }
 
   function patchEstimate(job, patch) {
@@ -73,6 +80,8 @@ window.IC = window.IC || {};
         udraft: active.getAttribute("data-udraft"),
         mat: active.getAttribute("data-mat"),
         iid: active.getAttribute("data-iid"),
+        fid: active.getAttribute("data-fid"),
+        labor: active.getAttribute("data-labor"),
         ui: active.getAttribute("data-ui"),
         name: active.getAttribute("name"),
         idAttr: active.getAttribute("data-id"),
@@ -98,20 +107,39 @@ window.IC = window.IC || {};
       }
     } else if (!IC.state.session || route.name === "login") {
       html = IC.viewLogin();
-    } else if (!IC.isApproved(IC.state.session)) {
-      html = IC.viewWaiting();
     } else {
+      if (!IC.isApproved(IC.state.session) && IC.isBootstrapAdmin(IC.state.session.email)) {
+        IC.saveUser(IC.promoteIfBootstrap({
+          id: IC.state.session.memberId,
+          name: IC.state.session.name,
+          email: IC.state.session.email,
+          role: IC.state.session.role,
+          title: IC.state.session.title,
+          salesName: IC.state.session.salesName,
+          status: IC.state.session.status,
+          firebaseUid: IC.state.session.firebaseUid,
+        }));
+      }
+      if (!IC.isApproved(IC.state.session)) {
+        html = IC.viewWaiting();
+      } else {
       var inner = "";
       if (route.name === "jobs") inner = IC.viewJobs();
       else if (route.name === "job") inner = IC.viewJob(route.id);
+      else if (route.name === "customer-quote" || route.name === "job-sheet" || route.name === "job-cost") {
+        var docJob = IC.state.jobs.find(function (j) { return j.id === route.id; });
+        inner = docJob ? IC.viewDocPage(docJob, route.name) : '<div class="page"><p>Job not found.</p></div>';
+      }
       else if (route.name === "customers") inner = IC.viewCustomers();
       else if (route.name === "customer") inner = IC.viewCustomer(route.id);
       else if (route.name === "schedule") inner = IC.viewSchedule();
       else if (route.name === "settings") inner = IC.viewSettings();
+      else if (route.name === "labor") inner = IC.viewLabor();
       else if (route.name === "materials") inner = IC.viewMaterials();
       else if (route.name === "notifications") inner = IC.viewNotifications();
       else inner = IC.viewHome();
       html = IC.viewShell(inner, route);
+      }
     }
     root.innerHTML = html;
     if (restore) {
@@ -130,7 +158,8 @@ window.IC = window.IC || {};
           same("data-crew", restore.crew) && same("data-cust", restore.cust) &&
           same("data-draft", restore.draft) && same("data-cdraft", restore.cdraft) &&
           same("data-udraft", restore.udraft) && same("data-mat", restore.mat) &&
-          same("data-iid", restore.iid) && same("data-ui", restore.ui) &&
+          same("data-iid", restore.iid) && same("data-fid", restore.fid) && same("data-ui", restore.ui) &&
+          same("data-labor", restore.labor) &&
           same("name", restore.name) && same("data-id", restore.idAttr);
         if (ok) match = n;
       });
@@ -233,6 +262,7 @@ window.IC = window.IC || {};
         job.ownerName = s.salesName;
       }
       IC.upsertJob(job);
+      IC.notifyNewJob(job);
       IC.ui.newJobOpen = false;
       IC.go("#/jobs/" + job.id);
       return;
@@ -247,9 +277,27 @@ window.IC = window.IC || {};
       return;
     }
     if (act === "job-tab") {
-      IC.ui.jobTab = t.getAttribute("data-tab");
+      var nextTab = t.getAttribute("data-tab");
+      if (nextTab === "Estimate") nextTab = "Assessment";
+      if (nextTab === "Quote") nextTab = "Summary";
+      IC.ui.jobTab = nextTab;
       IC.ui.sigUrl = "";
       IC.render();
+      return;
+    }
+    if (act === "job-calendar") {
+      var calJob = IC.state.jobs.find(function (j) { return j.id === t.getAttribute("data-id"); }) || currentJob();
+      if (!calJob) return;
+      var calCust = IC.state.customers.find(function (c) { return c.id === calJob.customerId; });
+      IC.addJobToCalendar(calJob, calCust);
+      return;
+    }
+    if (act === "job-navigate") {
+      var navJob = IC.state.jobs.find(function (j) { return j.id === t.getAttribute("data-id"); }) || currentJob();
+      var navCust = navJob && IC.state.customers.find(function (c) { return c.id === navJob.customerId; });
+      var maps = IC.mapsUrl(navCust);
+      if (!maps) { IC.toast("Add a street address on the customer first"); return; }
+      window.open(maps, "_blank", "noopener");
       return;
     }
     if (act === "delete-job") {
@@ -277,6 +325,36 @@ window.IC = window.IC || {};
       if (!j3) return;
       var est3 = currentEstimate(j3);
       patchEstimate(j3, { structures: est3.structures.filter(function (x) { return x.id !== t.getAttribute("data-sid"); }) });
+      return;
+    }
+    if (act === "est-add-facet") {
+      var jf = currentJob();
+      if (!jf) return;
+      var estF = currentEstimate(jf);
+      var sidF = t.getAttribute("data-sid");
+      patchEstimate(jf, {
+        structures: estF.structures.map(function (st) {
+          if (st.id !== sidF) return st;
+          var facets = IC.structureFacets(st);
+          return Object.assign({}, st, { facets: facets.concat([IC.emptyFacet("Facet " + (facets.length + 1), { squares: 0, pitch: st.pitch, tearoff: st.tearoff })]) });
+        }),
+      });
+      return;
+    }
+    if (act === "est-del-facet") {
+      var jd = currentJob();
+      if (!jd) return;
+      var estD = currentEstimate(jd);
+      var sidD = t.getAttribute("data-sid");
+      var fidD = t.getAttribute("data-fid");
+      patchEstimate(jd, {
+        structures: estD.structures.map(function (st) {
+          if (st.id !== sidD) return st;
+          var facets = IC.structureFacets(st).filter(function (f) { return f.id !== fidD; });
+          if (!facets.length) return st;
+          return Object.assign({}, st, { facets: facets });
+        }),
+      });
       return;
     }
     if (act === "est-add-extra") {
@@ -313,12 +391,19 @@ window.IC = window.IC || {};
       IC.toast("Agreement generated");
       return;
     }
-    if (act === "share-quote") {
-      var sheet = document.getElementById("quote-sheet");
-      var j7 = currentJob();
-      if (!sheet || !j7) return;
-      IC.htmlToPdf(sheet, "Ironclad-Quote-" + j7.number + ".pdf").then(function (out) {
-        return IC.shareOrDownload({ filename: out.filename, title: "Ironclad quote #" + j7.number, text: "Quote for " + j7.customerName, blob: out.blob });
+    if (act === "share-quote" || act === "share-customer-quote" || act === "share-job-sheet" || act === "share-job-cost") {
+      var shareMap = {
+        "share-quote": { id: "quote-sheet", prefix: "Ironclad-Quote-", title: "Ironclad quote #" },
+        "share-customer-quote": { id: "customer-quote-sheet", prefix: "Ironclad-Customer-Quote-", title: "Customer quote #" },
+        "share-job-sheet": { id: "job-sheet-sheet", prefix: "Ironclad-Job-Sheet-", title: "Job sheet #" },
+        "share-job-cost": { id: "job-cost-sheet", prefix: "Ironclad-Job-Cost-", title: "Job cost #" },
+      };
+      var spec = shareMap[act];
+      var sheet = document.getElementById(spec.id);
+      var jShare = currentJob();
+      if (!sheet || !jShare) return;
+      IC.htmlToPdf(sheet, spec.prefix + jShare.number + ".pdf").then(function (out) {
+        return IC.shareOrDownload({ filename: out.filename, title: spec.title + jShare.number, text: jShare.customerName, blob: out.blob });
       });
       return;
     }
@@ -381,7 +466,7 @@ window.IC = window.IC || {};
       return;
     }
     if (act === "mark-all") {
-      if (s) IC.markAllRead(s.memberId);
+      if (s) IC.markAllRead(s);
       return;
     }
     if (act === "enable-push") {
@@ -397,13 +482,40 @@ window.IC = window.IC || {};
       IC.signOut().then(function () { IC.go("#/"); });
       return;
     }
+    if (act === "refresh-access") {
+      var user = IC.getAuth() && IC.getAuth().currentUser;
+      if (!user) {
+        IC.toast("Sign in again");
+        IC.go("#/login");
+        return;
+      }
+      IC.applyAuthUser(user).then(function (member) {
+        if (IC.isApproved(member)) {
+          IC.toast("You’re in");
+          IC.go("#/");
+        } else {
+          IC.toast("Still waiting on Nate or Matt");
+          IC.render();
+        }
+      }).catch(function () {
+        IC.toast("Couldn’t check access. Try again in a moment.");
+      });
+      return;
+    }
     if (act === "add-crew") {
-      IC.upsertCrew({ id: IC.uid(), name: "Crew " + (IC.state.crews.length + 1), foreman: "", phone: "", notes: "", active: true });
+      var crew = IC.normalizeCrew({ id: IC.uid(), name: "Crew " + (IC.state.crews.length + 1), foreman: "", phone: "", notes: "", active: true });
+      IC.upsertCrew(crew);
+      IC.ui.laborCrew = crew.id;
+      return;
+    }
+    if (act === "labor-crew") {
+      IC.ui.laborCrew = t.getAttribute("data-id");
+      IC.render();
       return;
     }
     if (act === "add-teammate") {
       IC.ui.addUserOpen = true;
-      IC.ui.addUserDraft = { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
+      IC.ui.addUserDraft = { name: "", role: "sales", title: "Sales", salesName: "", email: "", commissionPercent: 0 };
       IC.render();
       return;
     }
@@ -536,12 +648,24 @@ window.IC = window.IC || {};
     if (act === "new-job-customer") { IC.ui.newJobCustomerId = el.value; return; }
     if (act === "printed-name") { IC.ui.printedName = el.value; return; }
     if (act === "keep-signed-in") { IC.ui.keepSignedIn = el.checked; return; }
+    if (act === "notify-pref") {
+      IC.setNotifyPref(el.getAttribute("data-pref"), el.checked);
+      return;
+    }
     if (act === "link-seat") {
       var to = el.value;
       if (to) IC.grantUser(el.getAttribute("data-id"), { role: "sales", linkTo: to });
       return;
     }
     if (act === "catalog-show-off") { IC.ui.catalogShowOff = el.checked; IC.render(); return; }
+    if (el.hasAttribute("data-labor")) {
+      var laborCrew = IC.state.crews.find(function (c) { return c.id === el.getAttribute("data-id"); });
+      if (!laborCrew) return;
+      var rates = Object.assign({}, IC.normalizeCrew(laborCrew).labor);
+      rates[el.getAttribute("data-labor")] = Number(el.value);
+      IC.upsertCrew(Object.assign({}, IC.normalizeCrew(laborCrew), { labor: rates }));
+      return;
+    }
     if (act === "catalog-add-hip") { IC.ui.catalogAddHip = el.checked; return; }
     if (act === "job-status") { IC.setStatus(el.getAttribute("data-id"), el.value); return; }
     if (act === "job-owner") { IC.assignOwner(el.getAttribute("data-id"), el.value || null); return; }
@@ -624,6 +748,7 @@ window.IC = window.IC || {};
         if (m.id !== id) return m;
         var n = Object.assign({}, m);
         if (field === "salesName") n.salesName = el.value.trim() || null;
+        else if (field === "commissionPercent") n.commissionPercent = el.value === "" ? 0 : Number(el.value);
         else n[field] = el.value;
         if (field === "name" && n.role === "sales" && (!m.salesName || m.salesName === m.name)) {
           n.salesName = el.value.trim() || null;
@@ -677,13 +802,33 @@ window.IC = window.IC || {};
     if (kind === "struct") {
       var sid = el.getAttribute("data-sid");
       var k = el.getAttribute("data-key");
-      var v = el.getAttribute("data-num") ? Number(el.value) : el.value;
+      var v;
+      if (el.getAttribute("data-null") && el.value === "") v = null;
+      else if (el.getAttribute("data-num")) v = Number(el.value);
+      else v = el.value;
       patchEstimate(jobE, {
         structures: est.structures.map(function (st) {
           if (st.id !== sid) return st;
           var n = Object.assign({}, st);
           n[k] = v;
           return n;
+        }),
+      });
+    } else if (kind === "facet") {
+      var fsid = el.getAttribute("data-sid");
+      var fid = el.getAttribute("data-fid");
+      var fk = el.getAttribute("data-key");
+      var fv = el.getAttribute("data-num") ? Number(el.value) : el.value;
+      patchEstimate(jobE, {
+        structures: est.structures.map(function (st) {
+          if (st.id !== fsid) return st;
+          var facets = IC.structureFacets(st).map(function (f) {
+            if (f.id !== fid) return f;
+            var nf = Object.assign({}, f);
+            nf[fk] = fv;
+            return nf;
+          });
+          return Object.assign({}, st, { facets: facets });
         }),
       });
     } else if (kind === "mat") {
@@ -814,7 +959,7 @@ window.IC = window.IC || {};
 
   function liftPathToHash() {
     var path = location.pathname.replace(/\/+$/, "") || "/";
-    var m = path.match(/\/(jobs|customers|schedule|settings|materials|notifications|login|sign)(\/[^/]+)?$/);
+    var m = path.match(/\/(jobs|customers|schedule|settings|labor|materials|notifications|login|sign)(\/[^/]+)?$/);
     if (m && !location.hash) {
       var keep = path.slice(0, path.length - m[0].length) || "/";
       if (keep.charAt(keep.length - 1) !== "/") keep += "/";
@@ -872,14 +1017,20 @@ window.IC = window.IC || {};
       if (jd) IC.setProductionDate(jd.id, null);
     }, true);
     window.addEventListener("hashchange", function () {
-      IC.ui.jobTab = "Overview";
+      var route = IC.parseRoute();
+      var prev = IC.ui.lastRoute || {};
+      var sameJob = prev.id && route.id && prev.id === route.id;
+      var jobish = { job: 1, "customer-quote": 1, "job-sheet": 1, "job-cost": 1 };
+      if (!(sameJob && jobish[prev.name] && jobish[route.name])) {
+        IC.ui.jobTab = "Overview";
+      } else if (route.name === "job" && prev.name !== "job") {
+        IC.ui.jobTab = "Summary";
+      }
+      IC.ui.lastRoute = { name: route.name, id: route.id };
       IC.ui.sigUrl = "";
       IC.ui.signDone = false;
       IC.ui.signRemote = null;
       IC.ui.signTried = false;
-      if (IC.parseRoute().name === "job" && sessionStorage) {
-        /* keep tab if same job? reset is simpler */
-      }
       IC.render();
     });
     IC.subscribe(function () {
@@ -887,6 +1038,13 @@ window.IC = window.IC || {};
     });
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(function () {});
+      navigator.serviceWorker.addEventListener("message", function (e) {
+        var data = e.data || {};
+        if (data.type === "ironclad-open" && data.url) {
+          var hash = String(data.url).replace(/^.*#/, "#");
+          if (hash.charAt(0) === "#") IC.go(hash);
+        }
+      });
     }
     IC.render();
   };
