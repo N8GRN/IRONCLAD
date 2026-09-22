@@ -24,8 +24,8 @@ window.IC = window.IC || {};
     { id: "boxVent", label: "Box vents", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: metal.map(function (c) { return { name: c.name, price: 18, sku: "" }; }) },
     { id: "broan", label: "Broan vents", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [{ name: "4 in", price: 23, sku: "" }, { name: "8 in", price: 40, sku: "" }] },
     { id: "pipeBoots", label: "Pipe Boots", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [{ name: "Black", price: 16.69, sku: "" }, { name: "Brown", price: 16.69, sku: "" }] },
-    { id: "flashing", label: "Step Flashing kit", soldAs: "box", coverageAmount: 1, coverageUnit: "each", items: [{ name: "Black", price: 75, sku: "" }, { name: "Brown", price: 75, sku: "" }, { name: "White", price: 75, sku: "" }] },
-    { id: "chimney", label: "Chimney flashing", soldAs: "lf", coverageAmount: 1, coverageUnit: "lf", items: [{ name: "Black", price: 2.05, sku: "" }, { name: "Brown", price: 2.05, sku: "" }, { name: "White", price: 2.05, sku: "" }, { name: "Other", price: 2.05, sku: "" }] },
+    { id: "flashing", label: "Step flashing", soldAs: "bundle", coverageAmount: 50, coverageUnit: "lf", items: [{ name: "Black", price: 75, sku: "" }, { name: "Brown", price: 75, sku: "" }, { name: "White", price: 75, sku: "" }] },
+    { id: "chimney", label: "Chimneys", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [{ name: "Chimney", price: 500, sku: "" }] },
     { id: "wallFlashing", label: "Wall flashing", soldAs: "lf", coverageAmount: 1, coverageUnit: "lf", items: [{ name: "Black", price: 2.05, sku: "" }, { name: "Brown", price: 2.05, sku: "" }, { name: "White", price: 2.05, sku: "" }, { name: "Other", price: 2.05, sku: "" }] },
     { id: "baseSheet", label: "Flat roof — Base sheet", soldAs: "roll", coverageAmount: 1, coverageUnit: "square", items: [{ name: "Base Sheet", price: 147.75, sku: "" }] },
     { id: "capSheet", label: "Flat roof — Cap sheet", soldAs: "roll", coverageAmount: 2, coverageUnit: "square", items: [{ name: "MuleHide", price: 165.25, sku: "" }] },
@@ -63,6 +63,9 @@ window.IC = window.IC || {};
     return IC.CATALOG.map(function (def) {
       var have = byId[def.id];
       var items = have && have.items && have.items.length ? have.items : def.items;
+      if (def.id === "chimney" && items.length && items.every(function (it) { return Number(it.price) < 50; })) {
+        items = def.items;
+      }
       return {
         id: def.id,
         label: def.label,

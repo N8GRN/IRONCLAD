@@ -1,6 +1,7 @@
 /* ============================================================
    IRONCLAD CRM — company defaults
-   Edit this file to change team, rates, and Firebase project.
+   Edit this file to change rates and Firebase project.
+   The team roster comes from Firestore `users` only — no example people.
    ============================================================ */
 window.IC = window.IC || {};
 
@@ -31,24 +32,27 @@ IC.JOB_STATUSES = [
   "Complete",
 ];
 
-IC.SALES_NAMES = ["Matt", "Jon", "Jesse", "Ethan"];
+IC.ROLES = ["admin", "manager", "sales"];
 
-/* Emails here skip the waiting room and always get Admin. Add Matt’s login email when you have it. */
+/* Emails here skip the waiting room and always get Admin. */
 IC.ADMIN_EMAILS = ["nathangreen.me@gmail.com"];
 
-IC.TEAM = [
-  { id: "nate", name: "Nate", email: "nathangreen.me@gmail.com", role: "admin", title: "Admin", salesName: null, active: true, status: "active", commissionPercent: 0 },
-  { id: "matt", name: "Matt", email: "", role: "admin", title: "Owner", salesName: "Matt", active: true, status: "active", placeholder: true, commissionPercent: 0 },
-  { id: "jon", name: "Jon", email: "", role: "sales", title: "Sales", salesName: "Jon", active: true, status: "active", placeholder: true, commissionPercent: 3 },
-  { id: "jesse", name: "Jesse", email: "", role: "sales", title: "Sales", salesName: "Jesse", active: true, status: "active", placeholder: true, commissionPercent: 6 },
-  { id: "ethan", name: "Ethan", email: "", role: "sales", title: "Sales", salesName: "Ethan", active: true, status: "active", placeholder: true, commissionPercent: 0 },
-  { id: "austin", name: "Austin", email: "", role: "sales", title: "Sales", salesName: "Austin", active: true, status: "active", placeholder: true, commissionPercent: 6 },
-];
+IC.BOOTSTRAP = {
+  "nathangreen.me@gmail.com": { name: "Nate", title: "Admin" },
+};
+
+/* Legacy seed ids that used to be injected from this file. Never re-create them. */
+IC.GHOST_SEED_IDS = { nate: true, matt: true, jon: true, jesse: true, ethan: true, austin: true };
+
+/* Roster is Firestore `users`. Kept empty so example names cannot come back. */
+IC.TEAM = [];
 
 IC.CREWS = [
   { id: "crew-1", name: "Crew 1", foreman: "", phone: "", notes: "Rename in Settings", active: true },
   { id: "crew-2", name: "Crew 2", foreman: "", phone: "", notes: "", active: true },
 ];
+
+IC.PITCHES = ["Flat Roof", "2/12 - 3.9/12", "4/12 - 7/12", "8/12 - 9/12", "10/12 - 11/12", "12/12 - 13/12"];
 
 IC.DEFAULT_CREW_LABOR = {
   installPerSq: 90,
@@ -61,11 +65,37 @@ IC.DEFAULT_CREW_LABOR = {
   woodPerBoard: 15,
 };
 
+IC.PERM_RESOURCES = [
+  { id: "materials", label: "Materials catalog" },
+  { id: "labor", label: "Labor catalog" },
+  { id: "team", label: "Team" },
+];
+
+IC.DEFAULT_PERMISSIONS = {
+  manager: {
+    materials: { read: true, write: false },
+    labor: { read: true, write: false },
+    team: { read: true, write: false },
+  },
+  sales: {
+    materials: { read: false, write: false },
+    labor: { read: false, write: false },
+    team: { read: false, write: false },
+  },
+};
+
 IC.normalizeCrew = function (c) {
   c = c || {};
   var laborIn = c.labor || {};
+  var installFallback = numLabor(laborIn.installPerSq, IC.DEFAULT_CREW_LABOR.installPerSq);
+  var byPitchIn = laborIn.installByPitch || {};
+  var installByPitch = {};
+  (IC.PITCHES || []).forEach(function (p) {
+    installByPitch[p] = numLabor(byPitchIn[p], installFallback);
+  });
   var labor = {
-    installPerSq: numLabor(laborIn.installPerSq, IC.DEFAULT_CREW_LABOR.installPerSq),
+    installPerSq: installFallback,
+    installByPitch: installByPitch,
     tearoff1: numLabor(laborIn.tearoff1, IC.DEFAULT_CREW_LABOR.tearoff1),
     tearoff2: numLabor(laborIn.tearoff2, IC.DEFAULT_CREW_LABOR.tearoff2),
     tearoff3: numLabor(laborIn.tearoff3, IC.DEFAULT_CREW_LABOR.tearoff3),
@@ -117,11 +147,13 @@ IC.SETTINGS = {
   permitDefault: 0,
   sheathingSheetPrice: 68,
   sheathingSqftPerSheet: 32,
+  salesTaxPercent: 7,
+  chimneyEachPrice: 500,
+  permissions: IC.clone ? IC.clone(IC.DEFAULT_PERMISSIONS) : JSON.parse(JSON.stringify(IC.DEFAULT_PERMISSIONS)),
   contractIntro:
     "This Residential Roofing Service Agreement (“Agreement”) is entered into by and between Ironclad Roofing LLC (“Contractor”) and the Customer named below. Contractor agrees to furnish labor, materials, and equipment to perform the work described herein at the property listed below, in a good and workmanlike manner consistent with industry standards.",
 };
 
-IC.PITCHES = ["Flat Roof", "2/12 - 3.9/12", "4/12 - 7/12", "8/12 - 9/12", "10/12 - 11/12", "12/12 - 13/12"];
 IC.STORIES = ["1-Story", "2-Story", "3-Story"];
 IC.TEAROFF = ["None", "1-Layer", "2-Layer", "3-Layer", "4-Layer", "5-Layer"];
 IC.SHEATHING = ["Wood Board", "OSB / Plywood"];

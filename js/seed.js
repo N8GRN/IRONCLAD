@@ -98,7 +98,7 @@ window.IC = window.IC || {};
       mk(10015, robert, "Follow-up", "jesse", "Jesse", 8, {
         notes: "Sent photos. Waiting on HOA color approval.",
       }),
-      mk(10016, maria, "Appointment", "ethan", "Ethan", 5, {
+      mk(10016, maria, "Appointment", "jesse", "Jesse", 5, {
         notes: "Saturday 10am measure. Bring ladder.",
       }),
       mk(10017, tom, "Sold", "matt", "Matt", 11, {

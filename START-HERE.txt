@@ -7,15 +7,18 @@ in the same folder as js/, css/, and brand/.
 SIGN-IN
 - One login: email + password. Create account / Forgot password are
   on that screen.
-- New accounts wait until Nate or Matt grant Sales or Admin.
+- New accounts wait until Nate or Matt grant Sales, Manager, or Admin.
+- Roster is Firestore `users` only — no example names in the app.
 - Everyone shares the same company jobs (ironclad-127a5 / users).
 - After you sign in once on an iPad, Continue offline uses YOUR
   account only — no picking someone else’s name.
 - Alerts go to the project owner you assigned, not to yourself.
 
-TEAM
-Settings → Team: phone next to email, commission % per person
-(Jon 3%, Jesse 6%, Austin 6%). Commission is that % of the job total.
+TEAM & PERMISSIONS
+Settings → Team: real accounts only. Phone, commission % per person.
+Settings → Manage permissions: Admins decide what Manager and Sales
+can see/edit (Materials, Labor, Team). Managers start view-only on
+those three. Sales starts with none. Admins always have full access.
 
 JOB TABS
 Overview · Assessment · Summary · Contract
@@ -23,37 +26,43 @@ Summary opens Customer quote, Job Sheet (materials only), and Job cost.
 
 ASSESSMENT / TAKEOFF (this build)
 - Facets on each structure (squares, pitch, tear-off). Stories stay
-  on the structure. Pitch is labor-only.
+  on the structure. Customer Price $/square is billed labor.
 - Linears (eaves, rakes, ridge, hips, valleys) are per structure.
-- 12% waste on materials except drip (rakes, 10% + 1 stick) and
-  gutter apron (eaves, 10%).
-- Felt: 10 sq/roll, 4/12+ only.
+- 12% waste on materials except drip (rakes, 10% + 1 stick),
+  gutter apron (eaves, 10%), felt (no waste), and ridge vent (no waste).
+- Felt: 10 sq/roll, 4/12+ only, no waste.
 - Ice & Water: 4/12+ eaves+valleys+½ wall flashing at 60 lf/roll;
   2/12–3.9/12 is ½ roll/sq and no felt.
 - Flat Roof pitch: Base sheet + MuleHide cap + custom edge metal
   ($1.03/lf). No shingles/felt/ice/starter/drip/hip on an all-flat
   structure.
-- Vent: Ridge vents (ridge lf ÷ 30 lf/roll) OR box vents (qty+color).
+- Vent: Ridge vents (ridge lf ÷ 30 lf/roll, no waste) OR box vents.
+- Chimneys: count × $500 (editable in Estimate defaults).
+- Step flashing: ceil((wall flashing lf + chimneys × 10) / 50) bundles.
 - Broan: 4" bath and 8" kitchen as separate counts.
 - Sheathing is a sheet count (10 = 10 sheets of OSB).
+- Sales tax: 7% on materials, between commission and Other.
+  Rate is editable on Assessment and in Estimate defaults.
+- Proposal profit uses actual crew Labor & tear-off (same as Job cost).
 
 MATERIALS
-Admins: sidebar Materials. Add colors, retire SKUs, bump prices.
-Ridge vent SkyRunner LTE $88/roll; box vents $18.
+Sidebar Materials (if your role can read it). Add colors, retire SKUs,
+bump prices. Ridge vent SkyRunner LTE $88/roll; box vents $18.
 
 ALERTS
 Each person: Alerts → Notifications. Defaults:
   on  — assigned to me, status of my job
-  on for admins — a new job is created
+  on for admins/managers — a new job is created
   off — scheduled, complete
 Tap Enable push once per iPad (Allow Notifications; iPhone/iPad:
-Add to Home Screen first). Cache ironclad-crm-v5 — if a Home Screen
+Add to Home Screen first). Cache ironclad-crm-v6 — if a Home Screen
 icon looks old, remove it and add the site again.
 
-LABOR (admins)
-Sidebar → Labor. Per crew: install pay $/sq, tear-off 1–5 layer,
-OSB $/sheet, wood $/board. Assessment Price $/square is what the
-customer is charged. Job cost uses crew pay for profit.
+LABOR
+Sidebar → Labor. Per crew: install pay $/sq for each pitch, tear-off
+1–5 layer, OSB $/sheet, wood $/board. Actual cost = measured squares
+at each pitch × that pitch’s crew rate × stories. Assessment Price
+$/square is what the customer is charged. Job cost uses crew pay.
 
 QUOTED PRICE
 On Assessment, optional Quoted price. Lower than list → customer
