@@ -61,6 +61,57 @@ window.IC = window.IC || {};
     catalogAddPrice: "",
     catalogAddHip: true,
     catalogBump: "",
+    laborCrew: "",
+  };
+
+  IC.defaultNotifyPrefs = function (member) {
+    var admin = member && member.role === "admin";
+    return {
+      jobCreated: Boolean(admin),
+      jobAssigned: true,
+      statusChanged: true,
+      jobScheduled: false,
+      jobComplete: false,
+    };
+  };
+
+  IC.normalizeNotifyPrefs = function (raw, member) {
+    return Object.assign({}, IC.defaultNotifyPrefs(member), raw || {});
+  };
+
+  IC.personIds = function (person) {
+    if (!person) return [];
+    var ids = [person.id, person.memberId, person.firebaseUid];
+    return ids.filter(function (x, i) { return x && ids.indexOf(x) === i; });
+  };
+
+  IC.isSamePerson = function (a, b) {
+    if (!a || !b) return false;
+    var aIds = IC.personIds(a);
+    var bIds = IC.personIds(b);
+    if (aIds.some(function (id) { return bIds.indexOf(id) >= 0; })) return true;
+    var ae = (a.email || "").toLowerCase();
+    var be = (b.email || "").toLowerCase();
+    return Boolean(ae && be && ae === be);
+  };
+
+  IC.noteIsForSession = function (n, session) {
+    if (!n || !session) return false;
+    var ids = IC.personIds(session);
+    if (n.userId && ids.indexOf(n.userId) >= 0) return true;
+    return (n.userIds || []).some(function (id) { return ids.indexOf(id) >= 0; });
+  };
+
+  IC.wantsNotify = function (member, key) {
+    if (!member || !IC.isApproved(member)) return false;
+    return Boolean(IC.normalizeNotifyPrefs(member.notifyPrefs, member)[key]);
+  };
+
+  IC.memberById = function (id) {
+    if (!id) return null;
+    return (IC.state.team || []).find(function (t) {
+      return t.id === id || t.firebaseUid === id;
+    }) || null;
   };
 
   IC.subscribe = function (fn) {
@@ -107,7 +158,7 @@ window.IC = window.IC || {};
           initialized: Boolean(parsed.initialized),
           settings: parsed.settings || IC.clone(IC.SETTINGS),
           team: IC.fillTeamTitles(parsed.team && parsed.team.length ? parsed.team : IC.clone(IC.TEAM)),
-          crews: parsed.crews && parsed.crews.length ? parsed.crews : IC.clone(IC.CREWS),
+          crews: (parsed.crews && parsed.crews.length ? parsed.crews : IC.clone(IC.CREWS)).map(IC.normalizeCrew),
           catalog: IC.ensureCatalog(parsed.catalog),
           customers: parsed.customers || [],
           jobs: parsed.jobs || [],
@@ -155,6 +206,7 @@ window.IC = window.IC || {};
     if (!IC.state.settings || !IC.state.settings.legalName) IC.state.settings = IC.clone(IC.SETTINGS);
     if (!IC.state.team.length) IC.state.team = IC.clone(IC.TEAM);
     if (!IC.state.crews.length) IC.state.crews = IC.clone(IC.CREWS);
+    IC.state.crews = (IC.state.crews || []).map(IC.normalizeCrew);
     IC.state.catalog = IC.ensureCatalog(IC.state.catalog);
   };
 
@@ -177,7 +229,7 @@ window.IC = window.IC || {};
   IC.fillTeamTitles = function (team) {
     var defaults = {};
     IC.TEAM.forEach(function (t) { defaults[t.id] = t; });
-    return (team || []).map(function (m) {
+    var list = (team || []).map(function (m) {
       var d = defaults[m.id];
       var status = m.status || (m.role === "pending" ? "pending" : "active");
       var next = Object.assign({}, m, { status: status });
@@ -186,8 +238,19 @@ window.IC = window.IC || {};
         else if (d && d.title) next.title = d.title;
         else next.title = next.role === "admin" ? "Admin" : (next.role === "sales" ? "Sales" : "Waiting");
       }
+      if (next.commissionPercent == null || next.commissionPercent === "") {
+        next.commissionPercent = d && d.commissionPercent != null ? d.commissionPercent : 0;
+      } else {
+        next.commissionPercent = Number(next.commissionPercent) || 0;
+      }
+      if (next.phone == null) next.phone = (d && d.phone) || "";
+      next.notifyPrefs = IC.normalizeNotifyPrefs(next.notifyPrefs, next);
       return next;
     });
+    IC.TEAM.forEach(function (seed) {
+      if (!list.some(function (m) { return m.id === seed.id; })) list.push(Object.assign({}, seed));
+    });
+    return list;
   };
 
   function upsertList(list, item) {
@@ -235,15 +298,7 @@ window.IC = window.IC || {};
       updatedAt: IC.nowIso(),
     });
     IC.upsertJob(next);
-    if (member && IC.state.session && member.id !== IC.state.session.memberId) {
-      IC.notify({
-        userId: member.id,
-        title: "Job assigned to you",
-        body: "#" + next.number + " " + next.customerName + " is now yours.",
-        type: "job_assigned",
-        jobId: next.id,
-      });
-    }
+    IC.notifyAssigned(next, job.ownerId, member);
   };
 
   IC.assignCrew = function (jobId, crewId, scheduledDate) {
@@ -259,21 +314,9 @@ window.IC = window.IC || {};
       updatedAt: IC.nowIso(),
     });
     IC.upsertJob(next);
-    var recipients = {};
-    if (job.ownerId) recipients[job.ownerId] = true;
-    IC.state.team.filter(function (t) { return t.role === "admin" && IC.isApproved(t); }).forEach(function (a) {
-      recipients[a.id] = true;
-    });
-    var me = IC.state.session && IC.state.session.memberId;
-    Object.keys(recipients).forEach(function (userId) {
-      if (userId === me) return;
-      IC.notify({
-        userId: userId,
-        title: next.scheduledDate ? "Crew scheduled" : "Crew assignment updated",
-        body: "#" + next.number + " " + next.customerName + (crew ? " · " + crew.name : "") + (next.scheduledDate ? " · " + next.scheduledDate : ""),
-        type: "crew_scheduled",
-        jobId: next.id,
-      });
+    if (date) IC.notifyOwnerEvent(next, "jobScheduled", {
+      title: "Job scheduled",
+      body: "#" + next.number + " " + next.customerName + (crew ? " · " + crew.name : "") + " · " + date,
     });
   };
 
@@ -282,22 +325,45 @@ window.IC = window.IC || {};
     if (!job || !IC.canAssignCrew(IC.state.session, job)) return;
     var date = IC.validIsoDate(iso);
     if ((job.scheduledDate || null) === date) return;
-    IC.upsertJob(Object.assign({}, job, {
-      scheduledDate: date,
-      updatedAt: IC.nowIso(),
-    }));
+    var next = Object.assign({}, job, { scheduledDate: date, updatedAt: IC.nowIso() });
+    if (date && job.status !== "Complete" && job.status !== "Did NOT Sell") next.status = "Job Scheduled";
+    IC.upsertJob(next);
+    if (date) {
+      IC.notifyOwnerEvent(next, "jobScheduled", {
+        title: "Job scheduled",
+        body: "#" + next.number + " " + next.customerName + " · " + date,
+      });
+    }
   };
 
   IC.setStatus = function (jobId, status) {
     var job = IC.state.jobs.find(function (j) { return j.id === jobId; });
     if (!job) return;
-    IC.upsertJob(Object.assign({}, job, { status: status, updatedAt: IC.nowIso() }));
+    if (job.status === status) return;
+    var next = Object.assign({}, job, { status: status, updatedAt: IC.nowIso() });
+    IC.upsertJob(next);
+    if (status === "Complete") {
+      IC.notifyOwnerEvent(next, "jobComplete", {
+        title: "Job complete",
+        body: "#" + next.number + " " + next.customerName + " is complete.",
+      });
+    } else if (status === "Job Scheduled") {
+      IC.notifyOwnerEvent(next, "jobScheduled", {
+        title: "Job scheduled",
+        body: "#" + next.number + " " + next.customerName + " is now scheduled.",
+      });
+    } else {
+      IC.notifyOwnerEvent(next, "statusChanged", {
+        title: "Status updated",
+        body: "#" + next.number + " " + next.customerName + " is now " + status + ".",
+      });
+    }
   };
 
   IC.saveEstimate = function (jobId, estimate) {
     var job = IC.state.jobs.find(function (j) { return j.id === jobId; });
     if (!job) return;
-    var computed = IC.withComputed(estimate, IC.state.settings);
+    var computed = IC.withComputed(estimate, IC.state.settings, job);
     IC.upsertJob(Object.assign({}, job, {
       estimate: computed,
       price: computed.computed.total,
@@ -365,11 +431,13 @@ window.IC = window.IC || {};
   };
 
   IC.upsertCrew = function (c) {
+    var next = IC.normalizeCrew(c);
+    if (!next.id) next.id = IC.uid();
     var list = IC.state.crews;
-    var i = list.findIndex(function (x) { return x.id === c.id; });
-    IC.state.crews = i >= 0 ? list.map(function (x) { return x.id === c.id ? c : x; }) : list.concat([c]);
+    var i = list.findIndex(function (x) { return x.id === next.id; });
+    IC.state.crews = i >= 0 ? list.map(function (x) { return x.id === next.id ? next : x; }) : list.concat([next]);
     IC.emit();
-    IC.cloudUpsert("crews", c.id, c);
+    IC.cloudUpsert("crews", next.id, next);
   };
 
   IC.deleteCrew = function (id) {
@@ -646,9 +714,12 @@ window.IC = window.IC || {};
       id: IC.uid(),
       name: name,
       email: String(draft.email || "").trim(),
+      phone: String(draft.phone || "").trim(),
       role: role,
       title: title,
       salesName: salesName || null,
+      commissionPercent: Number(draft.commissionPercent) || 0,
+      notifyPrefs: IC.normalizeNotifyPrefs(null, { role: role }),
       active: true,
       status: "active",
       placeholder: true,
@@ -678,32 +749,103 @@ window.IC = window.IC || {};
 
   IC.markNotificationRead = function (id) {
     IC.state.notifications = IC.state.notifications.map(function (n) {
-      return n.id === id ? Object.assign({}, n, { read: true }) : n;
+      if (n.id !== id) return n;
+      var next = Object.assign({}, n, { read: true });
+      IC.cloudUpsert("notifications", next.id, next);
+      return next;
     });
     IC.emit();
   };
 
-  IC.markAllRead = function (userId) {
+  IC.markAllRead = function (session) {
+    var s = session || IC.state.session;
     IC.state.notifications = IC.state.notifications.map(function (n) {
-      return n.userId === userId ? Object.assign({}, n, { read: true }) : n;
+      if (!IC.noteIsForSession(n, s) || n.read) return n;
+      var next = Object.assign({}, n, { read: true });
+      IC.cloudUpsert("notifications", next.id, next);
+      return next;
     });
     IC.emit();
+  };
+
+  IC.notify = function (n) {
+    if (!n || !n.userId) return;
+    var me = IC.state.session;
+    var target = IC.memberById(n.userId) || { id: n.userId, firebaseUid: n.userId };
+    if (IC.isSamePerson(target, me)) return;
+    var ids = IC.personIds(target);
+    if (n.userIds) {
+      n.userIds.forEach(function (id) { if (id && ids.indexOf(id) < 0) ids.push(id); });
+    }
+    var row = Object.assign({}, n, {
+      id: IC.uid(),
+      createdAt: IC.nowIso(),
+      read: false,
+      userId: ids[0] || n.userId,
+      userIds: ids,
+    });
+    IC.state.notifications = [row].concat(IC.state.notifications).slice(0, 200);
+    IC.emit();
+    IC.cloudUpsert("notifications", row.id, row);
+  };
+
+  IC.notifyMember = function (member, payload) {
+    if (!member) return;
+    IC.notify(Object.assign({}, payload, {
+      userId: member.firebaseUid || member.id,
+      userIds: IC.personIds(member),
+    }));
+  };
+
+  IC.notifyAssigned = function (job, prevOwnerId, member) {
+    if (!job || !member) return;
+    if (prevOwnerId && (prevOwnerId === member.id || prevOwnerId === member.firebaseUid)) return;
+    if (!IC.wantsNotify(member, "jobAssigned")) return;
+    IC.notifyMember(member, {
+      title: "Job assigned to you",
+      body: "#" + job.number + " " + job.customerName + " is now yours.",
+      type: "jobAssigned",
+      jobId: job.id,
+    });
+  };
+
+  IC.notifyOwnerEvent = function (job, prefKey, payload) {
+    if (!job || !job.ownerId) return;
+    var owner = IC.memberById(job.ownerId);
+    if (!owner || !IC.wantsNotify(owner, prefKey)) return;
+    IC.notifyMember(owner, Object.assign({ type: prefKey, jobId: job.id }, payload));
+  };
+
+  IC.notifyNewJob = function (job) {
+    if (!job) return;
+    (IC.state.team || []).forEach(function (m) {
+      if (m.role !== "admin") return;
+      if (!IC.wantsNotify(m, "jobCreated")) return;
+      IC.notifyMember(m, {
+        title: "New job entered",
+        body: "#" + job.number + " " + job.customerName + (job.ownerName ? " · " + job.ownerName : " · unassigned"),
+        type: "jobCreated",
+        jobId: job.id,
+      });
+    });
+  };
+
+  IC.setNotifyPref = function (key, on) {
+    var s = IC.state.session;
+    if (!s) return;
+    var me = IC.state.team.find(function (t) {
+      return t.id === s.memberId || (s.firebaseUid && t.firebaseUid === s.firebaseUid);
+    });
+    if (!me) return;
+    var prefs = IC.normalizeNotifyPrefs(me.notifyPrefs, me);
+    prefs[key] = Boolean(on);
+    IC.saveUser(Object.assign({}, me, { notifyPrefs: prefs }));
   };
 
   IC.clearSeedData = function () {
     IC.state.customers = IC.state.customers.filter(function (c) { return !c.seeded; });
     IC.state.jobs = IC.state.jobs.filter(function (j) { return !j.seeded; });
     IC.emit();
-  };
-
-  IC.notify = function (n) {
-    if (!n || !n.userId) return;
-    var me = IC.state.session && IC.state.session.memberId;
-    if (me && n.userId === me) return;
-    var row = Object.assign({}, n, { id: IC.uid(), createdAt: IC.nowIso(), read: false });
-    IC.state.notifications = [row].concat(IC.state.notifications).slice(0, 200);
-    IC.emit();
-    IC.cloudUpsert("notifications", row.id, row);
   };
 
   IC.newCustomerDraft = function () {
@@ -717,8 +859,12 @@ window.IC = window.IC || {};
 
   IC.newJobFor = function (customer, session) {
     var t = IC.nowIso();
-    var estimate = IC.withComputed(IC.defaultEstimate(IC.state.settings), IC.state.settings);
     var ownerIsSales = Boolean(session && session.salesName);
+    var stub = {
+      ownerId: ownerIsSales ? session.memberId : null,
+      ownerName: ownerIsSales ? session.salesName : null,
+    };
+    var estimate = IC.withComputed(IC.defaultEstimate(IC.state.settings), IC.state.settings, stub);
     return {
       id: IC.uid(),
       number: IC.nextJobNumber(),
