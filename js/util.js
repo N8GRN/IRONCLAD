@@ -99,7 +99,6 @@ window.IC = window.IC || {};
       "VERSION:2.0",
       "PRODID:-//IRONCLAD//CRM//EN",
       "CALSCALE:GREGORIAN",
-      "METHOD:PUBLISH",
       "BEGIN:VEVENT",
       "UID:" + fold(opts.uid || ("ironclad-" + date + "@crm")),
       "DTSTAMP:" + stamp,
@@ -109,6 +108,7 @@ window.IC = window.IC || {};
       "LOCATION:" + fold(opts.location || ""),
       "END:VEVENT",
       "END:VCALENDAR",
+      "",
     ].join("\r\n");
   };
 
