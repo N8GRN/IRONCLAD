@@ -151,6 +151,7 @@ IC.SETTINGS = {
   salesTaxPercent: 7,
   chimneyEachPrice: 500,
   insurancePercent: 1,
+  financingPlans: [],
   shingleBundlesPerSquare: 3,
   hipRidgeLfPerBundle: 28,
   starterLfPerBundle: 105,

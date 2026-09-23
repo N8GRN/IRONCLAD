@@ -115,4 +115,26 @@ window.IC = window.IC || {};
       }),
     ];
   };
+
+  IC.SAMPLE_CUSTOMER_EMAILS = {
+    "diane.halloway@example.com": true,
+    "rchen@example.com": true,
+    "mvasquez@example.com": true,
+    "tbrennan@example.com": true,
+    "apritchett@example.com": true,
+  };
+
+  IC.isSampleCustomer = function (c) {
+    if (!c) return false;
+    if (c.seeded) return true;
+    var email = String(c.email || "").trim().toLowerCase();
+    return Boolean(email && IC.SAMPLE_CUSTOMER_EMAILS[email]);
+  };
+
+  IC.isSampleJob = function (j) {
+    if (!j) return false;
+    if (j.seeded) return true;
+    var n = Number(j.number);
+    return n >= 10014 && n <= 10018;
+  };
 })(window.IC);

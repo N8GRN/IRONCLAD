@@ -30,6 +30,7 @@ window.IC = window.IC || {};
     if (parts[0] === "settings") return { name: "settings" };
     if (parts[0] === "labor") return { name: "labor" };
     if (parts[0] === "materials") return { name: "materials" };
+    if (parts[0] === "financing") return { name: "financing" };
     if (parts[0] === "notifications") return { name: "notifications" };
     if (parts[0] === "sign" && parts[1]) return { name: "sign", token: parts[1] };
     return { name: "home" };
@@ -138,6 +139,7 @@ window.IC = window.IC || {};
       else if (route.name === "settings") inner = IC.viewSettings(route.page);
       else if (route.name === "labor") inner = IC.viewLabor();
       else if (route.name === "materials") inner = IC.viewMaterials();
+      else if (route.name === "financing") inner = IC.viewFinancing();
       else if (route.name === "notifications") inner = IC.viewNotifications();
       else inner = IC.viewHome();
       html = IC.viewShell(inner, route);
@@ -341,6 +343,64 @@ window.IC = window.IC || {};
           return Object.assign({}, st, { facets: facets.concat([IC.emptyFacet("Facet " + (facets.length + 1), { squares: 0, pitch: st.pitch, tearoff: st.tearoff })]) });
         }),
       });
+      return;
+    }
+    if (act === "est-add-deck") {
+      var jDeck = currentJob();
+      if (!jDeck) return;
+      var estDeck = currentEstimate(jDeck);
+      var deckSid = t.getAttribute("data-sid");
+      var deckKind = t.getAttribute("data-kind") === "wood" ? "wood" : "sheathing";
+      var deckKey = deckKind === "wood" ? "woodRows" : "sheathingRows";
+      var deckCat = deckKind === "wood" ? "woodBoard" : "sheathing";
+      var deckItems = IC.catalogActiveItems(deckCat);
+      var deckName = deckItems.length ? deckItems[0].name : "";
+      patchEstimate(jDeck, {
+        structures: estDeck.structures.map(function (st) {
+          if (st.id !== deckSid) return st;
+          var rows = (st[deckKey] || []).concat([{ id: IC.uid(), itemName: deckName, qty: 0 }]);
+          var n = Object.assign({}, st);
+          n[deckKey] = rows;
+          return n;
+        }),
+      });
+      return;
+    }
+    if (act === "est-del-deck") {
+      var jDrop = currentJob();
+      if (!jDrop) return;
+      var estDrop = currentEstimate(jDrop);
+      var dropSid = t.getAttribute("data-sid");
+      var dropKind = t.getAttribute("data-kind") === "wood" ? "wood" : "sheathing";
+      var dropKey = dropKind === "wood" ? "woodRows" : "sheathingRows";
+      var dropId = t.getAttribute("data-rid");
+      patchEstimate(jDrop, {
+        structures: estDrop.structures.map(function (st) {
+          if (st.id !== dropSid) return st;
+          var n = Object.assign({}, st);
+          n[dropKey] = (st[dropKey] || []).filter(function (r) { return r.id !== dropId; });
+          return n;
+        }),
+      });
+      return;
+    }
+    if (act === "finance-add") {
+      if (!IC.isAdmin(IC.state.session)) return;
+      var fname = String(IC.ui.financeAddName || "").trim();
+      var fpct = Number(IC.ui.financeAddPct);
+      if (!fname) { IC.toast("Name the plan"); return; }
+      if (!Number.isFinite(fpct) || fpct < 0) { IC.toast("Enter the fee percent"); return; }
+      var nextPlans = IC.financingPlans().concat([{ id: IC.uid(), name: fname, feePercent: fpct, active: true }]);
+      IC.ui.financeAddName = "";
+      IC.ui.financeAddPct = "";
+      IC.updateSettings({ financingPlans: nextPlans });
+      IC.toast("Plan added");
+      return;
+    }
+    if (act === "finance-remove") {
+      if (!IC.isAdmin(IC.state.session)) return;
+      var dropPlan = t.getAttribute("data-id");
+      IC.updateSettings({ financingPlans: IC.financingPlans().filter(function (p) { return p.id !== dropPlan; }) });
       return;
     }
     if (act === "est-del-facet") {
@@ -853,6 +913,20 @@ window.IC = window.IC || {};
       return;
     }
 
+    if (el.hasAttribute("data-fin")) {
+      if (!IC.isAdmin(IC.state.session)) return;
+      var finId = el.getAttribute("data-id");
+      var finField = el.getAttribute("data-fin");
+      var finPlans = IC.financingPlans().map(function (p) {
+        if (p.id !== finId) return p;
+        var np = Object.assign({}, p);
+        if (finField === "name") np.name = el.value;
+        else np.feePercent = Number(el.value) || 0;
+        return np;
+      });
+      IC.updateSettings({ financingPlans: finPlans });
+      return;
+    }
     var jobE = currentJob();
     if (!jobE || !el.hasAttribute("data-est")) return;
     var est = currentEstimate(jobE);
@@ -898,8 +972,8 @@ window.IC = window.IC || {};
     } else if (kind === "num") {
       var nk = el.getAttribute("data-key");
       var nv = el.value === "" && el.getAttribute("data-null") ? null : Number(el.value);
-      if (nk === "quotedTotal" && nv != null && est.computed && est.computed.listTotal != null) {
-        if (Math.abs(nv - est.computed.listTotal) < 0.005) nv = null;
+      if (nk === "quotedTotal" && nv != null && est.computed && est.computed.preFinance != null) {
+        if (Math.abs(nv - est.computed.preFinance) < 0.005) nv = null;
       }
       var np = {};
       np[nk] = nv;
@@ -920,6 +994,39 @@ window.IC = window.IC || {};
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { description: el.value, included: true }) });
     } else if (kind === "siding-price") {
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { price: Number(el.value), included: true }) });
+    } else if (kind === "finance-on") {
+      var finOn = IC.normalizeFinancing(est.financing);
+      finOn.included = el.checked;
+      if (finOn.included && !finOn.planId) {
+        var firstPlan = IC.activeFinancingPlans()[0];
+        if (firstPlan) finOn.planId = firstPlan.id;
+      }
+      patchEstimate(jobE, { financing: finOn });
+    } else if (kind === "finance-plan") {
+      var finPick = IC.normalizeFinancing(est.financing);
+      finPick.included = true;
+      finPick.planId = el.value;
+      patchEstimate(jobE, { financing: finPick });
+    } else if (kind === "deck-item" || kind === "deck-qty") {
+      var deckSid = el.getAttribute("data-sid");
+      var deckKind = el.getAttribute("data-kind") === "wood" ? "wood" : "sheathing";
+      var deckKey = deckKind === "wood" ? "woodRows" : "sheathingRows";
+      var deckRid = el.getAttribute("data-rid");
+      patchEstimate(jobE, {
+        structures: est.structures.map(function (st) {
+          if (st.id !== deckSid) return st;
+          var rows = (st[deckKey] || []).map(function (r) {
+            if (r.id !== deckRid) return r;
+            var nr = Object.assign({}, r);
+            if (kind === "deck-item") nr.itemName = el.value;
+            else nr.qty = Number(el.value) || 0;
+            return nr;
+          });
+          var ns = Object.assign({}, st);
+          ns[deckKey] = rows;
+          return ns;
+        }),
+      });
     } else if (kind === "notes") {
       patchEstimate(jobE, { notes: el.value });
     } else if (kind === "extra-label") {
@@ -1020,7 +1127,7 @@ window.IC = window.IC || {};
 
   function liftPathToHash() {
     var path = location.pathname.replace(/\/+$/, "") || "/";
-    var m = path.match(/\/(jobs|customers|schedule|settings|labor|materials|notifications|login|sign)(\/[^/]+)?$/);
+    var m = path.match(/\/(jobs|customers|schedule|settings|labor|materials|financing|notifications|login|sign)(\/[^/]+)?$/);
     if (m && !location.hash) {
       var keep = path.slice(0, path.length - m[0].length) || "/";
       if (keep.charAt(keep.length - 1) !== "/") keep += "/";

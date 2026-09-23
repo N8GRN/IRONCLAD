@@ -94,6 +94,73 @@ window.IC = window.IC || {};
       ventType: "ridge",
       boxVentQty: 0,
       boxVentColor: "Black",
+      sheathingRows: [],
+      woodRows: [],
+    };
+  };
+
+  function deckRow(row, fallbackName) {
+    row = row || {};
+    var qty = Number(row.qty);
+    return {
+      id: row.id || IC.uid(),
+      itemName: String(row.itemName || fallbackName || "").trim(),
+      qty: Number.isFinite(qty) && qty > 0 ? qty : 0,
+    };
+  }
+
+  IC.deckingRows = function (st, kind) {
+    st = st || {};
+    var wood = kind === "wood";
+    var key = wood ? "woodRows" : "sheathingRows";
+    var cat = wood ? "woodBoard" : "sheathing";
+    var fallback = wood ? "1 × 6" : "OSB 7/16 × 4 × 8";
+    if (Array.isArray(st[key])) {
+      return st[key].map(function (row) { return deckRow(row, fallback); });
+    }
+    var qty = 0;
+    var name = fallback;
+    if (wood) {
+      qty = Number(st.woodBoards) || 0;
+    } else if (st.sheathingSheets != null && st.sheathingSheets !== "") {
+      qty = Number(st.sheathingSheets) || 0;
+      if (/plywood/i.test(st.sheathing || "")) name = "Plywood 7/16 × 4 × 8";
+    } else {
+      var pct = Number(st.sheathingReplacePct) || 0;
+      if (pct > 0) {
+        var sq = IC.structureFacets(st).reduce(function (s, f) { return s + (Number(f.squares) || 0); }, 0);
+        qty = Math.max(0, Math.ceil((sq * pct) / 32 - 1e-9));
+      }
+    }
+    if (!(qty > 0)) return [];
+    var items = IC.catalogActiveItems ? IC.catalogActiveItems(cat) : [];
+    var known = items.some(function (it) { return it.name === name; });
+    if (!known && items.length) name = items[0].name;
+    return [deckRow({ id: (wood ? "wood-" : "sheath-") + (st.id || "legacy"), itemName: name, qty: qty }, fallback)];
+  };
+
+  IC.financingPlans = function () {
+    var raw = (IC.state && IC.state.settings && IC.state.settings.financingPlans) || IC.SETTINGS.financingPlans || [];
+    return (raw || []).map(function (p, i) {
+      var pct = Number(p && p.feePercent);
+      return {
+        id: (p && p.id) || ("plan-" + i),
+        name: String((p && p.name) || "Plan").trim() || "Plan",
+        feePercent: Number.isFinite(pct) && pct >= 0 ? pct : 0,
+        active: !p || p.active !== false,
+      };
+    });
+  };
+
+  IC.activeFinancingPlans = function () {
+    return IC.financingPlans().filter(function (p) { return p.active; });
+  };
+
+  IC.normalizeFinancing = function (raw) {
+    raw = raw || {};
+    return {
+      included: Boolean(raw.included),
+      planId: raw.planId || "",
     };
   };
 
@@ -135,6 +202,7 @@ window.IC = window.IC || {};
       extras: [],
       gutters: IC.normalizeAddon("gutters", { included: false }),
       siding: IC.normalizeAddon("siding", { included: false }),
+      financing: IC.normalizeFinancing(null),
       notes: "",
       wastePercent: settings.wastePercent,
       markupPercent: settings.markupPercent,
@@ -214,7 +282,7 @@ window.IC = window.IC || {};
   IC.computeEstimate = function (est, settings, job) {
     settings = settingsOf(settings);
     var lines = [];
-    var measuredSquares = 0, materialSquares = 0, laborSquares = 0, labor = 0, sheathingSheets = 0, woodBoards = 0;
+    var measuredSquares = 0, materialSquares = 0, laborSquares = 0, labor = 0;
     var steepSquares = 0, lowSquares = 0, deadFlatSquares = 0;
     var laborCostInstall = 0, laborCostTearoff = 0;
     var wasteDisposal = 0, tearoffLayerSquares = 0;
@@ -275,17 +343,6 @@ window.IC = window.IC || {};
           laborCostTearoff += sq * tearCostRate;
         }
       });
-      var sheetsHere = 0;
-      if (st.sheathingSheets != null && st.sheathingSheets !== "") {
-        sheetsHere = Number(st.sheathingSheets) || 0;
-      } else {
-        var pct = Number(st.sheathingReplacePct) || 0;
-        var per = Math.max(Number(settings.sheathingSqftPerSheet) || 32, 1);
-        var sqForSheets = IC.structureFacets(st).reduce(function (s, f) { return s + (Number(f.squares) || 0); }, 0);
-        sheetsHere = ceilQty((sqForSheets * 100 * (pct / 100)) / per);
-      }
-      sheathingSheets += sheetsHere;
-      woodBoards += Number(st.woodBoards) || 0;
       var lin = IC.structureLinears(st);
       eaveLf += lin.eaveLf;
       rakeLf += lin.rakeLf;
@@ -402,13 +459,32 @@ window.IC = window.IC || {};
       lines.push(wasteLine);
       wasteDisposal = wasteLine.amount;
     }
-    var sheets = ceilQty(sheathingSheets);
-    var boards = ceilQty(woodBoards);
+    var deckingMaterialCost = 0;
+    var sheets = 0;
+    var boards = 0;
+    est.structures.forEach(function (st) {
+      IC.deckingRows(st, "sheathing").forEach(function (r) {
+        if (!(r.qty > 0)) return;
+        var item = IC.catalogItem("sheathing", r.itemName);
+        var price = item ? Number(item.price) || 0 : 0;
+        sheets += r.qty;
+        deckingMaterialCost += r.qty * price;
+        lines.push(line("deck-sheath-" + r.id, item ? item.name : r.itemName, (st.name || "Structure") + (item && item.sku ? " · " + item.sku : ""), r.qty, "sheet", price, "decking"));
+      });
+      IC.deckingRows(st, "wood").forEach(function (r) {
+        if (!(r.qty > 0)) return;
+        var item = IC.catalogItem("woodBoard", r.itemName);
+        var price = item ? Number(item.price) || 0 : 0;
+        boards += r.qty;
+        deckingMaterialCost += r.qty * price;
+        lines.push(line("deck-wood-" + r.id, item ? item.name : r.itemName, (st.name || "Structure") + (item && item.sku ? " · " + item.sku : ""), r.qty, "board", price, "decking"));
+      });
+    });
+    sheets = ceilQty(sheets);
+    boards = ceilQty(boards);
+    deckingMaterialCost = round2(deckingMaterialCost);
     var osbLaborCost = round2(sheets * (Number(crewRates.osbPerSheet) || 0));
     var woodLaborCost = round2(boards * (Number(crewRates.woodPerBoard) || 0));
-    if (sheets > 0) {
-      lines.push(line("sheathing", "Sheathing replacement", sheets + " sheets OSB/plywood", sheets, "sheet", settings.sheathingSheetPrice, "other"));
-    }
     if (est.dumpster > 0) lines.push(line("dumpster", "Dumpster", "Debris container", 1, "ea", est.dumpster, "other"));
     if (est.permit > 0) lines.push(line("permit", "Permit", "Building permit allowance", 1, "ea", est.permit, "other"));
     var deliveryFee = Number(est.deliveryFee);
@@ -447,20 +523,31 @@ window.IC = window.IC || {};
     insPct = Number(insPct);
     if (!Number.isFinite(insPct) || insPct < 0) insPct = 0;
     var insuranceAmount = round2(jobSubtotal * (insPct / 100));
-    var listTotal = round2(jobSubtotal + insuranceAmount);
+    var preFinance = round2(jobSubtotal + insuranceAmount);
+    var finance = IC.normalizeFinancing(est.financing);
+    var financePlan = null;
+    if (finance.included) {
+      var plans = IC.activeFinancingPlans();
+      financePlan = plans.find(function (p) { return p.id === finance.planId; }) || plans[0] || null;
+    }
+    var financePct = financePlan ? financePlan.feePercent : 0;
     var quotedRaw = est.quotedTotal;
-    var quotedTotal = (quotedRaw == null || quotedRaw === "") ? listTotal : round2(Number(quotedRaw) || 0);
-    var discountAmount = round2(listTotal - quotedTotal);
+    var quoteBase = (quotedRaw == null || quotedRaw === "") ? preFinance : round2(Number(quotedRaw) || 0);
+    if (!Number.isFinite(quoteBase) || quoteBase < 0) quoteBase = preFinance;
+    var financingAmount = round2(quoteBase * (financePct / 100));
+    var listFee = round2(preFinance * (financePct / 100));
+    var listTotal = round2(preFinance + listFee);
+    var total = round2(quoteBase + financingAmount);
+    var discountAmount = round2(listTotal - total);
     var discountPercent = listTotal > 0 && discountAmount > 0.005 ? round2((discountAmount / listTotal) * 100) : 0;
-    var salePrice = quotedTotal;
-    var total = salePrice;
+    var salePrice = total;
     var comm = IC.salespersonCommission(job, salePrice);
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));
     var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
-    var profitBilled = round2(total - materialsSubtotal - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount);
-    var profitActual = round2(total - materialsSubtotal - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount);
-    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + insuranceAmount, measuredSquares);
+    var profitBilled = round2(total - materialsSubtotal - deckingMaterialCost - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
+    var profitActual = round2(total - materialsSubtotal - deckingMaterialCost - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
+    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee, measuredSquares);
 
     var costLines = lines.filter(function (l) { return l.key !== "labor"; }).slice();
     if (laborCostInstall > 0) {
@@ -478,17 +565,24 @@ window.IC = window.IC || {};
     if (insuranceAmount > 0) {
       costLines.push(line("insurance", "Insurance", insPct + "% of job price", 1, "ls", insuranceAmount, "other"));
     }
+    if (financingAmount > 0) {
+      costLines.push(line("financing", "Financing", (financePlan ? financePlan.name + " · " : "") + financePct + "%", 1, "ls", financingAmount, "other"));
+    }
 
     return {
       lines: lines, costLines: costLines,
       materialsSubtotal: materialsSubtotal, laborSubtotal: laborSubtotal, laborCost: laborCost,
       laborCostInstall: round2(laborCostInstall), laborCostTearoff: round2(laborCostTearoff),
       osbLaborCost: osbLaborCost, woodLaborCost: woodLaborCost,
+      deckingMaterialCost: deckingMaterialCost,
       otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,
       salesTax: salesTax, salesTaxPercent: taxPct,
       deliveryFee: deliveryFee,
       wasteDisposal: wasteDisposal,
       insuranceAmount: insuranceAmount, insurancePercent: insPct,
+      financingAmount: financingAmount, financingPercent: financePct,
+      financingName: financePlan ? financePlan.name : "",
+      preFinance: preFinance, quoteBase: quoteBase,
       total: total, listTotal: listTotal, quotedTotal: salePrice,
       discountPercent: discountPercent, discountAmount: discountAmount,
       billableSquares: billableSquares, measuredSquares: measuredSquares,
@@ -535,7 +629,7 @@ window.IC = window.IC || {};
   IC.jobSheetLines = function (est) {
     var lines = (est && est.computed && est.computed.lines) || [];
     return lines.filter(function (l) {
-      return l.kind === "material" || l.key === "sheathing";
+      return l.kind === "material" || l.kind === "decking" || l.key === "sheathing";
     });
   };
 
@@ -543,6 +637,7 @@ window.IC = window.IC || {};
     var next = Object.assign({}, est);
     next.gutters = IC.normalizeAddon("gutters", est.gutters);
     next.siding = IC.normalizeAddon("siding", est.siding);
+    next.financing = IC.normalizeFinancing(est.financing);
     next.structures = (est.structures || []).map(function (st, i) {
       var n = Object.assign({}, st);
       n.facets = IC.structureFacets(st);
@@ -550,6 +645,8 @@ window.IC = window.IC || {};
       n.ventType = n.ventType === "box" ? "box" : "ridge";
       if (n.boxVentQty == null) n.boxVentQty = 0;
       if (!n.boxVentColor) n.boxVentColor = "Black";
+      n.sheathingRows = IC.deckingRows(st, "sheathing");
+      n.woodRows = IC.deckingRows(st, "wood");
       if (i === 0) {
         ["eaveLf", "rakeLf", "ridgeLf", "hipLf", "valleyLf", "ridgeVentLf"].forEach(function (k) {
           if (numOrNull(n[k]) == null && numOrNull(est[k]) != null) n[k] = est[k];

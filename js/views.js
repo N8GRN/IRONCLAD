@@ -108,12 +108,14 @@ window.IC = window.IC || {};
     var settingsOn = route.name === "settings";
     var laborOn = route.name === "labor";
     var materialsOn = route.name === "materials";
+    var financeOn = route.name === "financing";
     return '<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing" /><div class="brand-copy"><div class="brand-name">IRONCLAD</div><div class="brand-sub">CRM</div></div></a>' +
       '<nav class="nav-side">' + sideLinks + "</nav>" +
       '<div class="nav-foot"><a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
       (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" +
       (IC.can(s, "labor", "read") ? '<a href="#/labor" class="' + (laborOn ? "active" : "") + '">' + IC.icon("hammer") + "<span>Labor</span></a>" : "") +
       (IC.can(s, "materials", "read") ? '<a href="#/materials" class="' + (materialsOn ? "active" : "") + '">' + IC.icon("box") + "<span>Materials</span></a>" : "") +
+      '<a href="#/financing" class="' + (financeOn ? "active" : "") + '">' + IC.icon("finance") + "<span>Financing</span></a>" +
       '<a href="#/settings" class="' + (settingsOn ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" +
       '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + IC.esc(IC.roleLabel(s)) + (s.mode === "offline" || !IC.ui.online ? " · offline" : "") + "</span></div></div></aside>" +
       '<div class="main-wrap"><header class="topbar"><a class="brand" href="#/"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing" /></a>' +
@@ -297,6 +299,33 @@ window.IC = window.IC || {};
     var c = value.computed;
     var gutters = IC.normalizeAddon("gutters", value.gutters);
     var siding = IC.normalizeAddon("siding", value.siding);
+    var financing = IC.normalizeFinancing(value.financing);
+    var financePlans = IC.activeFinancingPlans();
+    function deckOptions(cat) {
+      var items = IC.catalogActiveItems(cat);
+      if (!items.length) items = (IC.catalogCategory(cat) || { items: [] }).items || [];
+      return items.map(function (it) {
+        var sku = it.sku ? " · " + it.sku : "";
+        return { value: it.name, label: it.name + sku + " · " + IC.money(it.price) };
+      });
+    }
+    function deckBlock(st, kind, title, hint, unit) {
+      var cat = kind === "wood" ? "woodBoard" : "sheathing";
+      var rows = kind === "wood" ? (st.woodRows || []) : (st.sheathingRows || []);
+      var options = deckOptions(cat);
+      var body = rows.map(function (r) {
+        var opts = options.slice();
+        if (r.itemName && !opts.some(function (o) { return o.value === r.itemName; })) opts.unshift({ value: r.itemName, label: r.itemName });
+        return '<div class="deck-row">' +
+          IC.select({ "data-est": "deck-item", "data-sid": st.id, "data-kind": kind, "data-rid": r.id, value: r.itemName, "aria-label": title }, opts) +
+          IC.input({ type: "number", min: "0", step: "1", inputmode: "numeric", value: r.qty || "", placeholder: "0", "data-est": "deck-qty", "data-sid": st.id, "data-kind": kind, "data-rid": r.id, "aria-label": unit }) +
+          IC.btn(IC.icon("trash"), { variant: "ghost", size: "sm", class: "btn-icon", data: 'data-act="est-del-deck" data-sid="' + st.id + '" data-kind="' + kind + '" data-rid="' + r.id + '"' }) +
+          "</div>";
+      }).join("");
+      return '<div class="deck-block"><p class="field-label">' + title + '</p><p class="tiny muted">' + hint + "</p>" +
+        (body || '<p class="tiny muted" style="margin-top:6px">None yet.</p>') +
+        '<div style="margin-top:8px">' + IC.btn(IC.icon("plus") + " Add " + unit, { variant: "outline", size: "sm", data: 'data-act="est-add-deck" data-sid="' + st.id + '" data-kind="' + kind + '"' }) + "</div></div>";
+    }
     var structures = value.structures.map(function (st, i) {
       var facets = IC.structureFacets(st);
       var facetRows = facets.map(function (f, fi) {
@@ -314,9 +343,6 @@ window.IC = window.IC || {};
         IC.field("Name", IC.input({ value: st.name, "data-est": "struct", "data-sid": st.id, "data-key": "name" })) +
         IC.field("Type", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "type", value: st.type }, IC.ROOF_TYPES.map(function (x) { return { value: x, label: x }; }))) +
         IC.field("Stories", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "level", value: st.level }, IC.STORIES.map(function (x) { return { value: x, label: x }; }))) +
-        IC.field("Sheathing", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "sheathing", value: st.sheathing }, IC.SHEATHING.map(function (x) { return { value: x, label: x }; }))) +
-        IC.field("Replace sheathing (sheets)", IC.input({ type: "number", min: "0", step: "1", value: st.sheathingSheets != null ? st.sheathingSheets : "", placeholder: "e.g. 10", "data-est": "struct", "data-sid": st.id, "data-key": "sheathingSheets", "data-num": "1" })) +
-        IC.field("Replace wood (boards)", IC.input({ type: "number", min: "0", step: "1", value: st.woodBoards != null ? st.woodBoards : "", placeholder: "e.g. 8", "data-est": "struct", "data-sid": st.id, "data-key": "woodBoards", "data-num": "1" })) +
         IC.field("Vent", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "ventType", value: st.ventType === "box" ? "box" : "ridge" }, [
           { value: "ridge", label: "Ridge vents" },
           { value: "box", label: "Box vents" },
@@ -327,6 +353,8 @@ window.IC = window.IC || {};
               (IC.catalogActiveItems("boxVent") || []).map(function (it) { return { value: it.name, label: it.name }; })))
           : "") +
         "</div>" +
+        deckBlock(st, "sheathing", "Sheathing", "OSB or plywood. Add a row for each size. Yard price comes from Materials.", "sheet") +
+        deckBlock(st, "wood", "Wood boards", "Add a row for each size, such as 1×6 and 1×8.", "board") +
         '<div class="facet-block"><p class="field-label" style="margin-bottom:8px">Facets</p>' +
         '<p class="tiny muted" style="margin-bottom:10px">4/12+ : felt + ice on eaves/valleys/½ wall flashing. 2/12–3.9/12 : Ice & Water at ½ roll/sq, no felt. Flat Roof : Base sheet + MuleHide cap + custom edge metal (no shingles, felt, ice, starter, drip, or hip).</p>' +
         facetRows +
@@ -340,7 +368,7 @@ window.IC = window.IC || {};
         "</div></div></section>";
     }).join("");
     var materials = IC.liveCatalog().filter(function (cat) {
-      return cat.id !== "broan" && cat.id !== "boxVent" && cat.id !== "lomance" && cat.id !== "chimney";
+      return cat.id !== "broan" && cat.id !== "boxVent" && cat.id !== "lomance" && cat.id !== "chimney" && cat.id !== "sheathing" && cat.id !== "woodBoard";
     }).map(function (cat) {
       var pick = value.materials.find(function (m) { return m.categoryId === cat.id; });
       var active = cat.items.filter(function (item) { return item.active !== false; });
@@ -402,12 +430,21 @@ window.IC = window.IC || {};
           "</div>"
         : "") +
       "</div>" +
+      '<div class="addon-block"><label class="check"><input type="checkbox" data-est="finance-on"' + (financing.included ? " checked" : "") + ' /><span style="font-weight:600">Include financing</span></label>' +
+      (financing.included
+        ? (financePlans.length
+          ? '<div class="addon-fields">' + IC.field("Plan", IC.select({ "data-est": "finance-plan", value: financing.planId || financePlans[0].id }, financePlans.map(function (p) {
+              return { value: p.id, label: p.name + " · " + p.feePercent + "%" };
+            }))) + "</div>"
+          : '<p class="tiny muted">No plans yet. Add them under Financing.</p>')
+        : "") +
+      "</div>" +
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:8px">Quoted price</h3>' +
-      '<p class="muted" style="margin-bottom:12px">This is the Proposal total (includes insurance). Leave it as-is to follow the calculated amount. A lower number shows as a discount on the customer Estimate. A higher number is hidden from the customer.</p>' +
+      '<p class="muted" style="margin-bottom:12px">This is the job price before financing. Leave it matching the calculated price to follow it. Financing, when checked, is added on top. Insurance is included in the price and hidden on the customer Estimate.</p>' +
       '<div class="form-grid two">' +
-      IC.field("Quoted price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: value.quotedTotal == null || value.quotedTotal === "" ? (c && c.total != null ? c.total : "") : value.quotedTotal, placeholder: c && c.total != null ? String(c.total) : "", "data-est": "num", "data-key": "quotedTotal", "data-null": "1" })) +
+      IC.field("Quoted price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: value.quotedTotal == null || value.quotedTotal === "" ? (c && c.preFinance != null ? c.preFinance : "") : value.quotedTotal, placeholder: c && c.preFinance != null ? String(c.preFinance) : "", "data-est": "num", "data-key": "quotedTotal", "data-null": "1" })) +
       "</div>" +
       (c && c.discountPercent > 0
         ? '<p class="tiny" style="margin-top:8px;color:var(--success)">' + c.discountPercent.toFixed(1) + "% discount · list " + IC.money(c.listTotal) + "</p>"
@@ -686,7 +723,6 @@ window.IC = window.IC || {};
       ["dumpsterDefault", "Dumpster default"],
       ["permitDefault", "Permit default"],
       ["deliveryFeeDefault", "Delivery fee default"],
-      ["sheathingSheetPrice", "Sheathing $ / sheet"],
       ["salesTaxPercent", "Sales tax % (on material cost)"],
       ["chimneyEachPrice", "Chimney $ / each"],
     ];
@@ -941,7 +977,10 @@ window.IC = window.IC || {};
     }).join("") : '<p class="muted">No items in this list' + (showOff ? "." : ". Turn on discontinued to see retired SKUs.") + "</p>";
     return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1><p class="muted" style="margin-top:4px">' + (canWrite ? "What the estimator can pick. Price changes apply the next time a job estimate is saved — sold and signed jobs keep their quoted total until you re-save." : "View only. Ask an admin if a price needs to change.") + "</p></div></header>" +
       '<div class="card"><div class="cat-pills" role="tablist" aria-label="Material category">' + pills + "</div>" +
-      '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p></div>" +
+      '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p>" +
+      (cat.id === "sheathing" ? '<p class="tiny muted">Size is part of the name. Add another item for a new size, such as OSB 1/2 × 4 × 8.</p>' : "") +
+      (cat.id === "woodBoard" ? '<p class="tiny muted">Each width has its own price. The job can use more than one.</p>' : "") +
+      "</div>" +
       '<label class="check"><input type="checkbox" data-act="catalog-show-off"' + (showOff ? " checked" : "") + ' /><span>Show discontinued</span></label></div>' +
       '<div class="mat-head"><span>Name / color</span><span>SKU</span><span>Price ($)</span><span></span></div>' +
       itemRows +
@@ -961,6 +1000,29 @@ window.IC = window.IC || {};
           IC.btn("Apply to active items", { variant: "outline", data: 'data-act="catalog-bump"' }) +
           "</div></div>"
         : "") +
+      "</div></div>";
+  };
+
+  IC.viewFinancing = function () {
+    var admin = IC.isAdmin(session());
+    var plans = IC.financingPlans();
+    var rows = plans.map(function (p) {
+      return '<div class="deck-row finance-row">' +
+        IC.input({ value: p.name, "data-fin": "name", "data-id": p.id, "aria-label": "Plan name", disabled: !admin }) +
+        IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: p.feePercent, "data-fin": "fee", "data-id": p.id, "aria-label": "Fee percent", disabled: !admin }) +
+        (admin ? IC.btn(IC.icon("trash"), { variant: "ghost", size: "sm", class: "btn-icon", data: 'data-act="finance-remove" data-id="' + p.id + '"' }) : "<span></span>") +
+        "</div>";
+    }).join("");
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Financing</h1><p class="muted" style="margin-top:4px">Plans a salesman can put on a job. The fee is a percent of the job price, added to what the customer pays, and it is not printed on their Estimate.</p></div></header>' +
+      '<div class="card"><div class="finance-head"><span>Plan</span><span>Fee %</span><span></span></div>' +
+      (rows || '<p class="muted">No plans yet. Add one, for example “12 months” at 3.25.</p>') +
+      (admin
+        ? '<div class="mat-add"><h3 style="margin-bottom:8px">Add a plan</h3><div class="deck-row finance-row">' +
+          IC.input({ value: IC.ui.financeAddName || "", placeholder: "12 months", "data-ui": "financeAddName", "aria-label": "New plan name" }) +
+          IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: IC.ui.financeAddPct || "", placeholder: "3.25", "data-ui": "financeAddPct", "aria-label": "New plan fee percent" }) +
+          IC.btn(IC.icon("plus") + " Add", { data: 'data-act="finance-add"' }) +
+          "</div></div>"
+        : '<p class="tiny muted" style="margin-top:12px">Only an admin can change plans.</p>') +
       "</div></div>";
   };
 

@@ -816,6 +816,26 @@ input.date-overlay {
   min-width: 0;
   width: 100%;
 }
+.deck-block { margin-top: 14px; }
+.deck-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px 44px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+.deck-row select, .deck-row input { min-width: 0; width: 100%; }
+.finance-row { grid-template-columns: minmax(0, 1fr) 96px 44px; }
+.finance-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 44px;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .addon-fields {
   display: grid;
   grid-template-columns: 1fr;

@@ -19,6 +19,7 @@ window.IC = window.IC || {};
       pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
       box: '<path d="M3 8.5 12 4l9 4.5-9 4.5L3 8.5Z"/><path d="M3 8.5V16l9 4.5 9-4.5V8.5"/><path d="M12 13v7.5"/>',
       hammer: '<path d="M15 3.5 20.5 9 18 11.5 12.5 6Z"/><path d="M13.2 8.8 5 17l2 2 8.2-8.2"/><path d="M4 20h6"/>',
+      finance: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h5"/>',
       pin: '<path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.4"/>',
       nav: '<path d="m4 12 16-8-8 16-1.4-6.6Z"/>',
     };
@@ -318,7 +319,7 @@ window.IC = window.IC || {};
   IC.customerQuoteComments = function (job, est, settings) {
     var shingle = (est && IC.pickName(est, "shingle")) || "Duration";
     var sheets = (est && est.structures || []).reduce(function (sum, st) {
-      return sum + (Number(st.sheathingSheets) || 0);
+      return sum + IC.deckingRows(st, "sheathing").reduce(function (s, r) { return s + (Number(r.qty) || 0); }, 0);
     }, 0);
     var allow = sheets > 0 ? sheets : 3;
     var years = (settings && settings.warrantyWorkmanshipYears) || 10;
@@ -336,7 +337,7 @@ window.IC = window.IC || {};
     var prices = (est.computed && est.computed.structurePrices) || [];
     var c = est.computed;
     if (c && c.discountPercent > 0 && c.listTotal != null) {
-      prices = IC.structurePrices(est.structures, c.listTotal, (c.addonsSubtotal || 0) + (Number(c.deliveryFee) || 0) + (Number(c.insuranceAmount) || 0), c.measuredSquares);
+      prices = IC.structurePrices(est.structures, c.listTotal, (c.addonsSubtotal || 0) + (Number(c.deliveryFee) || 0), c.measuredSquares);
     }
     if (!prices.length) {
       rows.push({ qty: "", desc: "Replace roof with " + shingle + " on whole house", unit: "", total: est.computed && est.computed.total });
@@ -363,11 +364,6 @@ window.IC = window.IC || {};
     if (gutters.included) rows.push({ qty: "", desc: gutters.description, unit: "", total: gutters.price });
     var siding = IC.normalizeAddon("siding", est.siding);
     if (siding.included) rows.push({ qty: "", desc: siding.description, unit: "", total: siding.price });
-    var insuranceAmount = c && Number(c.insuranceAmount);
-    if (Number.isFinite(insuranceAmount) && insuranceAmount > 0) {
-      var insPct = c.insurancePercent != null ? c.insurancePercent : 1;
-      rows.push({ qty: "", desc: "Insurance (" + insPct + "%)", unit: "", total: insuranceAmount });
-    }
     return rows;
   };
 
@@ -422,8 +418,13 @@ window.IC = window.IC || {};
     var insuranceAmount = Number(c.insuranceAmount);
     if (!Number.isFinite(insuranceAmount) || insuranceAmount < 0) insuranceAmount = 0;
     var insPct = c.insurancePercent != null ? c.insurancePercent : 1;
+    var financingAmount = Number(c.financingAmount);
+    if (!Number.isFinite(financingAmount) || financingAmount < 0) financingAmount = 0;
+    var financePct = c.financingPercent != null ? c.financingPercent : 0;
+    var financeLabel = "Financing" + (c.financingName ? " (" + c.financingName + (financePct ? " " + financePct + "%" : "") + ")" : "");
+    var materialCost = (Number(c.materialsSubtotal) || 0) + (Number(c.deckingMaterialCost) || 0);
     var rows = [
-      ["Materials", c.materialsSubtotal],
+      ["Materials", materialCost],
       ["Labor", laborOnly],
       ["Tear-off (crew)", tearoffCrew],
       ["Waste disposal", wasteDisposal],
@@ -433,6 +434,7 @@ window.IC = window.IC || {};
       ["Gutters / siding", c.addonsSubtotal],
       ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
       ["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount],
+      [financeLabel, financingAmount],
     ];
     var itemized = opts.itemized !== false
       ? "<ul>" + itemSrc.map(function (l) {
@@ -458,6 +460,6 @@ window.IC = window.IC || {};
     if (!c) return '<article class="paper-doc" id="job-cost-sheet"><p class="muted">Build an assessment first.</p></article>';
     return '<article class="paper-doc job-cost-doc" id="job-cost-sheet"><header class="doc-head"><img src="' + IC.asset("brand/logo.png") + '" alt="" />' +
       '<div style="text-align:right"><p style="font-family:var(--font-display);font-size:1.25rem;color:var(--navy)">Job cost</p><p class="muted">#' + job.number + " · " + IC.esc(job.customerName) + "</p></div></header>" +
-      '<div style="margin-top:1.25rem">' + IC.navySumHtml(c, { heading: "Proposed total", id: "", actual: true, commissionNote: "Labor and Tear-off (crew) are what we pay the crew (Labor catalog). Waste disposal is landfill dump cost (squares × layers × Tear-off $/sq / layer). Proposal total is the customer price. Profit uses actual crew cost, not the Price $/square on Assessment." }) + "</div></article>";
+      '<div style="margin-top:1.25rem">' + IC.navySumHtml(c, { heading: "Proposed total", id: "", actual: true, commissionNote: "Labor and Tear-off (crew) are what we pay the crew. Decking material is the yard price from Materials, and it reduces profit. Insurance and financing are in the customer price but not itemized on their Estimate." }) + "</div></article>";
   };
 })(window.IC);
