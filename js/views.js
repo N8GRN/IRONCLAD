@@ -674,14 +674,14 @@ window.IC = window.IC || {};
       IC.btn(IC.icon("share") + " Invite", { data: 'data-act="invite-app"' }) +
       IC.btn("Copy link", { variant: "outline", data: 'data-act="copy-invite"' }) +
       "</div></div>" +
-      IC.settingsCard("#/settings/company", "Company profile →", "Legal name, address, phone, warranty, insurance, and contract language.") +
-      IC.settingsCard("#/settings/defaults", "Estimate defaults →", "Price $/square, waste, tax rate, chimney price, dumpster, permit, and delivery.") +
-      (admin ? IC.settingsCard("#/settings/calculations", "Estimate calculations →", "Coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
-      (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team →", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
-      (admin ? IC.settingsCard("#/settings/crews", "Crews →", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
-      (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog →", "Crew pay rates by pitch, tear-off, OSB, and wood. Used on Job cost — not the customer price.") : "") +
-      (IC.can(s, "materials", "read") ? IC.settingsCard("#/materials", "Materials catalog →", "Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.") : "") +
-      (admin ? IC.settingsCard("#/settings/permissions", "Manage permissions →", "Control what Managers and Sales can see and edit.") : "") +
+      IC.settingsCard("#/settings/company", "Company profile", "Legal name, address, phone, warranty, insurance, and contract language.") +
+      IC.settingsCard("#/settings/defaults", "Estimate defaults", "Price $/square, waste, tax rate, chimney price, dumpster, permit, and delivery.") +
+      (admin ? IC.settingsCard("#/settings/calculations", "Estimate calculations", "Coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
+      (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
+      (admin ? IC.settingsCard("#/settings/crews", "Crews", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
+      (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog", "Crew pay rates by pitch, tear-off, OSB, and wood. Used on Job cost — not the customer price.") : "") +
+      (IC.can(s, "materials", "read") ? IC.settingsCard("#/materials", "Materials catalog", "Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.") : "") +
+      (admin ? IC.settingsCard("#/settings/permissions", "Manage permissions", "Control what Managers and Sales can see and edit.") : "") +
       (admin
         ? '<div class="card"><h2 style="margin-bottom:8px">Sync</h2><p class="muted">Everyone who is signed in shares the same company jobs, customers, catalog, and team list from Firestore. Removing samples is permanent for the whole company — they will not come back from other iPads.</p></div>' +
           IC.btn("Remove sample jobs & customers", { variant: "outline", data: 'data-act="clear-seed"' })
