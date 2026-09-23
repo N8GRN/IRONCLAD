@@ -460,6 +460,6 @@ window.IC = window.IC || {};
     if (!c) return '<article class="paper-doc" id="job-cost-sheet"><p class="muted">Build an assessment first.</p></article>';
     return '<article class="paper-doc job-cost-doc" id="job-cost-sheet"><header class="doc-head"><img src="' + IC.asset("brand/logo.png") + '" alt="" />' +
       '<div style="text-align:right"><p style="font-family:var(--font-display);font-size:1.25rem;color:var(--navy)">Job cost</p><p class="muted">#' + job.number + " · " + IC.esc(job.customerName) + "</p></div></header>" +
-      '<div style="margin-top:1.25rem">' + IC.navySumHtml(c, { heading: "Proposed total", id: "", actual: true, commissionNote: "Labor and Tear-off (crew) are what we pay the crew. Decking material is the yard price from Materials, and it reduces profit. Insurance and financing are in the customer price but not itemized on their Estimate." }) + "</div></article>";
+      '<div style="margin-top:1.25rem">' + IC.navySumHtml(c, { heading: "Proposed total", id: "", actual: true, commissionNote: "Labor and Tear-off (crew) are what we pay the crew. Decking material is the yard price from Materials. Financing is the bank fee Ironclad pays, and it comes out of profit. Insurance is in the customer price but not itemized on their Estimate." }) + "</div></article>";
   };
 })(window.IC);

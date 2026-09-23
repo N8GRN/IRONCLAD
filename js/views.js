@@ -442,7 +442,7 @@ window.IC = window.IC || {};
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:8px">Quoted price</h3>' +
-      '<p class="muted" style="margin-bottom:12px">This is the job price before financing. Leave it matching the calculated price to follow it. Financing, when checked, is added on top. Insurance is included in the price and hidden on the customer Estimate.</p>' +
+      '<p class="muted" style="margin-bottom:12px">This is the price the customer pays. Leave it matching the calculated price to follow it. Financing is an Ironclad cost and is not added to this number. Insurance is included in the price and hidden on the customer Estimate.</p>' +
       '<div class="form-grid two">' +
       IC.field("Quoted price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: value.quotedTotal == null || value.quotedTotal === "" ? (c && c.preFinance != null ? c.preFinance : "") : value.quotedTotal, placeholder: c && c.preFinance != null ? String(c.preFinance) : "", "data-est": "num", "data-key": "quotedTotal", "data-null": "1" })) +
       "</div>" +
@@ -1013,7 +1013,7 @@ window.IC = window.IC || {};
         (admin ? IC.btn(IC.icon("trash"), { variant: "ghost", size: "sm", class: "btn-icon", data: 'data-act="finance-remove" data-id="' + p.id + '"' }) : "<span></span>") +
         "</div>";
     }).join("");
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Financing</h1><p class="muted" style="margin-top:4px">Plans a salesman can put on a job. The fee is a percent of the job price, added to what the customer pays, and it is not printed on their Estimate.</p></div></header>' +
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Financing</h1><p class="muted" style="margin-top:4px">Plans a salesman can put on a job. The fee is a percent of the customer price. Ironclad pays it, so it reduces profit and is not added to the customer Estimate.</p></div></header>' +
       '<div class="card"><div class="finance-head"><span>Plan</span><span>Fee %</span><span></span></div>' +
       (rows || '<p class="muted">No plans yet. Add one, for example “12 months” at 3.25.</p>') +
       (admin
