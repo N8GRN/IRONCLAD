@@ -325,15 +325,13 @@ window.IC = window.IC || {};
       IC.structureFacets(st).forEach(function (f) {
         var sq = Number(f.squares) || 0;
         var pitchLabel = IC.normalizePitch(f.pitch);
-        var pitch = IC.PITCH_FACTOR[pitchLabel] || 1.14;
         measuredSquares += sq;
         if (IC.isDeadFlatPitch(pitchLabel)) deadFlatSquares += sq;
         else if (IC.isLowSlopePitch(pitchLabel)) lowSquares += sq;
         else { steepSquares += sq; hasSteep = true; }
-        var laborSq = sq * pitch * waste;
-        laborSquares += laborSq;
+        laborSquares += sq;
         var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
-        labor += laborSq * laborRate * story;
+        labor += sq * laborRate * story;
         tearoffLayerSquares += sq * layers;
         wasteDisposal += sq * layers * tearRate;
         var pitchRate = (crewRates.installByPitch && Number(crewRates.installByPitch[pitchLabel])) || Number(crewRates.installPerSq) || 0;
@@ -447,7 +445,7 @@ window.IC = window.IC || {};
     });
 
     if (labor > 0) {
-      lines.push(line("labor", "Install labor", laborSquares.toFixed(1) + " labor sq after pitch & waste", round2(laborSquares), "sq", round2(labor / Math.max(laborSquares, 0.01)), "labor"));
+      lines.push(line("labor", "Install labor", laborSquares.toFixed(1) + " measured sq", round2(laborSquares), "sq", round2(labor / Math.max(laborSquares, 0.01)), "labor"));
     }
     wasteDisposal = round2(wasteDisposal);
     tearoffLayerSquares = round2(tearoffLayerSquares);
@@ -550,7 +548,7 @@ window.IC = window.IC || {};
 
     var costLines = lines.filter(function (l) { return l.key !== "labor"; }).slice();
     if (laborCostInstall > 0) {
-      costLines.unshift(line("labor-cost", "Install labor (crew)", round1(measuredSquares) + " measured sq by pitch · " + IC.crewLabel(IC.crewForJob(job)), round2(measuredSquares), "sq", round2(laborCostInstall / Math.max(measuredSquares, 0.01)), "labor"));
+      costLines.unshift(line("labor-cost", "Install labor (crew)", round1(measuredSquares) + " measured sq · " + IC.crewLabel(IC.crewForJob(job)), round2(measuredSquares), "sq", round2(laborCostInstall / Math.max(measuredSquares, 0.01)), "labor"));
     }
     if (laborCostTearoff > 0) {
       costLines.splice(laborCostInstall > 0 ? 1 : 0, 0, line("tearoff-cost", "Tear-off (crew)", "Layer schedule from Labor catalog", 1, "ls", round2(laborCostTearoff), "labor"));
