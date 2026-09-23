@@ -519,7 +519,7 @@ window.IC = window.IC || {};
       '<div class="search-wrap">' + IC.icon("search") + IC.input({ placeholder: "Search customers", value: IC.ui.customerSearch, "data-act": "customer-search" }) + "</div>" +
       '<div class="list-card">' + (list.length ? list.map(function (c) {
         var n = IC.state.jobs.filter(function (j) { return j.customerId === c.id; }).length;
-        return '<a class="list-row" href="#/customers/' + c.id + '" style="display:flex;justify-content:space-between;align-items:center"><div><p style="font-weight:600">' + IC.esc(c.lastName) + ", " + IC.esc(c.firstName) + '</p><p class="muted">' + IC.esc(c.city ? c.city + ", " + c.state : (c.street || "No address")) + '</p></div><div class="muted" style="text-align:right"><div>' + /*IC.esc*/(c.phone ? IC.formatPhone(c.phone) : '<span style="color: red;">MISSING PHONE</span>') + "</div><div>" + n + " job" + (n === 1 ? "" : "s") + "</div></div></a>";
+        return '<a class="list-row" href="#/customers/' + c.id + '" style="display:flex;justify-content:space-between;align-items:center"><div><p style="font-weight:600">' + IC.esc(c.lastName) + ", " + IC.esc(c.firstName) + '</p><p class="muted">' + IC.esc(c.city ? c.city + ", " + c.state : (c.street || "No address")) + '</p></div><div class="muted" style="text-align:right"><div>' + /*IC.esc*/(c.phone ? IC.esc(IC.formatPhone(c.phone)) : '<span style="color: var(--warn);">MISSING PHONE</span>') + "</div><div>" + n + " job" + (n === 1 ? "" : "s") + "</div></div></a>";
       }).join("") : '<p class="empty">No customers yet.</p>') + "</div>" +
       (IC.ui.newCustomerOpen ? IC.viewCustomerModal() : "") + "</div>";
   };
