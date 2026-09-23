@@ -15,6 +15,7 @@ var SHELL = [
   "./js/ui.js",
   "./js/views.js",
   "./js/app.js",
+  "./js/job-tabs.js",
   "./brand/logo.png",
   "./icon-192.png",
   "./icon-512.png",
