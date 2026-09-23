@@ -26,7 +26,7 @@ Summary opens Customer quote, Job Sheet (materials only), and Job cost.
 
 ASSESSMENT / TAKEOFF (this build)
 - Facets on each structure (squares, pitch, tear-off). Stories stay
-  on the structure. Customer Price $/square is billed labor.
+  on the structure. Customer labor uses Settings → Labor rates.
 - Linears (eaves, rakes, ridge, hips, valleys) are per structure.
 - 12% waste on materials except drip (rakes, 10% + 1 stick),
   gutter apron (eaves, 10%), felt (no waste), and ridge vent (no waste).

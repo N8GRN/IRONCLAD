@@ -337,7 +337,7 @@ window.IC = window.IC || {};
     var prices = (est.computed && est.computed.structurePrices) || [];
     var c = est.computed;
     if (c && c.discountPercent > 0 && c.listTotal != null) {
-      prices = IC.structurePrices(est.structures, c.listTotal, (c.addonsSubtotal || 0) + (Number(c.deliveryFee) || 0), c.measuredSquares);
+      prices = IC.structurePrices(est.structures, c.listTotal, (c.addonsSubtotal || 0) + (Number(c.deliveryFee) || 0) + (Number(c.equipmentRental) || 0), c.measuredSquares);
     }
     if (!prices.length) {
       rows.push({ qty: "", desc: "Replace roof with " + shingle + " on whole house", unit: "", total: est.computed && est.computed.total });
@@ -359,6 +359,11 @@ window.IC = window.IC || {};
     var deliveryFee = Number(est.deliveryFee != null ? est.deliveryFee : (c && c.deliveryFee));
     if (Number.isFinite(deliveryFee) && deliveryFee > 0) {
       rows.push({ qty: "", desc: "Delivery fee", unit: "", total: deliveryFee });
+    }
+    var equipmentRental = Number(c && c.equipmentRental);
+    if (!Number.isFinite(equipmentRental)) equipmentRental = Number(est.equipmentRental);
+    if (Number.isFinite(equipmentRental) && equipmentRental > 0) {
+      rows.push({ qty: "", desc: "Equipment rental", unit: "", total: equipmentRental });
     }
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     if (gutters.included) rows.push({ qty: "", desc: gutters.description, unit: "", total: gutters.price });
@@ -400,6 +405,12 @@ window.IC = window.IC || {};
     var profit = opts.actual !== false && c.profitActual != null ? c.profitActual : c.profit;
     if (profit == null) profit = 0;
     var itemSrc = opts.actual !== false && c.costLines ? c.costLines : (c.lines || []);
+    if (opts.itemizeSellLabor && c.lines) {
+      var sellLabor = c.lines.filter(function (l) {
+        return l.key.indexOf("labor-install") === 0 || l.key.indexOf("labor-tearoff") === 0;
+      });
+      itemSrc = sellLabor.concat(itemSrc);
+    }
     var taxPct = c.salesTaxPercent != null ? c.salesTaxPercent : 7;
     var deliveryFee = Number(c.deliveryFee);
     if (!Number.isFinite(deliveryFee) || deliveryFee < 0) deliveryFee = 0;
@@ -413,7 +424,9 @@ window.IC = window.IC || {};
       if (laborOnly < 0) laborOnly = 0;
     }
     var otherVal = Number(c.otherCost != null ? c.otherCost : c.otherSubtotal) || 0;
-    var otherRemainder = Math.round((otherVal - deliveryFee - wasteDisposal) * 100) / 100;
+    var equipmentRental = Number(c.equipmentRental);
+    if (!Number.isFinite(equipmentRental) || equipmentRental < 0) equipmentRental = 0;
+    var otherRemainder = Math.round((otherVal - deliveryFee - wasteDisposal - equipmentRental) * 100) / 100;
     if (otherRemainder < 0) otherRemainder = 0;
     var insuranceAmount = Number(c.insuranceAmount);
     if (!Number.isFinite(insuranceAmount) || insuranceAmount < 0) insuranceAmount = 0;
@@ -429,13 +442,16 @@ window.IC = window.IC || {};
       ["Tear-off (crew)", tearoffCrew],
       ["Waste disposal", wasteDisposal],
       ["Delivery fee", deliveryFee],
+    ];
+    if (equipmentRental > 0) rows.push(["Equipment rental", equipmentRental]);
+    rows.push(
       [commLabel, commission],
       ["Other", otherRemainder],
       ["Gutters / siding", c.addonsSubtotal],
       ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
       ["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount],
-      [financeLabel, financingAmount],
-    ];
+      [financeLabel, financingAmount]
+    );
     var itemized = opts.itemized !== false
       ? "<ul>" + itemSrc.map(function (l) {
         return "<li><span>" + IC.esc(l.label) + (l.detail ? " — " + IC.esc(l.detail) : "") + " (" + l.qty + " " + IC.esc(l.unit) + ')</span><span class="tabular">' + IC.money(l.amount) + "</span></li>";

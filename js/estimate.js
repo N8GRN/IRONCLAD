@@ -38,6 +38,40 @@ window.IC = window.IC || {};
     return IC.normalizePitch(pitch) === "Flat Roof";
   };
 
+  function numRate(v, fallback) {
+    var n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  IC.normalizeLaborRates = function (raw) {
+    raw = raw || {};
+    function side(kind) {
+      var d = IC.DEFAULT_LABOR_RATES[kind];
+      var src = raw[kind] || {};
+      var story = {};
+      var pitch = {};
+      (IC.STORIES || ["1-Story", "2-Story", "3-Story"]).forEach(function (name) {
+        story[name] = numRate(src.story && src.story[name], d.story[name]);
+      });
+      (IC.PITCHES || []).forEach(function (name) {
+        pitch[name] = numRate(src.pitch && src.pitch[name], d.pitch[name]);
+      });
+      return { base: numRate(src.base, d.base), story: story, pitch: pitch };
+    }
+    return { install: side("install"), tearoff: side("tearoff") };
+  };
+
+  IC.customerLaborRate = function (kind, pitch, level, rates) {
+    var table = IC.normalizeLaborRates(rates)[kind === "tearoff" ? "tearoff" : "install"];
+    var label = IC.normalizePitch(pitch);
+    if (IC.isDeadFlatPitch(label)) return table.pitch["Flat Roof"];
+    var story = table.story[level];
+    if (!Number.isFinite(story)) story = 0;
+    var adder = table.pitch[label];
+    if (!Number.isFinite(adder)) adder = 0;
+    return table.base + story + adder;
+  };
+
   IC.structureIsAllFlat = function (st) {
     var facets = IC.structureFacets(st);
     return facets.length > 0 && facets.every(function (f) { return IC.isDeadFlatPitch(f.pitch); });
@@ -208,6 +242,7 @@ window.IC = window.IC || {};
       markupPercent: settings.markupPercent,
       laborRatePerSquare: settings.laborRatePerSquare,
       tearoffRatePerSquare: settings.tearoffRatePerSquare,
+      equipmentRental: 0,
       salesTaxPercent: settings.salesTaxPercent != null ? settings.salesTaxPercent : 7,
       quotedTotal: null,
       commissionAmount: 0,
@@ -282,16 +317,17 @@ window.IC = window.IC || {};
   IC.computeEstimate = function (est, settings, job) {
     settings = settingsOf(settings);
     var lines = [];
-    var measuredSquares = 0, materialSquares = 0, laborSquares = 0, labor = 0;
+    var measuredSquares = 0, materialSquares = 0, laborSquares = 0;
     var steepSquares = 0, lowSquares = 0, deadFlatSquares = 0;
     var laborCostInstall = 0, laborCostTearoff = 0;
     var wasteDisposal = 0, tearoffLayerSquares = 0;
+    var sellInstall = {}, sellTear = {};
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     var siding = IC.normalizeAddon("siding", est.siding);
     var waste = 1 + (Number(est.wastePercent) || 0) / 100;
     var wastePct = Number(est.wastePercent) || 0;
-    var laborRate = Number(est.laborRatePerSquare) || 0;
     var tearRate = Number(est.tearoffRatePerSquare) || 0;
+    var sellRates = IC.normalizeLaborRates(settings.laborRates);
     var crewRates = IC.crewLaborRates(IC.crewForJob(job));
     function calcNum(key, fallback, allowZero) {
       var n = Number(settings[key]);
@@ -331,7 +367,24 @@ window.IC = window.IC || {};
         else { steepSquares += sq; hasSteep = true; }
         laborSquares += sq;
         var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
-        labor += sq * laborRate * story;
+        if (sq > 0) {
+          var installRate = IC.customerLaborRate("install", pitchLabel, st.level, sellRates);
+          var installAmt = round2(sq * installRate);
+          if (installAmt !== 0) {
+            var installKey = st.level + "|" + pitchLabel + "|" + installRate;
+            if (!sellInstall[installKey]) sellInstall[installKey] = { sq: 0, rate: installRate, level: st.level, pitch: pitchLabel };
+            sellInstall[installKey].sq += sq;
+          }
+          if (layers > 0) {
+            var tearSellRate = IC.customerLaborRate("tearoff", pitchLabel, st.level, sellRates);
+            var tearAmt = round2(sq * layers * tearSellRate);
+            if (tearAmt !== 0) {
+              var tearKey = st.level + "|" + pitchLabel + "|" + layers + "|" + tearSellRate;
+              if (!sellTear[tearKey]) sellTear[tearKey] = { sq: 0, layers: layers, rate: tearSellRate, level: st.level, pitch: pitchLabel };
+              sellTear[tearKey].sq += sq;
+            }
+          }
+        }
         tearoffLayerSquares += sq * layers;
         wasteDisposal += sq * layers * tearRate;
         var pitchRate = (crewRates.installByPitch && Number(crewRates.installByPitch[pitchLabel])) || Number(crewRates.installPerSq) || 0;
@@ -444,9 +497,20 @@ window.IC = window.IC || {};
       lines.push(line("mat-boxVent-" + col, "Box vents", bItem.name, boxByColor[col], "ea", bItem.price, "material"));
     });
 
-    if (labor > 0) {
-      lines.push(line("labor", "Install labor", laborSquares.toFixed(1) + " measured sq", round2(laborSquares), "sq", round2(labor / Math.max(laborSquares, 0.01)), "labor"));
+    function sellDetail(b, tear) {
+      var flat = IC.isDeadFlatPitch(b.pitch);
+      var text = b.level + " · " + b.pitch + (flat ? " · flat rate " : " · ") + "$" + Number(b.rate).toFixed(2) + "/sq";
+      if (tear) text += " × " + b.layers + (b.layers === 1 ? " layer" : " layers");
+      return text;
     }
+    Object.keys(sellInstall).forEach(function (k) {
+      var b = sellInstall[k];
+      lines.push(line("labor-install-" + k, "Install labor", sellDetail(b, false), b.sq, "sq", b.rate, "labor"));
+    });
+    Object.keys(sellTear).forEach(function (k) {
+      var b = sellTear[k];
+      lines.push(line("labor-tearoff-" + k, "Tear-off labor", sellDetail(b, true), b.sq, "sq", round2(b.rate * b.layers), "labor"));
+    });
     wasteDisposal = round2(wasteDisposal);
     tearoffLayerSquares = round2(tearoffLayerSquares);
     if (wasteDisposal > 0) {
@@ -488,6 +552,10 @@ window.IC = window.IC || {};
     var deliveryFee = Number(est.deliveryFee);
     if (!Number.isFinite(deliveryFee) || deliveryFee < 0) deliveryFee = 0;
     if (deliveryFee > 0) lines.push(line("delivery", "Delivery fee", "Material delivery", 1, "ea", deliveryFee, "other"));
+    var equipmentRental = Number(est.equipmentRental);
+    if (!Number.isFinite(equipmentRental) || equipmentRental < 0) equipmentRental = 0;
+    equipmentRental = round2(equipmentRental);
+    if (equipmentRental > 0) lines.push(line("equipment", "Equipment rental", "Lift, crane, or other rental — not taxed", 1, "ls", equipmentRental, "other"));
     (est.extras || []).forEach(function (extra) {
       if (!extra.label && !extra.amount) return;
       lines.push(line("extra-" + extra.id, extra.label || "Extra", "", 1, "ls", extra.amount, "other"));
@@ -544,9 +612,11 @@ window.IC = window.IC || {};
     var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
     var profitBilled = round2(total - materialsSubtotal - deckingMaterialCost - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
     var profitActual = round2(total - materialsSubtotal - deckingMaterialCost - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
-    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee, measuredSquares);
+    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + equipmentRental, measuredSquares);
 
-    var costLines = lines.filter(function (l) { return l.key !== "labor"; }).slice();
+    var costLines = lines.filter(function (l) {
+      return l.key !== "labor" && l.key.indexOf("labor-install") !== 0 && l.key.indexOf("labor-tearoff") !== 0;
+    }).slice();
     if (laborCostInstall > 0) {
       costLines.unshift(line("labor-cost", "Install labor (crew)", round1(measuredSquares) + " measured sq · " + IC.crewLabel(IC.crewForJob(job)), round2(measuredSquares), "sq", round2(laborCostInstall / Math.max(measuredSquares, 0.01)), "labor"));
     }
@@ -575,6 +645,7 @@ window.IC = window.IC || {};
       otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,
       salesTax: salesTax, salesTaxPercent: taxPct,
       deliveryFee: deliveryFee,
+      equipmentRental: equipmentRental,
       wasteDisposal: wasteDisposal,
       insuranceAmount: insuranceAmount, insurancePercent: insPct,
       financingAmount: financingAmount, financingPercent: financePct,
@@ -663,6 +734,8 @@ window.IC = window.IC || {};
       next.deliveryFee = feeDef != null && feeDef !== "" ? Number(feeDef) : 65;
       if (!Number.isFinite(next.deliveryFee) || next.deliveryFee < 0) next.deliveryFee = 65;
     }
+    var rental = Number(next.equipmentRental);
+    if (!Number.isFinite(rental) || rental < 0) next.equipmentRental = 0;
     next.computed = IC.computeEstimate(next, settings, job);
     next.updatedAt = new Date().toISOString();
     return next;

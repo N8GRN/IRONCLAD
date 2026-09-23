@@ -156,6 +156,7 @@ window.IC = window.IC || {};
     var next = Object.assign({}, IC.clone(IC.SETTINGS), prev, incoming || {});
     if (prev.seedCleared || next.seedCleared) next.seedCleared = true;
     if (next.permissions) next.permissions = IC.normalizePermissions(next.permissions);
+    if (IC.normalizeLaborRates) next.laborRates = IC.normalizeLaborRates(next.laborRates);
     return next;
   };
 

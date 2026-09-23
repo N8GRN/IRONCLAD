@@ -171,6 +171,34 @@ IC.SETTINGS = {
     "This Residential Roofing Service Agreement (“Agreement”) is entered into by and between Ironclad Roofing LLC (“Contractor”) and the Customer named below. Contractor agrees to furnish labor, materials, and equipment to perform the work described herein at the property listed below, in a good and workmanlike manner consistent with industry standards.",
 };
 
+/* Customer sell rates. Flat Roof is the whole $/sq. Every other pitch is base + story + pitch adder. */
+IC.DEFAULT_LABOR_RATES = {
+  install: {
+    base: 120,
+    story: { "1-Story": 0, "2-Story": 20, "3-Story": 40 },
+    pitch: {
+      "Flat Roof": 125,
+      "2/12 - 3.9/12": 15,
+      "4/12 - 7/12": 0,
+      "8/12 - 9/12": 20,
+      "10/12 - 11/12": 40,
+      "12/12 - 13/12": 55,
+    },
+  },
+  tearoff: {
+    base: 120,
+    story: { "1-Story": 0, "2-Story": 20, "3-Story": 40 },
+    pitch: {
+      "Flat Roof": 125,
+      "2/12 - 3.9/12": 15,
+      "4/12 - 7/12": 0,
+      "8/12 - 9/12": 20,
+      "10/12 - 11/12": 40,
+      "12/12 - 13/12": 55,
+    },
+  },
+};
+
 IC.STORIES = ["1-Story", "2-Story", "3-Story"];
 IC.TEAROFF = ["None", "1-Layer", "2-Layer", "3-Layer", "4-Layer", "5-Layer"];
 IC.SHEATHING = ["Wood Board", "OSB / Plywood"];

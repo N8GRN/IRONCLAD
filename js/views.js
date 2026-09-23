@@ -404,7 +404,7 @@ window.IC = window.IC || {};
       "</div><p class=\"tiny muted\" style=\"margin-top:8px\">Chimneys are $" + Number((IC.state.settings && IC.state.settings.chimneyEachPrice) || 500).toFixed(0) + " each. Step flashing bundles = ceil((wall lf + chimneys × 10) / 50).</p></section>" +
       '<section class="card"><h3 style="margin-bottom:12px">Materials</h3><div class="form-grid two">' + materials + "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:12px">Add-ons & job costs</h3><div class="form-grid two">' +
-      IC.field("Price $/square", IC.input({ type: "number", value: value.laborRatePerSquare, "data-est": "num", "data-key": "laborRatePerSquare" })) +
+      IC.field("Equipment rental", IC.input({ type: "number", min: "0", step: "0.01", value: value.equipmentRental || 0, "data-est": "num", "data-key": "equipmentRental" })) +
       IC.field("Waste %", IC.input({ type: "number", value: value.wastePercent, "data-est": "num", "data-key": "wastePercent" })) +
       IC.field("Material margin %", IC.input({ type: "number", value: value.markupPercent, "data-est": "num", "data-key": "markupPercent" })) +
       IC.field("Tear-off $/sq / layer", IC.input({ type: "number", min: "0", step: "0.01", value: value.tearoffRatePerSquare, "data-est": "num", "data-key": "tearoffRatePerSquare" })) +
@@ -413,7 +413,7 @@ window.IC = window.IC || {};
       IC.field("Delivery fee", IC.input({ type: "number", min: "0", step: "0.01", value: value.deliveryFee != null ? value.deliveryFee : 65, "data-est": "num", "data-key": "deliveryFee" })) +
       IC.field("Sales tax %", IC.input({ type: "number", min: "0", step: "0.1", value: value.salesTaxPercent != null ? value.salesTaxPercent : 7, "data-est": "num", "data-key": "salesTaxPercent" })) +
       "</div>" +
-      '<p class="tiny muted" style="margin-top:8px">Tear-off $/sq / layer is landfill dump cost: measured squares × tear-off layers × this rate (dump trailers). Dumpster is extra, for rented boxes on commercial or large jobs. Delivery fee is not taxed. Sales tax is on material cost only.</p>' +
+      '<p class="tiny muted" style="margin-top:8px">Install and tear-off prices come from Settings → Estimate calculations → Labor rates, on measured squares with no waste. Tear-off $/sq / layer is landfill dump cost: measured squares × tear-off layers × this rate. Equipment rental is one lump sum and is not taxed. Delivery fee is not taxed. Sales tax is on material cost only.</p>' +
       '<div class="addon-block"><label class="check"><input type="checkbox" data-est="gutter-on"' + (gutters.included ? " checked" : "") + ' /><span style="font-weight:600">Include gutters (lump sum)</span></label>' +
       (gutters.included
         ? '<div class="addon-fields">' +
@@ -452,7 +452,7 @@ window.IC = window.IC || {};
           ? '<p class="tiny" style="margin-top:8px">Raised from list ' + IC.money(c.listTotal) + " — increase is not shown on the customer Estimate.</p>"
           : "")) +
       "</section>" +
-      IC.navySumHtml(c, { heading: "Proposal total", actual: true }) + "</div>";
+      IC.navySumHtml(c, { heading: "Proposal total", actual: true, itemizeSellLabor: true }) + "</div>";
   };
 
   IC.viewJobSummary = function (job) {
@@ -675,8 +675,8 @@ window.IC = window.IC || {};
       IC.btn("Copy link", { variant: "outline", data: 'data-act="copy-invite"' }) +
       "</div></div>" +
       IC.settingsCard("#/settings/company", "Company profile", "Legal name, address, phone, warranty, insurance, and contract language.") +
-      IC.settingsCard("#/settings/defaults", "Estimate defaults", "Price $/square, waste, tax rate, chimney price, dumpster, permit, and delivery.") +
-      (admin ? IC.settingsCard("#/settings/calculations", "Estimate calculations", "Coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
+      IC.settingsCard("#/settings/defaults", "Estimate defaults", "Waste, tax rate, chimney price, dumpster, permit, and delivery.") +
+      (admin ? IC.settingsCard("#/settings/calculations", "Estimate calculations", "Labor rates, coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
       (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
       (admin ? IC.settingsCard("#/settings/crews", "Crews", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
       (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog", "Crew pay rates by pitch, tear-off, OSB, and wood. Used on Job cost — not the customer price.") : "") +
@@ -716,7 +716,6 @@ window.IC = window.IC || {};
     var admin = IC.isAdmin(session());
     var settings = IC.state.settings;
     var rates = [
-      ["laborRatePerSquare", "Price $ / square"],
       ["wastePercent", "Waste %"],
       ["markupPercent", "Material margin %"],
       ["tearoffRatePerSquare", "Tear-off $ / sq / layer (dump)"],
@@ -726,7 +725,7 @@ window.IC = window.IC || {};
       ["salesTaxPercent", "Sales tax % (on material cost)"],
       ["chimneyEachPrice", "Chimney $ / each"],
     ];
-    var body = '<div class="card"><h2 style="margin-bottom:8px">Default estimate rates</h2><p class="muted" style="margin-bottom:12px">Used when a new estimate is created. Each job can override tax and price on Assessment.</p><div class="form-grid two">' +
+    var body = '<div class="card"><h2 style="margin-bottom:8px">Default estimate rates</h2><p class="muted" style="margin-bottom:12px">Used when a new estimate is created. Customer install and tear-off prices live under Estimate calculations. Each job can override tax, dump, and delivery on Assessment.</p><div class="form-grid two">' +
       rates.map(function (r) { return IC.field(r[1], IC.input({ type: "number", value: settings[r[0]], "data-set": r[0], "data-num": "1", disabled: !admin })); }).join("") +
       "</div></div>";
     return IC.settingsPage("Estimate defaults", body);
@@ -755,10 +754,45 @@ window.IC = window.IC || {};
     var waste = num("wastePercent", 12);
     var perSq = num("shingleBundlesPerSquare", 3);
     var bundles = Math.max(0, Math.ceil(20 * (1 + waste / 100) * perSq - 1e-9));
+    var laborRates = IC.normalizeLaborRates(settings.laborRates);
+    function rateInput(kind, part, name) {
+      var val = part === "base" ? laborRates[kind].base : laborRates[kind][part][name];
+      return IC.input({
+        type: "number",
+        step: "0.01",
+        inputmode: "decimal",
+        value: val,
+        "data-labor-rate": kind,
+        "data-rate-part": part,
+        "data-rate-name": name || "",
+      });
+    }
+    function laborSide(title, kind, blurb) {
+      var story = (IC.STORIES || []).map(function (s) {
+        return IC.field(s.replace("-Story", "-story"), rateInput(kind, "story", s));
+      }).join("");
+      var pitch = (IC.PITCHES || []).map(function (p) {
+        return IC.field(p === "Flat Roof" ? "Flat Roof (whole rate)" : p, rateInput(kind, "pitch", p));
+      }).join("");
+      return '<h3 style="margin:16px 0 8px">' + title + "</h3>" +
+        (blurb ? '<p class="tiny muted" style="margin-bottom:8px">' + blurb + "</p>" : "") +
+        '<div class="form-grid two">' + IC.field("Base price", rateInput(kind, "base", "")) + "</div>" +
+        '<h3 style="margin:14px 0 8px;font-size:1rem">Level</h3>' +
+        '<p class="tiny muted" style="margin-bottom:8px">Added on top of the base. A flat roof does not get this.</p>' +
+        '<div class="form-grid two">' + story + "</div>" +
+        '<h3 style="margin:14px 0 8px;font-size:1rem">Pitch</h3>' +
+        '<p class="tiny muted" style="margin-bottom:8px">Added on top of base + level. Flat Roof is the whole $/sq — base and level are not added.</p>' +
+        '<div class="form-grid two">' + pitch + "</div>";
+    }
     var body =
       '<div class="card"><h2 style="margin-bottom:6px">Shop standard</h2>' +
       '<p class="muted">These numbers apply the next time any job is opened — including jobs already written. Pitch rules stay fixed: felt on 4/12 and steeper, ice on 2/12–3.9/12 and on eaves and valleys, drip edge on rakes only.</p>' +
       '<p style="margin-top:12px;font-weight:600">20 squares at ' + waste + "% waste orders " + bundles + " shingle bundles (" + perSq + " per square).</p></div>" +
+      '<section class="card"><h2 style="margin-bottom:6px">Labor rates</h2>' +
+      '<p class="muted">Customer price per measured square. No waste and no pitch factor. Crew pay in the Labor catalog does not change this number. A typed Quoted price on a job stays until that box is cleared.</p>' +
+      laborSide("Install", "install", "") +
+      laborSide("Tear-off", "tearoff", "Same schedule, then × the layer count on that facet. None is $0. Landfill dump cost is still Tear-off $/sq / layer on the job.") +
+      "</section>" +
       group("Shingles", "Uses the waste % on that job, not a second waste number.",
         field("shingleBundlesPerSquare", "Shingle bundles / square", "Bundles ordered per roofing square, after that job’s waste %.", "0.1") +
         field("hipRidgeLfPerBundle", "Hip & ridge lf / bundle", "Feet of hip plus ridge one bundle covers, after that job’s waste %.", "1") +
@@ -919,7 +953,7 @@ window.IC = window.IC || {};
       ["osbPerSheet", "OSB replacement $/sheet"],
       ["woodPerBoard", "Wood $/board"],
     ];
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1><p class="muted" style="margin-top:4px">Rates we pay each crew, by pitch. Actual job cost uses measured squares at each pitch × this rate × stories. The Assessment Price $/square is still what the customer is charged.</p></div>' +
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1><p class="muted" style="margin-top:4px">Rates we pay each crew, by pitch. Actual job cost uses measured squares at each pitch × this rate × stories. Customer install and tear-off prices live under Settings → Estimate calculations → Labor rates.</p></div>' +
       (canWrite ? IC.btn(IC.icon("plus") + " Add crew", { variant: "outline", data: 'data-act="add-crew"' }) : "") +
       "</header>" +
       '<div class="card"><div class="cat-pills" role="tablist" aria-label="Crew">' + pills + "</div>" +

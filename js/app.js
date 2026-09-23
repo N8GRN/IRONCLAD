@@ -85,6 +85,9 @@ window.IC = window.IC || {};
         fid: active.getAttribute("data-fid"),
         labor: active.getAttribute("data-labor"),
         pitch: active.getAttribute("data-pitch"),
+        rateKind: active.getAttribute("data-labor-rate"),
+        ratePart: active.getAttribute("data-rate-part"),
+        rateName: active.getAttribute("data-rate-name"),
         ui: active.getAttribute("data-ui"),
         name: active.getAttribute("name"),
         idAttr: active.getAttribute("data-id"),
@@ -164,6 +167,8 @@ window.IC = window.IC || {};
           same("data-udraft", restore.udraft) && same("data-mat", restore.mat) &&
           same("data-iid", restore.iid) && same("data-fid", restore.fid) && same("data-ui", restore.ui) &&
           same("data-labor", restore.labor) && same("data-pitch", restore.pitch) &&
+          same("data-labor-rate", restore.rateKind) && same("data-rate-part", restore.ratePart) &&
+          same("data-rate-name", restore.rateName) &&
           same("name", restore.name) && same("data-id", restore.idAttr);
         if (ok) match = n;
       });
@@ -843,6 +848,19 @@ window.IC = window.IC || {};
       var p = {};
       p[key] = val;
       IC.updateSettings(p);
+      return;
+    }
+    if (el.hasAttribute("data-labor-rate")) {
+      if (!IC.isAdmin(IC.state.session)) return;
+      var rateKind = el.getAttribute("data-labor-rate") === "tearoff" ? "tearoff" : "install";
+      var ratePart = el.getAttribute("data-rate-part");
+      var rateName = el.getAttribute("data-rate-name");
+      var rateTable = IC.normalizeLaborRates(IC.state.settings && IC.state.settings.laborRates);
+      var rateNum = el.value === "" ? 0 : Number(el.value);
+      if (!Number.isFinite(rateNum)) rateNum = 0;
+      if (ratePart === "base") rateTable[rateKind].base = rateNum;
+      else if (rateTable[rateKind][ratePart]) rateTable[rateKind][ratePart][rateName] = rateNum;
+      IC.updateSettings({ laborRates: rateTable });
       return;
     }
     if (el.hasAttribute("data-team")) {
