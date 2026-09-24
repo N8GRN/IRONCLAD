@@ -467,7 +467,7 @@ window.IC = window.IC || {};
         var touchDevice = (navigator.maxTouchPoints || 0) > 0;
         var portrait = window.matchMedia ? window.matchMedia("(orientation: portrait)").matches : window.innerHeight > window.innerWidth;
         if (touchDevice && portrait) {
-          IC.toast("Rotate to landscape, then tap Share. Portrait crops the pages.");
+          IC.toast("Turn to landscape to share.", { mode: "center" });
           return;
         }
       }

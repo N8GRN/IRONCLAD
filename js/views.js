@@ -126,7 +126,7 @@ window.IC = window.IC || {};
       '<nav class="tabbar">' + nav.map(function (item) {
         return '<a href="' + item.to + '" class="' + (isActive(item.id) ? "active" : "") + '">' + IC.icon(item.icon) + item.label + "</a>";
       }).join("") + "</nav></div></div>" +
-      (IC.ui.toast ? '<div class="toast">' + IC.esc(IC.ui.toast) + "</div>" : "");
+      (IC.ui.toast ? '<div class="toast' + (IC.ui.toastMode === "center" ? " toast-center" : "") + '">' + (IC.ui.toastMode === "center" ? IC.icon("rotate") : "") + "<span>" + IC.esc(IC.ui.toast) + "</span></div>" : "");
   };
 
   IC.viewHome = function () {

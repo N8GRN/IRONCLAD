@@ -878,6 +878,21 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
   font-size: 0.875rem;
   box-shadow: var(--shadow);
 }
+.toast-center {
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: var(--navy);
+  color: var(--on-accent);
+  border-radius: 18px;
+  padding: 1rem 1.15rem;
+  font-weight: 650;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+.toast-center .icon { width: 28px; height: 28px; flex: none; }
 
 .back {
   display: grid;

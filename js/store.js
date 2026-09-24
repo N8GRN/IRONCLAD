@@ -53,6 +53,7 @@ window.IC = window.IC || {};
     signRemote: null,
     signTried: false,
     toast: "",
+    toastMode: "",
     addUserOpen: false,
     addUserDraft: null,
     catalogCat: "shingle",
@@ -1062,12 +1063,15 @@ window.IC = window.IC || {};
     IC.updateSettings({ permissions: IC.normalizePermissions(perms) });
   };
 
-  IC.toast = function (msg) {
+  IC.toast = function (msg, opts) {
+    opts = opts || {};
     IC.ui.toast = msg;
+    IC.ui.toastMode = opts.mode || "";
     IC.emit();
     setTimeout(function () {
       if (IC.ui.toast === msg) {
         IC.ui.toast = "";
+        IC.ui.toastMode = "";
         IC.emit();
       }
     }, 2800);
