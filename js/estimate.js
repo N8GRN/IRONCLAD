@@ -72,6 +72,11 @@ window.IC = window.IC || {};
     return table.base + story + adder;
   };
 
+  IC.normalizeStory = function (level) {
+    var stories = IC.STORIES || ["1-Story", "2-Story", "3-Story"];
+    return stories.indexOf(level) >= 0 ? level : "1-Story";
+  };
+
   IC.structureIsAllFlat = function (st) {
     var facets = IC.structureFacets(st);
     return facets.length > 0 && facets.every(function (f) { return IC.isDeadFlatPitch(f.pitch); });
@@ -85,6 +90,7 @@ window.IC = window.IC || {};
       squares: Number(from.squares) || 0,
       pitch: IC.normalizePitch(from.pitch || "4/12 - 7/12"),
       tearoff: from.tearoff || "1-Layer",
+      level: from.level ? IC.normalizeStory(from.level) : "",
     };
   };
 
@@ -98,6 +104,7 @@ window.IC = window.IC || {};
           squares: Number(f.squares) || 0,
           pitch: IC.normalizePitch(f.pitch || st.pitch || "4/12 - 7/12"),
           tearoff: f.tearoff || st.tearoff || "1-Layer",
+          level: IC.normalizeStory(f.level || st.level || "1-Story"),
         };
       });
     }
@@ -356,11 +363,12 @@ window.IC = window.IC || {};
     var boxByColor = {};
 
     est.structures.forEach(function (st) {
-      var story = IC.STORY_LABOR[st.level] || 1;
       var hasSteep = false;
       IC.structureFacets(st).forEach(function (f) {
         var sq = Number(f.squares) || 0;
         var pitchLabel = IC.normalizePitch(f.pitch);
+        var level = f.level || IC.normalizeStory(st.level);
+        var story = IC.STORY_LABOR[level] || 1;
         measuredSquares += sq;
         if (IC.isDeadFlatPitch(pitchLabel)) deadFlatSquares += sq;
         else if (IC.isLowSlopePitch(pitchLabel)) lowSquares += sq;
@@ -368,19 +376,19 @@ window.IC = window.IC || {};
         laborSquares += sq;
         var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
         if (sq > 0) {
-          var installRate = IC.customerLaborRate("install", pitchLabel, st.level, sellRates);
+          var installRate = IC.customerLaborRate("install", pitchLabel, level, sellRates);
           var installAmt = round2(sq * installRate);
           if (installAmt !== 0) {
-            var installKey = st.level + "|" + pitchLabel + "|" + installRate;
-            if (!sellInstall[installKey]) sellInstall[installKey] = { sq: 0, rate: installRate, level: st.level, pitch: pitchLabel };
+            var installKey = level + "|" + pitchLabel + "|" + installRate;
+            if (!sellInstall[installKey]) sellInstall[installKey] = { sq: 0, rate: installRate, level: level, pitch: pitchLabel };
             sellInstall[installKey].sq += sq;
           }
           if (layers > 0) {
-            var tearSellRate = IC.customerLaborRate("tearoff", pitchLabel, st.level, sellRates);
+            var tearSellRate = IC.customerLaborRate("tearoff", pitchLabel, level, sellRates);
             var tearAmt = round2(sq * layers * tearSellRate);
             if (tearAmt !== 0) {
-              var tearKey = st.level + "|" + pitchLabel + "|" + layers + "|" + tearSellRate;
-              if (!sellTear[tearKey]) sellTear[tearKey] = { sq: 0, layers: layers, rate: tearSellRate, level: st.level, pitch: pitchLabel };
+              var tearKey = level + "|" + pitchLabel + "|" + layers + "|" + tearSellRate;
+              if (!sellTear[tearKey]) sellTear[tearKey] = { sq: 0, layers: layers, rate: tearSellRate, level: level, pitch: pitchLabel };
               sellTear[tearKey].sq += sq;
             }
           }

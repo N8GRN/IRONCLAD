@@ -345,7 +345,8 @@ window.IC = window.IC || {};
         structures: estF.structures.map(function (st) {
           if (st.id !== sidF) return st;
           var facets = IC.structureFacets(st);
-          return Object.assign({}, st, { facets: facets.concat([IC.emptyFacet("Facet " + (facets.length + 1), { squares: 0, pitch: st.pitch, tearoff: st.tearoff })]) });
+          var last = facets[facets.length - 1] || {};
+          return Object.assign({}, st, { facets: facets.concat([IC.emptyFacet("Facet " + (facets.length + 1), { squares: 0, pitch: last.pitch || st.pitch, tearoff: last.tearoff || st.tearoff, level: last.level || st.level })]) });
         }),
       });
       return;

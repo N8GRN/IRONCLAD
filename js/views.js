@@ -333,6 +333,7 @@ window.IC = window.IC || {};
           (facets.length > 1 ? IC.btn(IC.icon("trash"), { variant: "ghost", size: "sm", data: 'data-act="est-del-facet" data-sid="' + st.id + '" data-fid="' + f.id + '"' }) : "") +
           "</div><div class=\"form-grid two\">" +
           IC.field("Squares", IC.input({ type: "number", min: "0", step: "0.1", value: f.squares, "data-est": "facet", "data-sid": st.id, "data-fid": f.id, "data-key": "squares", "data-num": "1" })) +
+          IC.field("Stories", IC.select({ "data-est": "facet", "data-sid": st.id, "data-fid": f.id, "data-key": "level", value: f.level }, IC.STORIES.map(function (x) { return { value: x, label: x }; }))) +
           IC.field("Pitch", IC.select({ "data-est": "facet", "data-sid": st.id, "data-fid": f.id, "data-key": "pitch", value: f.pitch }, IC.PITCHES.map(function (x) { return { value: x, label: x }; }))) +
           IC.field("Tear-off", IC.select({ "data-est": "facet", "data-sid": st.id, "data-fid": f.id, "data-key": "tearoff", value: f.tearoff }, IC.TEAROFF.map(function (x) { return { value: x, label: x }; }))) +
           "</div></div>";
@@ -342,7 +343,6 @@ window.IC = window.IC || {};
         '<div class="form-grid two">' +
         IC.field("Name", IC.input({ value: st.name, "data-est": "struct", "data-sid": st.id, "data-key": "name" })) +
         IC.field("Type", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "type", value: st.type }, IC.ROOF_TYPES.map(function (x) { return { value: x, label: x }; }))) +
-        IC.field("Stories", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "level", value: st.level }, IC.STORIES.map(function (x) { return { value: x, label: x }; }))) +
         IC.field("Vent", IC.select({ "data-est": "struct", "data-sid": st.id, "data-key": "ventType", value: st.ventType === "box" ? "box" : "ridge" }, [
           { value: "ridge", label: "Ridge vents" },
           { value: "box", label: "Box vents" },

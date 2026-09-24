@@ -436,13 +436,18 @@ window.IC = window.IC || {};
     var financePct = c.financingPercent != null ? c.financingPercent : 0;
     var financeLabel = "Financing" + (c.financingName ? " (" + c.financingName + (financePct ? " " + financePct + "%" : "") + ")" : "");
     var materialCost = (Number(c.materialsSubtotal) || 0) + (Number(c.deckingMaterialCost) || 0);
+    var laborPrice = Number(c.laborSubtotal) || 0;
     var rows = [
+      ["Labor Price", laborPrice],
       ["Materials", materialCost],
-      ["Labor", laborOnly],
-      ["Tear-off (crew)", tearoffCrew],
-      ["Waste disposal", wasteDisposal],
-      ["Delivery fee", deliveryFee],
     ];
+    if (opts.actual !== false) {
+      rows.push(["Labor (crew)", laborOnly], ["Tear-off (crew)", tearoffCrew]);
+    }
+    rows.push(
+      ["Waste disposal", wasteDisposal],
+      ["Delivery fee", deliveryFee]
+    );
     if (equipmentRental > 0) rows.push(["Equipment rental", equipmentRental]);
     rows.push(
       [commLabel, commission],
@@ -467,6 +472,7 @@ window.IC = window.IC || {};
       '<div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid rgba(251,248,241,.2)"><dt style="font-weight:700">Profit</dt><dd class="tabular" style="font-weight:700">' + IC.money(profit) + "</dd></div>" +
       "</dl>" +
       (opts.commissionNote ? '<p class="tiny" style="margin-top:10px;opacity:.75">' + IC.esc(opts.commissionNote) + "</p>" : "") +
+      '<p class="tiny" style="margin-top:10px;opacity:.75">Labor Price is install + tear-off charged to the customer. Labor (crew) is what the crew is paid, and it does not change Labor Price.</p>' +
       itemized + "</section>";
   };
 

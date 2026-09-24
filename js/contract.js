@@ -22,8 +22,11 @@ window.IC = window.IC || {};
       if (estimate) {
         items.push("Shingle selection: " + IC.pickName(estimate, "shingle") + ".");
         estimate.structures.forEach(function (st) {
+          var facets = IC.structureFacets(st);
+          var levels = [];
+          facets.forEach(function (f) { if (levels.indexOf(f.level) < 0) levels.push(f.level); });
           items.push(
-            st.name + ": " + st.squares + " squares, " + st.type + ", " + st.level +
+            st.name + ": " + st.squares + " squares, " + st.type + ", " + (levels.join(" / ") || st.level) +
             ", pitch " + st.pitch + ", tear-off " + st.tearoff + ", deck " + st.sheathing +
             " (replace " + (st.sheathingSheets != null && st.sheathingSheets !== "" ? st.sheathingSheets : "approx. " + st.sheathingReplacePct + "%") +
             (st.sheathingSheets != null && st.sheathingSheets !== "" ? " sheets" : "") + ")."
