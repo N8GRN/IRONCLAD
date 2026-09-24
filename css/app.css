@@ -199,7 +199,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   left: 0;
   top: 0;
   bottom: 0;
-  width: 5px;
+  width: 8px;
   background: var(--navy);
 }
 .alert-row {
