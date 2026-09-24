@@ -227,7 +227,8 @@ window.IC = window.IC || {};
     }
     var tableRows = rows.map(function (r) {
       var totalCell = r.total == null || r.total === "" ? "" : IC.money(r.total);
-      return "<tr>" + cell(r.qty, "num") + "<td>" + IC.esc(r.desc) + "</td>" + cell(r.unit, "num") + cell(totalCell, "num") + "</tr>";
+      var qtyLabel = [r.qty, r.unit].filter(function (part) { return part != null && part !== ""; }).join(" ");
+      return "<tr>" + cell(IC.esc(qtyLabel), "num") + "<td>" + IC.esc(r.desc) + "</td>" + cell("", "num") + cell(totalCell, "num") + "</tr>";
     }).join("");
     var paidCell = paid != null && Number.isFinite(paid) ? IC.money(paid) : "";
     var dueCell = paid != null && Number.isFinite(paid) ? IC.money(Math.max(0, total - paid)) : "";

@@ -678,6 +678,12 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
   padding: 0.25rem 0.55rem;
   vertical-align: top;
 }
+#customer-quote-sheet .est-table,
+#customer-quote-sheet .est-table th,
+#customer-quote-sheet .est-table td {
+  font-size: 10pt;
+  line-height: 1;
+}
 .est-table th {
   text-align: left;
   font-size: 0.7rem;
