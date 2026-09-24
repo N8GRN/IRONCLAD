@@ -463,6 +463,14 @@ window.IC = window.IC || {};
       return;
     }
     if (act === "share-quote" || act === "share-customer-quote" || act === "share-job-sheet" || act === "share-job-cost") {
+      if (act !== "share-quote") {
+        var touchDevice = (navigator.maxTouchPoints || 0) > 0;
+        var portrait = window.matchMedia ? window.matchMedia("(orientation: portrait)").matches : window.innerHeight > window.innerWidth;
+        if (touchDevice && portrait) {
+          IC.toast("Rotate to landscape, then tap Share. Portrait crops the pages.");
+          return;
+        }
+      }
       var shareMap = {
         "share-quote": { id: "quote-sheet", prefix: "Ironclad-Quote-", title: "Ironclad quote #" },
         "share-customer-quote": { id: "customer-quote-sheet", prefix: "Ironclad-Customer-Quote-", title: "Customer quote #" },
