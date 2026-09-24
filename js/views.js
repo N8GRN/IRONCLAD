@@ -138,7 +138,7 @@ window.IC = window.IC || {};
       .sort(function (a, b) { return (a.scheduledDate || "").localeCompare(b.scheduledDate || ""); }).slice(0, 5);
     var unsigned = jobs.filter(function (j) { return j.status === "Sold" && (!j.contract || j.contract.status !== "signed"); });
     var unassigned = (s.role === "admin" || s.role === "manager") ? IC.state.jobs.filter(function (j) { return !j.ownerId; }) : [];
-    var stats = IC.JOB_STATUSES.filter(function (st) { return st !== "Did NOT Sell" && st !== "Complete"; }).map(function (st) {
+    var stats = IC.JOB_STATUSES.filter(function (st) { return st !== "Did NOT Sell"; }).map(function (st) {
       var n = jobs.filter(function (j) { return j.status === st; }).length;
       return '<div class="card stat"><p>' + IC.esc(st) + '</p><p class="num">' + n + "</p></div>";
     }).join("");
