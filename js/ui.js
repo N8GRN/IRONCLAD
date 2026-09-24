@@ -484,8 +484,123 @@ window.IC = window.IC || {};
     var est = job.estimate;
     var c = est && est.computed;
     if (!c) return '<article class="paper-doc" id="job-cost-sheet"><p class="muted">Build an assessment first.</p></article>';
-    return '<article class="paper-doc job-cost-doc" id="job-cost-sheet"><header class="doc-head"><img src="' + IC.asset("brand/logo.png") + '" alt="" />' +
-      '<div style="text-align:right"><p style="font-family:var(--font-display);font-size:1.25rem;color:var(--navy)">Job cost</p><p class="muted">#' + job.number + " · " + IC.esc(job.customerName) + "</p></div></header>" +
-      '<div style="margin-top:1.25rem">' + IC.navySumHtml(c, { heading: "Proposed total", id: "", actual: true, commissionNote: "Labor and Tear-off (crew) are what we pay the crew. Decking material is the yard price from Materials. Financing is the bank fee Ironclad pays, and it comes out of profit. Insurance is in the customer price but not itemized on their Estimate." }) + "</div></article>";
+    var settings = (IC.state && IC.state.settings) || IC.SETTINGS;
+    var customer = (IC.state.customers || []).find(function (x) { return x.id === job.customerId; });
+    var crew = IC.crewForJob(job);
+    var sales = IC.jobSalesperson(job);
+    function num(v) {
+      var n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+    function round2(n) { return Math.round(n * 100) / 100; }
+    var sell = num(c.total);
+    var materials = num(c.materialsSubtotal);
+    var decking = num(c.deckingMaterialCost);
+    var materialCost = round2(materials + decking);
+    var laborCost = num(c.laborCost);
+    var accessory = num(c.laborCostAccessory);
+    var osbLabor = num(c.osbLaborCost);
+    var woodLabor = num(c.woodLaborCost);
+    var roofLabor = round2(laborCost - accessory - osbLabor - woodLabor);
+    if (roofLabor < 0) roofLabor = 0;
+    var waste = num(c.wasteDisposal);
+    var delivery = num(c.deliveryFee);
+    var equipment = num(c.equipmentRental);
+    var otherCost = num(c.otherCost);
+    var otherRemainder = round2(otherCost - delivery - waste - equipment);
+    if (otherRemainder < 0) otherRemainder = 0;
+    var addons = num(c.addonsSubtotal);
+    var commission = num(c.commissionAmount);
+    var tax = num(c.salesTax);
+    var insurance = num(c.insuranceAmount);
+    var financing = num(c.financingAmount);
+    var jobCost = round2(materialCost + laborCost + otherCost + addons + commission + tax + insurance + financing);
+    var profit = round2(sell - jobCost);
+    var profitPct = sell > 0 ? (profit / sell) * 100 : 0;
+    var taxPct = c.salesTaxPercent != null ? c.salesTaxPercent : 7;
+    var insPct = c.insurancePercent != null ? c.insurancePercent : 1;
+    var commPct = c.commissionPercent || 0;
+    var commWho = c.commissionName || (sales && (sales.salesName || sales.name)) || "";
+    var street = customer && customer.street ? customer.street : "";
+    var city = customer ? [customer.city, customer.state].filter(Boolean).join(", ") + (customer.zip ? " " + customer.zip : "") : "";
+    var crewName = job.crewId ? (c.crewName || IC.crewLabel(crew)) : "Unassigned";
+    var foreman = job.crewId && crew && crew.foreman ? crew.foreman : "";
+    var salesName = (sales && (sales.salesName || sales.name)) || "—";
+    var prepared = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+    function kpi(label, amount, extra, cls) {
+      return '<div class="cost-kpi' + (cls ? " " + cls : "") + '"><span>' + label + "</span><strong class=\"tabular\">" + IC.money(amount) + "</strong>" +
+        (extra ? "<em>" + extra + "</em>" : "") + "</div>";
+    }
+    function row(label, amount, note) {
+      if (!amount) return "";
+      return "<tr><td>" + IC.esc(label) + (note ? '<div class="cost-note">' + note + "</div>" : "") + '</td><td class="num">' + IC.money(amount) + "</td></tr>";
+    }
+    function detailTable(title, items) {
+      if (!items.length) return "";
+      return '<h2 class="cost-h">' + title + "</h2>" +
+        '<table class="est-table cost-detail"><thead><tr><th>Item</th><th>Qty</th><th>Amount</th></tr></thead><tbody>' +
+        items.map(function (l) {
+          var qty = (l.qty != null ? l.qty : "") + (l.unit ? " " + l.unit : "");
+          return "<tr><td>" + IC.esc(l.label) + (l.detail ? '<div class="cost-note">' + IC.esc(l.detail) + "</div>" : "") +
+            '</td><td class="num">' + IC.esc(String(qty).trim()) + '</td><td class="num">' + IC.money(l.amount) + "</td></tr>";
+        }).join("") + "</tbody></table>";
+    }
+    var lines = c.costLines || [];
+    var laborLines = lines.filter(function (l) { return l.kind === "labor"; });
+    var materialLines = lines.filter(function (l) { return l.kind === "material" || l.kind === "decking"; });
+    var quoteNote = "";
+    if (c.listTotal != null && Math.abs(num(c.listTotal) - sell) > 0.5) {
+      quoteNote = "Quoted. Calculated price was " + IC.money(c.listTotal) + ".";
+    }
+    var profitClass = profit < -0.005 ? "is-neg" : "is-profit";
+
+    return '<article class="paper-doc est-sheet cost-report" id="job-cost-sheet">' +
+      '<header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
+      '<p class="est-tag">Internal record</p><span>' + IC.esc(IC.companyCityLine(settings)) + "</span></div>" +
+      '<div class="est-label"><h1>Job cost</h1><p class="tiny">Project #' + IC.esc(String(job.number)) + "</p>" +
+      '<p class="tiny">Prepared ' + IC.esc(prepared) + "</p></div></header>" +
+      '<dl class="cost-meta">' +
+      "<div><dt>Customer</dt><dd>" + IC.esc(job.customerName || "") +
+        (street ? "<br>" + IC.esc(street) : "") + (city ? "<br>" + IC.esc(city) : "") + "</dd></div>" +
+      "<div><dt>Crew</dt><dd>" + IC.esc(crewName) + (foreman ? "<br>" + IC.esc(foreman) : "") +
+        (!job.crewId ? '<div class="cost-note">No crew assigned. Labor uses ' + IC.esc(c.crewName || "the default crew") + " rates.</div>" : "") + "</dd></div>" +
+      "<div><dt>Sales</dt><dd>" + IC.esc(salesName) + (commPct ? "<br>" + commPct + "% commission" : "") + "</dd></div>" +
+      "<div><dt>Schedule</dt><dd>" + IC.esc(job.scheduledDate ? IC.formatDate(job.scheduledDate) : "Not scheduled") + "</dd></div>" +
+      "<div><dt>Status</dt><dd>" + IC.esc(job.status || "—") + "</dd></div>" +
+      "<div><dt>Roof</dt><dd>" + (num(c.measuredSquares)).toFixed(1) + " sq measured</dd></div>" +
+      "</dl>" +
+      '<section class="cost-kpis">' +
+      kpi("Sell price", sell, quoteNote) +
+      kpi("Job cost", jobCost) +
+      kpi("Labor cost", laborCost) +
+      kpi("Material cost", materialCost) +
+      kpi("Profit", profit, profitPct.toFixed(1) + "%", profitClass) +
+      "</section>" +
+      '<table class="est-table cost-statement"><tbody>' +
+      '<tr class="cost-section"><td colspan="2">Revenue</td></tr>' +
+      row("Sell price", sell, quoteNote) +
+      '<tr class="cost-section"><td colspan="2">Costs</td></tr>' +
+      row("Materials", materials) +
+      row("Decking", decking) +
+      row("Crew labor", roofLabor, "Install and tear-off, paid on measured squares") +
+      row("Hip & ridge / starter", accessory, "Bundles ÷ 3, at the crew base rate") +
+      row("OSB replacement", osbLabor) +
+      row("Wood boards", woodLabor) +
+      row("Waste disposal", waste) +
+      row("Delivery fee", delivery) +
+      row("Equipment rental", equipment) +
+      row("Dumpster, permit, and extras", otherRemainder) +
+      row("Gutters / siding", addons) +
+      row(commWho ? "Sales commission (" + commWho + (commPct ? " " + commPct + "%" : "") + ")" : "Sales commission", commission) +
+      row("Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", tax) +
+      row("Insurance (" + (Number(insPct) || 0) + "%)", insurance) +
+      row("Financing" + (c.financingName ? " (" + c.financingName + (c.financingPercent ? " " + c.financingPercent + "%" : "") + ")" : ""), financing) +
+      '<tr class="cost-total"><td>Job cost</td><td class="num">' + IC.money(jobCost) + "</td></tr>" +
+      '<tr class="cost-profit ' + profitClass + '"><td>Profit<div class="cost-note">' + profitPct.toFixed(1) + "% of sell price</div></td><td class=\"num\">" + IC.money(profit) + "</td></tr>" +
+      "</tbody></table>" +
+      detailTable("Labor detail", laborLines) +
+      detailTable("Material detail", materialLines) +
+      '<p class="cost-end">Internal record for the job file. Not a customer document. Profit is sell price minus the costs above.</p></article>';
   };
 })(window.IC);

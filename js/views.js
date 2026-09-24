@@ -459,7 +459,7 @@ window.IC = window.IC || {};
     return '<div class="page" style="display:grid;gap:12px">' +
       '<a class="card materials-entry" href="#/jobs/' + job.id + '/customer-quote"><div><h2 style="margin-bottom:4px">Customer quote</h2><p class="muted">What the homeowner sees. Price per structure and a total — no labor or material breakdown.</p></div>' + IC.icon("arrow") + "</a>" +
       '<a class="card materials-entry" href="#/jobs/' + job.id + '/job-sheet"><div><h2 style="margin-bottom:4px">Job Sheet</h2><p class="muted">Materials only, with qty and amount. For the lumber yard order.</p></div>' + IC.icon("arrow") + "</a>" +
-      '<a class="card materials-entry" href="#/jobs/' + job.id + '/job-cost"><div><h2 style="margin-bottom:4px">Job cost</h2><p class="muted">Internal rollup using crew pay from Labor — materials, actual labor, commission, other, add-ons, and profit.</p></div>' + IC.icon("arrow") + "</a>" +
+      '<a class="card materials-entry" href="#/jobs/' + job.id + '/job-cost"><div><h2 style="margin-bottom:4px">Job cost</h2><p class="muted">Internal record: sell price, job cost, labor, materials, and profit.</p></div>' + IC.icon("arrow") + "</a>" +
       "</div>";
   };
 
@@ -474,7 +474,7 @@ window.IC = window.IC || {};
       : kind === "job-sheet"
         ? IC.jobSheetHtml(live, settings.legalName)
         : IC.jobCostHtml(live);
-    return '<div class="page"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">' +
+    return '<div class="page"><div class="' + (kind === "job-cost" ? "no-print " : "") + '" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">' +
       '<a class="back" href="#/jobs/' + job.id + '">' + IC.icon("back") + "</a>" +
       '<div style="min-width:0;flex:1"><p class="kicker muted">Job #' + job.number + '</p><h1 class="title" style="font-size:1.6rem">' + IC.esc(titles[kind] || "Document") + "</h1></div></div>" +
       '<div class="no-print" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">' +
