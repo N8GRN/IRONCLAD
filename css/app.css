@@ -698,6 +698,8 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
   white-space: nowrap;
 }
 .est-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.job-sheet-table th { text-transform: none; letter-spacing: 0.02em; white-space: nowrap; }
+.job-sheet-table th.num { text-align: right; }
 .est-table tr.est-total td { border: none; }
 .est-table tr.est-discount td {
   font-weight: 600;

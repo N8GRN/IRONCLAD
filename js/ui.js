@@ -438,13 +438,19 @@ window.IC = window.IC || {};
     var body = !est
       ? '<p class="muted" style="margin-top:1.5rem">Build an assessment first.</p>'
       : '<p class="muted" style="margin-top:1rem">Materials only. For the lumber yard order.</p>' +
-        '<table class="est-table"><thead><tr><th>Item</th><th>Qty</th><th>Amount</th></tr></thead><tbody>' +
+        '<table class="est-table job-sheet-table"><thead><tr><th class="num">Qty</th><th>Item</th><th class="num">Price (ea.)</th><th class="num">Price (ext.)</th></tr></thead><tbody>' +
         (lines.length ? lines.map(function (l) {
-          return "<tr><td><div style=\"font-weight:600\">" + IC.esc(l.label) + "</div>" +
+          var qtyText = (l.qty != null && l.qty !== "" ? l.qty : "") + (l.unit ? " " + l.unit : "");
+          var each = l.unitPrice;
+          if (each == null || each === "") {
+            var qn = Number(l.qty) || 0;
+            each = qn ? (Number(l.amount) || 0) / qn : 0;
+          }
+          return "<tr><td class=\"num\">" + IC.esc(String(qtyText).trim()) + "</td><td><div style=\"font-weight:600\">" + IC.esc(l.label) + "</div>" +
             (l.detail ? '<div class="tiny">' + IC.esc(l.detail) + "</div>" : "") +
-            '</td><td class="num">' + IC.esc(l.qty) + " " + IC.esc(l.unit) + '</td><td class="num">' + IC.money(l.amount) + "</td></tr>";
-        }).join("") : '<tr><td colspan="3" class="muted">No material lines yet.</td></tr>') +
-        '<tr class="est-total"><td></td><td>Total</td><td class="num">' + IC.money(sub) + "</td></tr>" +
+            '</td><td class="num">' + IC.money(each) + '</td><td class="num">' + IC.money(l.amount) + "</td></tr>";
+        }).join("") : '<tr><td colspan="4" class="muted">No material lines yet.</td></tr>') +
+        '<tr class="est-total"><td></td><td></td><td>Total</td><td class="num">' + IC.money(sub) + "</td></tr>" +
         "</tbody></table>";
     return '<article class="paper-doc est-sheet" id="job-sheet-sheet">' +
       '<header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || settingsName || "IRONCLAD Roofing") + '</h3>' +
