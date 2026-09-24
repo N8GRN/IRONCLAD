@@ -259,7 +259,8 @@ window.IC = window.IC || {};
         '<tr class="est-total"><td></td><td></td><td>Amount paid</td><td class="num">' + paidCell + "</td></tr>" +
         '<tr class="est-total"><td></td><td></td><td>Balance due</td><td class="num">' + dueCell + "</td></tr>" +
         "</tbody></table>" +
-        '<p class="est-disclaimer">This is an estimate. Actual cost may increase if additional work or repairs are needed.</p>';
+        '<p class="est-disclaimer">This is an estimate. Actual cost may increase if additional work or repairs are needed.</p> +
+        '<div class="pdf-page pdf-page-break"></div>';
 
     var showOurs = IC.warrantyIncluded(est, "includeOurWarranty");
     var showMfg = IC.warrantyIncluded(est, "includeMfgWarranty");
@@ -284,7 +285,7 @@ window.IC = window.IC || {};
       (mfgHtml ? '<section class="est-comments"' + (warrantyHtml ? ' style="margin-top:1.25rem"' : "") + '><p class="est-k">Manufacturer’s warranty</p>' + mfgHtml + "</section>" : "");
     var warrantyTitle = warrantyHtml && mfgHtml ? "Warranties" : (mfgHtml ? "Manufacturer’s warranty" : "Our warranty");
     var warrantyPage = warrantySections
-      ? '<div class="pdf-page pdf-page-break"><header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
+      ? '<div class="pdf-page"><header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
         "<span>Project #" + IC.esc(String(job.number)) + "</span></div>" +
         '<div class="est-label"><h1>' + warrantyTitle + "</h1></div></header>" +
         warrantySections + foot + "</div>"
