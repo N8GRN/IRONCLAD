@@ -679,7 +679,7 @@ window.IC = window.IC || {};
       (admin ? IC.settingsCard("#/settings/calculations", "Estimate calculations", "Labor rates, coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
       (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
       (admin ? IC.settingsCard("#/settings/crews", "Crews", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
-      (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog", "Crew pay rates by pitch, tear-off, OSB, and wood. Used on Job cost — not the customer price.") : "") +
+      (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog", "Crew pay: one rate per measured square, plus hip & ridge and starter at the base rate. Not the customer price.") : "") +
       (IC.can(s, "materials", "read") ? IC.settingsCard("#/materials", "Materials catalog", "Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.") : "") +
       (admin ? IC.settingsCard("#/settings/permissions", "Manage permissions", "Control what Managers and Sales can see and edit.") : "") +
       (admin
@@ -940,38 +940,87 @@ window.IC = window.IC || {};
       var on = c.id === crew.id;
       return '<button type="button" class="' + (on ? "on" : "") + '" data-act="labor-crew" data-id="' + c.id + '">' + IC.esc(IC.crewLabel(c)) + "</button>";
     }).join("");
-    var pitchFields = (IC.PITCHES || []).map(function (p) {
-      var v = labor.installByPitch && labor.installByPitch[p] != null ? labor.installByPitch[p] : labor.installPerSq;
-      return IC.field(p + " install $/sq", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: v, "data-labor": "installByPitch", "data-pitch": p, "data-id": crew.id, disabled: !canWrite, "aria-label": p + " install" }));
+    function moneyInput(attrs) {
+      attrs.type = "number";
+      if (!attrs.step) attrs.step = "1";
+      attrs.inputmode = "decimal";
+      attrs["data-id"] = crew.id;
+      if (!canWrite) attrs.disabled = true;
+      return IC.input(attrs);
+    }
+    function rateCell(amount, control, note) {
+      return '<td><div class="pay-rate tabular">' + IC.money(amount) + "</div>" +
+        (control ? '<div class="pay-add">' + control + "</div>" : "") +
+        (note ? '<div class="pay-note">' + note + "</div>" : "") +
+        "</td>";
+    }
+    var storyHeads = (IC.STORIES || []).map(function (s) {
+      var label = s.replace("-Story", "-story");
+      if (s === "1-Story") return "<th>" + label + "</th>";
+      return "<th><div>" + label + "</div>" +
+        moneyInput({ value: labor.storyAdd[s], "data-labor": "storyAdd", "data-story": s, "aria-label": label + " adder" }) +
+        '<div class="pay-note">added to every pitch</div></th>';
     }).join("");
-    var rateFields = [
-      ["tearoff1", "1-layer tear-off $/sq"],
-      ["tearoff2", "2-layer tear-off $/sq"],
-      ["tearoff3", "3-layer tear-off $/sq"],
-      ["tearoff4", "4-layer tear-off $/sq"],
-      ["tearoff5", "5-layer tear-off $/sq"],
-      ["osbPerSheet", "OSB replacement $/sheet"],
-      ["woodPerBoard", "Wood $/board"],
-    ];
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1><p class="muted" style="margin-top:4px">Rates we pay each crew, by pitch. Actual job cost uses measured squares at each pitch × this rate × stories. Customer install and tear-off prices live under Settings → Estimate calculations → Labor rates.</p></div>' +
+    var pitchRows = (IC.PITCHES || []).map(function (p) {
+      var cells = (IC.STORIES || []).map(function (s) {
+        var amount = IC.crewSquareRate(labor, p, s, "None");
+        if (s !== "1-Story") {
+          var story = Number(labor.storyAdd[s]) || 0;
+          return rateCell(amount, "", (story ? "+" + IC.money(story) + " story" : "no story adder"));
+        }
+        if (p === "Flat Roof") {
+          return rateCell(amount, moneyInput({ value: labor.flatRate, "data-labor": "flatRate", "aria-label": "Flat roof rate" }), "flat rate, replaces base");
+        }
+        var add = Number(labor.pitchAdd[p]) || 0;
+        return rateCell(amount, moneyInput({ value: labor.pitchAdd[p], "data-labor": "pitchAdd", "data-pitch": p, "aria-label": p + " adder" }), add ? "+" + IC.money(add) + " pitch" : "base");
+      }).join("");
+      return "<tr><th scope=\"row\">" + IC.esc(p) + "</th>" + cells + "</tr>";
+    }).join("");
+    var layerCells = ["1", "2", "3", "4", "5"].map(function (n) {
+      var add = Number(labor.layerAdd[n]) || 0;
+      if (n === "1") return '<td><div class="pay-rate">Included</div><div class="pay-note">no extra on a 1-layer</div></td>';
+      return rateCell(add, moneyInput({ value: labor.layerAdd[n], "data-labor": "layerAdd", "data-layer": n, "aria-label": n + " layer adder" }), "added once");
+    }).join("");
+    var samples = [
+      ["1-layer · 4/12 · 1-story", "4/12 - 7/12", "1-Story", "1-Layer"],
+      ["2-layer · 8/12 · 1-story", "8/12 - 9/12", "1-Story", "2-Layer"],
+      ["3-layer · 8/12 · 2-story", "8/12 - 9/12", "2-Story", "3-Layer"],
+    ].map(function (ex) {
+      var parts = IC.crewSquareParts(labor, ex[1], ex[2], ex[3]);
+      var bits = [IC.money(parts.base)];
+      if (parts.pitchAdd) bits.push(IC.money(parts.pitchAdd) + " pitch");
+      if (parts.storyAdd) bits.push(IC.money(parts.storyAdd) + " story");
+      if (parts.layerAdd) bits.push(IC.money(parts.layerAdd) + " layer");
+      return "<li><span>" + IC.esc(ex[0]) + "</span><strong class=\"tabular\">" + IC.money(parts.rate) + "/sq</strong><em>" + bits.join(" + ") + "</em></li>";
+    }).join("");
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1><p class="muted" style="margin-top:4px">What we pay the crew. Install and tear-off are one rate per measured square. Customer price is still Settings → Estimate calculations.</p></div>' +
       (canWrite ? IC.btn(IC.icon("plus") + " Add crew", { variant: "outline", data: 'data-act="add-crew"' }) : "") +
       "</header>" +
       '<div class="card"><div class="cat-pills" role="tablist" aria-label="Crew">' + pills + "</div>" +
-      '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(IC.crewLabel(crew)) + '</h2><p class="tiny">' + (canWrite ? "Synced with the crew roster on jobs." : "View only.") + "</p></div></div>" +
-      '<div class="form-grid two" style="margin-bottom:12px">' +
+      '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(IC.crewLabel(crew)) + '</h2><p class="tiny">' + (canWrite ? "Edit a number and the table updates." : "View only.") + "</p></div></div>" +
+      '<div class="form-grid two" style="margin-bottom:16px">' +
       IC.field("Crew name", IC.input({ value: crew.name, "data-crew": "name", "data-id": crew.id, disabled: !canWrite })) +
       IC.field("Foreman", IC.input({ value: crew.foreman, "data-crew": "foreman", "data-id": crew.id, placeholder: "Alejandro", disabled: !canWrite })) +
       "</div>" +
-      '<h3 style="margin:8px 0">Install by pitch (crew pay $/sq)</h3>' +
-      '<div class="form-grid two">' + pitchFields + "</div>" +
-      '<h3 style="margin:16px 0 8px">Tear-off & replacement</h3>' +
+      '<div class="pay-hero"><div><p class="field-label">Base rate</p><div class="pay-hero-row">' +
+      moneyInput({ value: labor.base, "data-labor": "base", class: "pay-hero-input", "aria-label": "Base rate per square" }) +
+      '<span>/ sq</span></div><p class="tiny muted">4/12 on a 1-story, 1-layer roof. Flat roof uses its own rate.</p></div></div>' +
+      '<h3 style="margin:18px 0 8px">Install & tear-off</h3>' +
+      '<p class="tiny muted" style="margin-bottom:10px">Each cell is the pay for one measured square before the layer adder. The 2-story and 3-story amounts add the column adder on top.</p>' +
+      '<div class="pay-wrap"><table class="pay-table"><thead><tr><th>Pitch</th>' + storyHeads + "</tr></thead><tbody>" + pitchRows + "</tbody></table></div>" +
+      '<h3 style="margin:18px 0 8px">Extra layers</h3>' +
+      '<p class="tiny muted" style="margin-bottom:10px">Added once per square. A 3-layer tear-off is +$20, not three times the 1-layer price. Dump fees still multiply by layers.</p>' +
+      '<div class="pay-wrap"><table class="pay-table"><thead><tr>' +
+      ["1-layer", "2-layer", "3-layer", "4-layer", "5-layer"].map(function (label) { return "<th>" + label + "</th>"; }).join("") +
+      "</tr></thead><tbody><tr>" + layerCells + "</tr></tbody></table></div>" +
+      '<ul class="pay-samples">' + samples + "</ul>" +
+      '<h3 style="margin:18px 0 8px">Hip & ridge and starter</h3>' +
+      '<p class="tiny muted">Paid at the base rate. Squares = (hip & ridge bundles + starter bundles) ÷ 3. Shingle squares are not counted again.</p>' +
+      '<h3 style="margin:18px 0 8px">Decking</h3>' +
       '<div class="form-grid two">' +
-      rateFields.map(function (r) {
-        return IC.field(r[1], IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor[r[0]], "data-labor": r[0], "data-id": crew.id, disabled: !canWrite, "aria-label": r[1] }));
-      }).join("") +
-      "</div>" +
-      '<p class="tiny muted" style="margin-top:12px">Tear-off is a flat $/sq for that layer count (2-layer is $' + Number(labor.tearoff2).toFixed(0) + "/sq, not twice 1-layer).</p>" +
-      "</div></div>";
+      IC.field("OSB replacement $/sheet", moneyInput({ value: labor.osbPerSheet, step: "0.01", "data-labor": "osbPerSheet", "aria-label": "OSB per sheet" })) +
+      IC.field("Wood $/board", moneyInput({ value: labor.woodPerBoard, step: "0.01", "data-labor": "woodPerBoard", "aria-label": "Wood per board" })) +
+      "</div></div></div>";
   };
 
   IC.viewMaterials = function () {

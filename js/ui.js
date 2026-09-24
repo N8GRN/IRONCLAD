@@ -418,9 +418,11 @@ window.IC = window.IC || {};
     if (!Number.isFinite(wasteDisposal) || wasteDisposal < 0) wasteDisposal = 0;
     var tearoffCrew = Number(c.laborCostTearoff);
     if (!Number.isFinite(tearoffCrew) || tearoffCrew < 0) tearoffCrew = 0;
+    var accessoryPay = Number(c.laborCostAccessory);
+    if (!Number.isFinite(accessoryPay) || accessoryPay < 0) accessoryPay = 0;
     var laborOnly = Number(laborValue) || 0;
     if (opts.actual !== false) {
-      laborOnly = Math.round((laborOnly - tearoffCrew) * 100) / 100;
+      laborOnly = Math.round((laborOnly - tearoffCrew - accessoryPay) * 100) / 100;
       if (laborOnly < 0) laborOnly = 0;
     }
     var otherVal = Number(c.otherCost != null ? c.otherCost : c.otherSubtotal) || 0;
@@ -442,7 +444,9 @@ window.IC = window.IC || {};
       ["Materials", materialCost],
     ];
     if (opts.actual !== false) {
-      rows.push(["Labor (crew)", laborOnly], ["Tear-off (crew)", tearoffCrew]);
+      rows.push(["Labor (crew)", laborOnly]);
+      if (tearoffCrew > 0) rows.push(["Tear-off (crew)", tearoffCrew]);
+      if (accessoryPay > 0) rows.push(["Hip & ridge / starter", accessoryPay]);
     }
     rows.push(
       ["Waste disposal", wasteDisposal],

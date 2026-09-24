@@ -55,12 +55,18 @@ IC.CREWS = [
 IC.PITCHES = ["Flat Roof", "2/12 - 3.9/12", "4/12 - 7/12", "8/12 - 9/12", "10/12 - 11/12", "12/12 - 13/12"];
 
 IC.DEFAULT_CREW_LABOR = {
-  installPerSq: 90,
-  tearoff1: 40,
-  tearoff2: 50,
-  tearoff3: 60,
-  tearoff4: 70,
-  tearoff5: 80,
+  base: 80,
+  flatRate: 100,
+  pitchAdd: {
+    "Flat Roof": 0,
+    "2/12 - 3.9/12": 0,
+    "4/12 - 7/12": 0,
+    "8/12 - 9/12": 10,
+    "10/12 - 11/12": 20,
+    "12/12 - 13/12": 30,
+  },
+  storyAdd: { "1-Story": 0, "2-Story": 10, "3-Story": 20 },
+  layerAdd: { "1": 0, "2": 10, "3": 20, "4": 30, "5": 40 },
   osbPerSheet: 15,
   woodPerBoard: 15,
 };
@@ -87,22 +93,30 @@ IC.DEFAULT_PERMISSIONS = {
 IC.normalizeCrew = function (c) {
   c = c || {};
   var laborIn = c.labor || {};
-  var installFallback = numLabor(laborIn.installPerSq, IC.DEFAULT_CREW_LABOR.installPerSq);
-  var byPitchIn = laborIn.installByPitch || {};
-  var installByPitch = {};
+  var d = IC.DEFAULT_CREW_LABOR;
+  var pitchSrc = laborIn.pitchAdd || {};
+  var storySrc = laborIn.storyAdd || {};
+  var layerSrc = laborIn.layerAdd || {};
+  var pitchAdd = {};
+  var storyAdd = {};
+  var layerAdd = {};
   (IC.PITCHES || []).forEach(function (p) {
-    installByPitch[p] = numLabor(byPitchIn[p], installFallback);
+    pitchAdd[p] = numLabor(pitchSrc[p], d.pitchAdd[p]);
+  });
+  (IC.STORIES || ["1-Story", "2-Story", "3-Story"]).forEach(function (s) {
+    storyAdd[s] = numLabor(storySrc[s], d.storyAdd[s]);
+  });
+  ["1", "2", "3", "4", "5"].forEach(function (n) {
+    layerAdd[n] = numLabor(layerSrc[n], d.layerAdd[n]);
   });
   var labor = {
-    installPerSq: installFallback,
-    installByPitch: installByPitch,
-    tearoff1: numLabor(laborIn.tearoff1, IC.DEFAULT_CREW_LABOR.tearoff1),
-    tearoff2: numLabor(laborIn.tearoff2, IC.DEFAULT_CREW_LABOR.tearoff2),
-    tearoff3: numLabor(laborIn.tearoff3, IC.DEFAULT_CREW_LABOR.tearoff3),
-    tearoff4: numLabor(laborIn.tearoff4, IC.DEFAULT_CREW_LABOR.tearoff4),
-    tearoff5: numLabor(laborIn.tearoff5, IC.DEFAULT_CREW_LABOR.tearoff5),
-    osbPerSheet: numLabor(laborIn.osbPerSheet, IC.DEFAULT_CREW_LABOR.osbPerSheet),
-    woodPerBoard: numLabor(laborIn.woodPerBoard, IC.DEFAULT_CREW_LABOR.woodPerBoard),
+    base: laborIn.base == null || laborIn.base === "" ? d.base : numLabor(laborIn.base, d.base),
+    flatRate: laborIn.flatRate == null || laborIn.flatRate === "" ? d.flatRate : numLabor(laborIn.flatRate, d.flatRate),
+    pitchAdd: pitchAdd,
+    storyAdd: storyAdd,
+    layerAdd: layerAdd,
+    osbPerSheet: numLabor(laborIn.osbPerSheet, d.osbPerSheet),
+    woodPerBoard: numLabor(laborIn.woodPerBoard, d.woodPerBoard),
   };
   return Object.assign({}, c, {
     id: c.id,

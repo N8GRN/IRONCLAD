@@ -77,6 +77,35 @@ window.IC = window.IC || {};
     return stories.indexOf(level) >= 0 ? level : "1-Story";
   };
 
+  IC.crewSquareParts = function (labor, pitch, level, tearoff) {
+    var crew = IC.normalizeCrew({ labor: labor || {} }).labor;
+    var label = IC.normalizePitch(pitch);
+    var storyName = IC.normalizeStory(level);
+    var story = Number(crew.storyAdd[storyName]);
+    if (!Number.isFinite(story)) story = 0;
+    var flat = IC.isDeadFlatPitch(label);
+    var pitchAdd = flat ? 0 : Number(crew.pitchAdd[label]);
+    if (!Number.isFinite(pitchAdd)) pitchAdd = 0;
+    var base = flat ? Number(crew.flatRate) : Number(crew.base);
+    if (!Number.isFinite(base)) base = 0;
+    var layers = typeof tearoff === "number" ? tearoff : (IC.TEAROFF_LAYERS[tearoff] || 0);
+    var layerAdd = layers > 0 ? Number(crew.layerAdd[String(layers)]) : 0;
+    if (!Number.isFinite(layerAdd)) layerAdd = 0;
+    return {
+      base: base,
+      pitchAdd: pitchAdd,
+      storyAdd: story,
+      layerAdd: layerAdd,
+      flat: flat,
+      layers: layers,
+      rate: base + pitchAdd + story + layerAdd,
+    };
+  };
+
+  IC.crewSquareRate = function (labor, pitch, level, tearoff) {
+    return IC.crewSquareParts(labor, pitch, level, tearoff).rate;
+  };
+
   IC.structureIsAllFlat = function (st) {
     var facets = IC.structureFacets(st);
     return facets.length > 0 && facets.every(function (f) { return IC.isDeadFlatPitch(f.pitch); });
@@ -328,7 +357,7 @@ window.IC = window.IC || {};
     var steepSquares = 0, lowSquares = 0, deadFlatSquares = 0;
     var laborCostInstall = 0, laborCostTearoff = 0;
     var wasteDisposal = 0, tearoffLayerSquares = 0;
-    var sellInstall = {}, sellTear = {};
+    var sellInstall = {}, sellTear = {}, crewPay = {};
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     var siding = IC.normalizeAddon("siding", est.siding);
     var waste = 1 + (Number(est.wastePercent) || 0) / 100;
@@ -368,7 +397,6 @@ window.IC = window.IC || {};
         var sq = Number(f.squares) || 0;
         var pitchLabel = IC.normalizePitch(f.pitch);
         var level = f.level || IC.normalizeStory(st.level);
-        var story = IC.STORY_LABOR[level] || 1;
         measuredSquares += sq;
         if (IC.isDeadFlatPitch(pitchLabel)) deadFlatSquares += sq;
         else if (IC.isLowSlopePitch(pitchLabel)) lowSquares += sq;
@@ -395,11 +423,12 @@ window.IC = window.IC || {};
         }
         tearoffLayerSquares += sq * layers;
         wasteDisposal += sq * layers * tearRate;
-        var pitchRate = (crewRates.installByPitch && Number(crewRates.installByPitch[pitchLabel])) || Number(crewRates.installPerSq) || 0;
-        laborCostInstall += sq * pitchRate * story;
-        if (layers > 0) {
-          var tearCostRate = Number(crewRates["tearoff" + layers]) || 0;
-          laborCostTearoff += sq * tearCostRate;
+        if (sq > 0) {
+          var pay = IC.crewSquareParts(crewRates, pitchLabel, level, f.tearoff);
+          var payKey = level + "|" + pitchLabel + "|" + layers + "|" + pay.rate;
+          if (!crewPay[payKey]) crewPay[payKey] = { sq: 0, rate: pay.rate, level: level, pitch: pitchLabel, layers: layers };
+          crewPay[payKey].sq += sq;
+          laborCostInstall += sq * pay.rate;
         }
       });
       var lin = IC.structureLinears(st);
@@ -575,6 +604,17 @@ window.IC = window.IC || {};
       lines.push(line("siding", "Siding", siding.description, 1, "ls", siding.price, "addon"));
     }
 
+    var hipLine = null;
+    var startLine = null;
+    lines.forEach(function (l) {
+      if (l.key === "mat-hipRidge") hipLine = l;
+      if (l.key === "mat-starter") startLine = l;
+    });
+    var hipBundles = hipLine ? Number(hipLine.qty) || 0 : 0;
+    var starterBundles = startLine ? Number(startLine.qty) || 0 : 0;
+    var accessorySquares = (hipBundles + starterBundles) / 3;
+    var accessoryLine = line("crew-accessory", "Hip & ridge / starter", hipBundles + " hip & ridge bundles + " + starterBundles + " starter bundles ÷ 3 × $" + Number(crewRates.base || 0).toFixed(2), accessorySquares, "sq", Number(crewRates.base) || 0, "labor");
+    var laborCostAccessory = accessoryLine.amount;
     var materialsSubtotal = round2(lines.filter(function (l) { return l.kind === "material"; }).reduce(function (s, l) { return s + l.amount; }, 0));
     var laborSubtotal = round2(lines.filter(function (l) { return l.kind === "labor"; }).reduce(function (s, l) { return s + l.amount; }, 0));
     var otherSubtotal = round2(lines.filter(function (l) { return l.kind === "other"; }).reduce(function (s, l) { return s + l.amount; }, 0));
@@ -617,7 +657,7 @@ window.IC = window.IC || {};
     var comm = IC.salespersonCommission(job, salePrice);
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));
-    var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost);
+    var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost + laborCostAccessory);
     var profitBilled = round2(total - materialsSubtotal - deckingMaterialCost - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
     var profitActual = round2(total - materialsSubtotal - deckingMaterialCost - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
     var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + equipmentRental, measuredSquares);
@@ -625,12 +665,14 @@ window.IC = window.IC || {};
     var costLines = lines.filter(function (l) {
       return l.key !== "labor" && l.key.indexOf("labor-install") !== 0 && l.key.indexOf("labor-tearoff") !== 0;
     }).slice();
-    if (laborCostInstall > 0) {
-      costLines.unshift(line("labor-cost", "Install labor (crew)", round1(measuredSquares) + " measured sq · " + IC.crewLabel(IC.crewForJob(job)), round2(measuredSquares), "sq", round2(laborCostInstall / Math.max(measuredSquares, 0.01)), "labor"));
-    }
-    if (laborCostTearoff > 0) {
-      costLines.splice(laborCostInstall > 0 ? 1 : 0, 0, line("tearoff-cost", "Tear-off (crew)", "Layer schedule from Labor catalog", 1, "ls", round2(laborCostTearoff), "labor"));
-    }
+    var crewLines = [];
+    Object.keys(crewPay).forEach(function (k) {
+      var b = crewPay[k];
+      var layerNote = b.layers > 0 ? b.layers + "-layer" : "no tear-off";
+      crewLines.push(line("crew-pay-" + k, "Crew labor", b.level + " · " + b.pitch + " · " + layerNote + " · $" + Number(b.rate).toFixed(2) + "/sq", b.sq, "sq", b.rate, "labor"));
+    });
+    costLines = crewLines.concat(costLines);
+    if (laborCostAccessory > 0) costLines.push(accessoryLine);
     if (osbLaborCost > 0) {
       costLines.push(line("osb-labor", "OSB replacement (crew)", sheets + " sheets", sheets, "sheet", Number(crewRates.osbPerSheet) || 0, "labor"));
     }
@@ -648,6 +690,7 @@ window.IC = window.IC || {};
       lines: lines, costLines: costLines,
       materialsSubtotal: materialsSubtotal, laborSubtotal: laborSubtotal, laborCost: laborCost,
       laborCostInstall: round2(laborCostInstall), laborCostTearoff: round2(laborCostTearoff),
+      laborCostAccessory: laborCostAccessory,
       osbLaborCost: osbLaborCost, woodLaborCost: woodLaborCost,
       deckingMaterialCost: deckingMaterialCost,
       otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,

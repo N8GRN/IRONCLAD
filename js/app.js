@@ -85,6 +85,8 @@ window.IC = window.IC || {};
         fid: active.getAttribute("data-fid"),
         labor: active.getAttribute("data-labor"),
         pitch: active.getAttribute("data-pitch"),
+        story: active.getAttribute("data-story"),
+        layer: active.getAttribute("data-layer"),
         rateKind: active.getAttribute("data-labor-rate"),
         ratePart: active.getAttribute("data-rate-part"),
         rateName: active.getAttribute("data-rate-name"),
@@ -167,6 +169,7 @@ window.IC = window.IC || {};
           same("data-udraft", restore.udraft) && same("data-mat", restore.mat) &&
           same("data-iid", restore.iid) && same("data-fid", restore.fid) && same("data-ui", restore.ui) &&
           same("data-labor", restore.labor) && same("data-pitch", restore.pitch) &&
+          same("data-story", restore.story) && same("data-layer", restore.layer) &&
           same("data-labor-rate", restore.rateKind) && same("data-rate-part", restore.ratePart) &&
           same("data-rate-name", restore.rateName) &&
           same("name", restore.name) && same("data-id", restore.idAttr);
@@ -774,11 +777,14 @@ window.IC = window.IC || {};
       if (!laborCrew) return;
       var rates = Object.assign({}, IC.normalizeCrew(laborCrew).labor);
       var laborKey = el.getAttribute("data-labor");
-      if (laborKey === "installByPitch") {
-        rates.installByPitch = Object.assign({}, rates.installByPitch || {});
-        rates.installByPitch[el.getAttribute("data-pitch")] = Number(el.value);
+      var rateNum = el.value === "" ? 0 : Number(el.value);
+      if (!Number.isFinite(rateNum)) rateNum = 0;
+      if (laborKey === "pitchAdd" || laborKey === "storyAdd" || laborKey === "layerAdd") {
+        var mapName = laborKey === "pitchAdd" ? el.getAttribute("data-pitch") : laborKey === "storyAdd" ? el.getAttribute("data-story") : el.getAttribute("data-layer");
+        rates[laborKey] = Object.assign({}, rates[laborKey] || {});
+        rates[laborKey][mapName] = rateNum;
       } else {
-        rates[laborKey] = Number(el.value);
+        rates[laborKey] = rateNum;
       }
       IC.upsertCrew(Object.assign({}, IC.normalizeCrew(laborCrew), { labor: rates }));
       return;
@@ -1164,6 +1170,18 @@ window.IC = window.IC || {};
     }
     liftPathToHash();
     IC.loadLocal();
+    if (window.__IRONCLAD_PREVIEW__ && (!IC.state.session || IC.state.session.mode === "preview")) {
+      IC.state.session = {
+        memberId: "preview",
+        name: "Preview",
+        email: "preview@ironclad.local",
+        role: "admin",
+        title: "Admin",
+        status: "active",
+        mode: "preview",
+      };
+      if (!location.hash || location.hash === "#" || location.hash === "#/") location.hash = "#/labor";
+    }
     IC.applyTheme(IC.getThemePref());
     if (window.matchMedia) {
       var mq = window.matchMedia("(prefers-color-scheme: dark)");
