@@ -260,7 +260,10 @@ window.IC = window.IC || {};
         "</tbody></table>" +
         '<p class="est-disclaimer">This is an estimate. Actual cost may increase if additional work or repairs are needed.</p>';
 
-    var warrantyHtml = IC.richTextHtml(comments.warranty);
+    var showOurs = IC.warrantyIncluded(est, "includeOurWarranty");
+    var showMfg = IC.warrantyIncluded(est, "includeMfgWarranty");
+    var warrantyHtml = showOurs ? IC.richTextHtml(comments.warranty) : "";
+    var mfgHtml = showMfg ? IC.richTextHtml(comments.mfg) : "";
     var head = '<header class="est-head"><div class="est-co">' +
       "<h3>" + IC.esc(settings.legalName || "IRONCLAD Roofing") + "</h3>" +
       '<p class="est-tag">' + IC.esc(tagline) + "</p>" +
@@ -276,11 +279,14 @@ window.IC = window.IC || {};
       (salesEmail ? "<p>" + IC.esc(salesEmail) + "</p>" : "") +
       "<p><a href=\"https://" + IC.esc(website) + "\">" + IC.esc(website) + "</a></p>" +
       "</div></footer>";
-    var warrantyPage = warrantyHtml
+    var warrantySections = (warrantyHtml ? '<section class="est-comments"><p class="est-k">Our warranty</p>' + warrantyHtml + "</section>" : "") +
+      (mfgHtml ? '<section class="est-comments"' + (warrantyHtml ? ' style="margin-top:1.25rem"' : "") + '><p class="est-k">Manufacturer’s warranty</p>' + mfgHtml + "</section>" : "");
+    var warrantyTitle = warrantyHtml && mfgHtml ? "Warranties" : (mfgHtml ? "Manufacturer’s warranty" : "Our warranty");
+    var warrantyPage = warrantySections
       ? '<div class="pdf-page pdf-page-break"><header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
         "<span>Project #" + IC.esc(String(job.number)) + "</span></div>" +
-        '<div class="est-label"><h1>Our warranty</h1></div></header>' +
-        '<section class="est-comments">' + warrantyHtml + "</section></div>"
+        '<div class="est-label"><h1>' + warrantyTitle + "</h1></div></header>" +
+        warrantySections + "</div>"
       : "";
 
     return '<article class="paper-doc est-sheet" id="customer-quote-sheet">' +
@@ -362,9 +368,11 @@ window.IC = window.IC || {};
     var vars = { shingle: shingle, years: String(years), courtesy: String(free) };
     var scope = settings.estimateScope || IC.SETTINGS.estimateScope;
     var warranty = settings.estimateWarranty || IC.SETTINGS.estimateWarranty;
+    var mfg = settings.mfgWarrantyText || IC.SETTINGS.mfgWarrantyText;
     return {
       intro: IC.fillEstimateText(scope, vars),
       warranty: IC.fillEstimateText(warranty, vars),
+      mfg: IC.fillEstimateText(mfg, vars),
       extras: [],
       years: years,
     };
@@ -387,6 +395,23 @@ window.IC = window.IC || {};
         rows.push({ qty: "", desc: "Replace roof with " + shingle + " on " + (p.name || "structure"), unit: "", total: p.price });
       });
     }
+    var measured = c && Number(c.measuredSquares);
+    if (measured > 0) rows.push({ qty: measured.toFixed(1), desc: "Measured roof area", unit: "sq", total: null });
+    var pitchBits = [];
+    var tearBits = [];
+    (est.structures || []).forEach(function (st) {
+      IC.structureFacets(st).forEach(function (f) {
+        var bit = [f.pitch, f.level].filter(Boolean).join(", ");
+        if (bit && pitchBits.indexOf(bit) < 0) pitchBits.push(bit);
+        if (f.tearoff && f.tearoff !== "None" && tearBits.indexOf(f.tearoff) < 0) tearBits.push(f.tearoff);
+      });
+    });
+    if (pitchBits.length) rows.push({ qty: "", desc: "Pitch and stories — " + pitchBits.join("; "), unit: "", total: null });
+    if (tearBits.length) rows.push({ qty: "", desc: "Tear-off — " + tearBits.join(", "), unit: "", total: null });
+    var hip = IC.pickName(est, "hipRidge");
+    if (hip && hip !== "—") rows.push({ qty: "", desc: "Hip and ridge — " + hip, unit: "", total: null });
+    var pipes = Number(est.pipeBoots) || 0;
+    if (pipes > 0) rows.push({ qty: pipes, desc: "Replace pipe boots with painted metal", unit: "ea", total: null });
     rows.push({ qty: "", desc: "Inspect and replace flashing as needed", unit: "", total: null });
     rows.push({ qty: "", desc: "Replace gutter apron and drip edge", unit: "", total: null });
     rows.push({ qty: "", desc: "Ice & Water around all eaves, valleys, and where roof meets wall", unit: "", total: null });

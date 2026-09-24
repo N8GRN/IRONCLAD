@@ -441,6 +441,11 @@ window.IC = window.IC || {};
       "</div>" +
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
+      '<section class="card"><h3 style="margin-bottom:8px">Warranty</h3>' +
+      '<p class="muted" style="margin-bottom:12px">Checked warranties print on the estimate, on the page after the price. The wording is edited under Settings → Company profile.</p>' +
+      '<label class="check"><input type="checkbox" data-est="warranty-ours"' + (IC.warrantyIncluded(value, "includeOurWarranty") ? " checked" : "") + ' /><span style="font-weight:600">Includes Our Warranty</span></label>' +
+      '<label class="check"><input type="checkbox" data-est="warranty-mfg"' + (IC.warrantyIncluded(value, "includeMfgWarranty") ? " checked" : "") + ' /><span style="font-weight:600">Includes Manufacturer’s Warranty</span></label>' +
+      "</section>" +
       '<section class="card"><h3 style="margin-bottom:8px">Quoted price</h3>' +
       '<p class="muted" style="margin-bottom:12px">This is the price the customer pays. Leave it matching the calculated price to follow it. Financing is an Ironclad cost and is not added to this number. Insurance is included in the price and hidden on the customer Estimate.</p>' +
       '<div class="form-grid two">' +
@@ -712,9 +717,10 @@ window.IC = window.IC || {};
       IC.field("Payment terms", IC.textarea({ value: settings.paymentTerms, "data-set": "paymentTerms", disabled: !admin }), "span-2") +
       IC.field("Contract introduction", IC.textarea({ value: settings.contractIntro, "data-set": "contractIntro", disabled: !admin }), "span-2") +
       IC.field("Our warranty", IC.textarea({ value: settings.estimateWarranty != null ? settings.estimateWarranty : IC.SETTINGS.estimateWarranty, "data-set": "estimateWarranty", disabled: !admin, rows: "10" }), "span-2") +
+      IC.field("Manufacturer's warranty", IC.textarea({ value: settings.mfgWarrantyText != null ? settings.mfgWarrantyText : IC.SETTINGS.mfgWarrantyText, "data-set": "mfgWarrantyText", disabled: !admin, rows: "12" }), "span-2") +
       IC.field("Scope of work", IC.textarea({ value: settings.estimateScope != null ? settings.estimateScope : IC.SETTINGS.estimateScope, "data-set": "estimateScope", disabled: !admin, rows: "6" }), "span-2") +
       "</div>" +
-      '<p class="tiny muted" style="margin-top:8px">Our warranty and Scope of work print on the customer Estimate. Lines that start with a hyphen become a list. Scope of work can use {shingle}, {years}, and {courtesy}. Our warranty can use {years}. Insurance % is added to the proposed price. The manufacturer warranty fee is paid by Ironclad and comes out of profit only.</p></div>';
+      '<p class="tiny muted" style="margin-top:8px">Our warranty, Manufacturer’s warranty, and Scope of work print on the customer Estimate when that job’s Warranty card includes them. Lines that start with a hyphen become a list. Scope of work can use {shingle}, {years}, and {courtesy}. The warranty text can use {years} and {shingle}. Insurance % is added to the proposed price. The manufacturer warranty fee is paid by Ironclad and comes out of profit only.</p></div>';
     return IC.settingsPage("Company profile", body);
   };
 

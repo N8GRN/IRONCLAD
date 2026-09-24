@@ -286,6 +286,8 @@ window.IC = window.IC || {};
       equipmentRental: 0,
       salesTaxPercent: settings.salesTaxPercent != null ? settings.salesTaxPercent : 7,
       quotedTotal: null,
+      includeOurWarranty: true,
+      includeMfgWarranty: true,
       commissionAmount: 0,
       computed: emptySnapshot(),
       updatedAt: new Date().toISOString(),
@@ -827,6 +829,11 @@ window.IC = window.IC || {};
     next.computed = IC.computeEstimate(next, settings, job);
     next.updatedAt = new Date().toISOString();
     return next;
+  };
+
+  IC.warrantyIncluded = function (est, key) {
+    if (!est || est[key] == null || est[key] === "") return true;
+    return est[key] !== false && est[key] !== "false";
   };
 
   IC.pickName = function (est, categoryId) {

@@ -1021,6 +1021,10 @@ window.IC = window.IC || {};
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { description: el.value, included: true }) });
     } else if (kind === "siding-price") {
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { price: Number(el.value), included: true }) });
+    } else if (kind === "warranty-ours") {
+      patchEstimate(jobE, { includeOurWarranty: el.checked });
+    } else if (kind === "warranty-mfg") {
+      patchEstimate(jobE, { includeMfgWarranty: el.checked });
     } else if (kind === "finance-on") {
       var finOn = IC.normalizeFinancing(est.financing);
       finOn.included = el.checked;
