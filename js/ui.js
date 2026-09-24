@@ -517,8 +517,10 @@ window.IC = window.IC || {};
       [commLabel, commission],
       ["Other", otherRemainder],
       ["Gutters / siding", c.addonsSubtotal],
-      ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
-      ["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount],
+      ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0]
+    );
+    if (insuranceAmount > 0) rows.push(["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount]);
+    rows.push(
       ["Manufacturer warranty", Number(c.mfgWarrantyFee) || 0],
       [financeLabel, financingAmount]
     );

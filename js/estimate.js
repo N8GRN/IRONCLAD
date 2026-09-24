@@ -650,6 +650,10 @@ window.IC = window.IC || {};
     insPct = Number(insPct);
     if (!Number.isFinite(insPct) || insPct < 0) insPct = 0;
     var insuranceAmount = round2(jobSubtotal * (insPct / 100));
+    if (!IC.warrantyIncluded(est, "includeMfgWarranty")) {
+      insuranceAmount = 0;
+      insPct = 0;
+    }
     var preFinance = round2(jobSubtotal + insuranceAmount);
     var finance = IC.normalizeFinancing(est.financing);
     var financePlan = null;
