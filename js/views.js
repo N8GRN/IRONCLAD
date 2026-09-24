@@ -286,7 +286,7 @@ window.IC = window.IC || {};
         : "") +
       "</div>" +
       (customer
-        ? '<a href="#/customers/' + customer.id + '"><p style="font-weight:600">' + IC.esc(customer.firstName + " " + customer.lastName) + '</p><p class="muted">' + IC.esc(customer.street) + '</p><p class="muted">' + IC.esc(customer.city + ", " + customer.state + " " + customer.zip) + '</p><p style="margin-top:8px">' + IC.esc(IC.formatPhone(customer.phone)) + "</p><p>" + IC.esc(customer.email) + "</p></a>"
+        ? '<a href="#/customers/' + customer.id + '"><p style="font-weight:600">' + IC.esc(customer.firstName + " " + customer.lastName) + '</p><p class="muted">' + IC.esc(customer.street) + '</p><p class="muted">' + IC.esc(customer.city + ", " + customer.state + " " + customer.zip) + '</p><p style="margin-top:8px">' + (customer.phone ? IC.esc(IC.formatPhone(customer.phone)) : '<span style="color: var(--warn)">MISSING PHONE</span>') + "</p><p>" + IC.esc(customer.email) + "</p></a>"
         : '<p class="muted">Customer record missing.</p>') +
       "</div><div class='card'><p class='field-label'>Price</p><p class='price-xl'>" + (job.price ? IC.money(job.price) : "—") + '</p><p class="tiny">Updated ' + IC.formatDate(job.updatedAt) + "</p></div>" +
       IC.btn(IC.icon("trash") + " Delete job", { variant: "danger", data: 'data-act="delete-job" data-id="' + job.id + '"' }) +
