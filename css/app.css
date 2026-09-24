@@ -625,6 +625,7 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
 }
 
 .est-sheet { font-size: 11pt; }
+#customer-quote-sheet { font-size: 10.5pt; }
 .est-head {
   display: flex;
   flex-wrap: wrap;
@@ -674,7 +675,7 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
 }
 .est-table th, .est-table td {
   border: 1px solid #ccc;
-  padding: 0.45rem 0.55rem;
+  padding: 0.25rem 0.55rem;
   vertical-align: top;
 }
 .est-table th {

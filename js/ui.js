@@ -380,14 +380,10 @@ window.IC = window.IC || {};
         rows.push({ qty: "", desc: "Replace roof with " + shingle + " on " + (p.name || "structure"), unit: "", total: p.price });
       });
     }
-    rows.push({ qty: "", desc: "Replace plastic pipe boots with painted metal ones", unit: "", total: null });
     rows.push({ qty: "", desc: "Inspect and replace flashing as needed", unit: "", total: null });
     rows.push({ qty: "", desc: "Replace gutter apron and drip edge", unit: "", total: null });
     rows.push({ qty: "", desc: "Ice & Water around all eaves, valleys, and where roof meets wall", unit: "", total: null });
-    rows.push({ qty: "", desc: "Synthetic felt paper", unit: "", total: null });
     rows.push({ qty: "", desc: "Dispose of old materials", unit: "", total: null });
-    var years = (settings && settings.warrantyWorkmanshipYears) || 10;
-    rows.push({ qty: "", desc: years + "-year workmanship warranty", unit: "", total: null });
     var deliveryFee = Number(est.deliveryFee != null ? est.deliveryFee : (c && c.deliveryFee));
     if (Number.isFinite(deliveryFee) && deliveryFee > 0) {
       rows.push({ qty: "", desc: "Delivery fee", unit: "", total: deliveryFee });
