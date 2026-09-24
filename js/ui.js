@@ -22,7 +22,7 @@ window.IC = window.IC || {};
       finance: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h5"/>',
       pin: '<path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.4"/>',
       nav: '<path d="m4 12 16-8-8 16-1.4-6.6Z"/>',
-      rotate: '<rect x="8" y="3" width="8" height="14" rx="1.6"/><path d="M10.2 14.6h3.6"/><path d="M17 7.2A6.6 6.6 0 0 1 18.6 14"/><path d="M16.2 4.6v3.1h3.1"/>',
+      rotate: '<path d="M8 8.2a5.2 5.2 0 0 1 7.6-.4"/><path d="M14.2 4.8l1.6 3.2-3.2.4"/><path d="M16 15.8a5.2 5.2 0 0 1-7.6.4"/><path d="M9.8 19.2 8.2 16l3.2-.4"/>',
     };
     return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + (paths[name] || "") + "</svg>";
   };
