@@ -961,7 +961,7 @@ window.IC = window.IC || {};
       "</tr></thead><tbody><tr>" + layerCells + "</tr></tbody></table></div>" +
       '<ul class="pay-samples">' + samples + "</ul>" +
       '<h3 style="margin:18px 0 8px">Hip & ridge and starter</h3>' +
-      '<p class="tiny muted">Paid at the base rate. Squares = (hip & ridge bundles + starter bundles) ÷ 3. Shingle squares are not counted again.</p>';
+      '<p class="tiny muted">Paid at the base rate. Squares = (hip & ridge bundles + starter bundles) ÷ 3, rounded up to the next whole square. A partial shingle bundle is paid as a whole bundle. Shingle squares are not counted again.</p>';
   }
 
   IC.viewLabor = function () {

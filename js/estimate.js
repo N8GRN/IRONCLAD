@@ -408,20 +408,22 @@ window.IC = window.IC || {};
         else { steepSquares += sq; hasSteep = true; }
         laborSquares += sq;
         var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
-        if (sq > 0) {
+        var laborSq = sq;
+        if (sq > 0 && !IC.isDeadFlatPitch(pitchLabel)) laborSq = ceilQty(sq * shinglePerSq) / shinglePerSq;
+        if (laborSq > 0) {
           var sell = IC.customerSquareParts(pitchLabel, level, f.tearoff, sellRates);
           var sellKey = level + "|" + pitchLabel + "|" + layers + "|" + sell.rate;
           if (!sellLabor[sellKey]) sellLabor[sellKey] = { sq: 0, rate: sell.rate, level: level, pitch: pitchLabel, layers: layers };
-          sellLabor[sellKey].sq += sq;
+          sellLabor[sellKey].sq += laborSq;
         }
         tearoffLayerSquares += sq * layers;
         wasteDisposal += sq * layers * tearRate;
-        if (sq > 0) {
+        if (laborSq > 0) {
           var pay = IC.crewSquareParts(crewRates, pitchLabel, level, f.tearoff);
           var payKey = level + "|" + pitchLabel + "|" + layers + "|" + pay.rate;
           if (!crewPay[payKey]) crewPay[payKey] = { sq: 0, rate: pay.rate, level: level, pitch: pitchLabel, layers: layers };
-          crewPay[payKey].sq += sq;
-          laborCostInstall += sq * pay.rate;
+          crewPay[payKey].sq += laborSq;
+          laborCostInstall += laborSq * pay.rate;
         }
       });
       var lin = IC.structureLinears(st);
@@ -599,9 +601,9 @@ window.IC = window.IC || {};
     });
     var hipBundles = hipLine ? Number(hipLine.qty) || 0 : 0;
     var starterBundles = startLine ? Number(startLine.qty) || 0 : 0;
-    var accessorySquares = (hipBundles + starterBundles) / 3;
-    var accessoryLine = line("crew-accessory", "Hip & ridge / starter", hipBundles + " hip & ridge bundles + " + starterBundles + " starter bundles ÷ 3 × $" + Number(crewRates.base || 0).toFixed(2), accessorySquares, "sq", Number(crewRates.base) || 0, "labor");
-    var sellAccessory = line("labor-accessory", "Hip & ridge / starter", hipBundles + " hip & ridge bundles + " + starterBundles + " starter bundles ÷ 3 × $" + Number(sellRates.base || 0).toFixed(2), accessorySquares, "sq", Number(sellRates.base) || 0, "labor");
+    var accessorySquares = (hipBundles + starterBundles) > 0 ? ceilQty((hipBundles + starterBundles) / 3) : 0;
+    var accessoryLine = line("crew-accessory", "Hip & ridge / starter", hipBundles + " hip & ridge bundles + " + starterBundles + " starter bundles ÷ 3, rounded up × $" + Number(crewRates.base || 0).toFixed(2), accessorySquares, "sq", Number(crewRates.base) || 0, "labor");
+    var sellAccessory = line("labor-accessory", "Hip & ridge / starter", hipBundles + " hip & ridge bundles + " + starterBundles + " starter bundles ÷ 3, rounded up × $" + Number(sellRates.base || 0).toFixed(2), accessorySquares, "sq", Number(sellRates.base) || 0, "labor");
     if (sellAccessory.amount > 0) lines.push(sellAccessory);
     var laborCostAccessory = accessoryLine.amount;
     var materialsSubtotal = round2(lines.filter(function (l) { return l.kind === "material"; }).reduce(function (s, l) { return s + l.amount; }, 0));

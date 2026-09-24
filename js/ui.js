@@ -584,7 +584,7 @@ window.IC = window.IC || {};
       row("Materials", materials) +
       row("Decking", decking) +
       row("Crew labor", roofLabor, "Install and tear-off, paid on measured squares") +
-      row("Hip & ridge / starter", accessory, "Bundles ÷ 3, at the crew base rate") +
+      row("Hip & ridge / starter", accessory, "Bundles ÷ 3, rounded up to a whole square") +
       row("OSB replacement", osbLabor) +
       row("Wood boards", woodLabor) +
       row("Waste disposal", waste) +
