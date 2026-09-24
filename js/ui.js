@@ -398,21 +398,17 @@ window.IC = window.IC || {};
     }
     var measured = c && Number(c.measuredSquares);
     if (measured > 0) rows.push({ qty: measured.toFixed(1), desc: "Measured roof area", unit: "sq", total: null });
-    var pitchBits = [];
     var tearBits = [];
     (est.structures || []).forEach(function (st) {
       IC.structureFacets(st).forEach(function (f) {
-        var bit = [f.pitch, f.level].filter(Boolean).join(", ");
-        if (bit && pitchBits.indexOf(bit) < 0) pitchBits.push(bit);
         if (f.tearoff && f.tearoff !== "None" && tearBits.indexOf(f.tearoff) < 0) tearBits.push(f.tearoff);
       });
     });
-    if (pitchBits.length) rows.push({ qty: "", desc: "Pitch and stories — " + pitchBits.join("; "), unit: "", total: null });
     if (tearBits.length) rows.push({ qty: "", desc: "Tear-off — " + tearBits.join(", "), unit: "", total: null });
     var hip = IC.pickName(est, "hipRidge");
     if (hip && hip !== "—") rows.push({ qty: "", desc: "Hip and ridge — " + hip, unit: "", total: null });
     var pipes = Number(est.pipeBoots) || 0;
-    if (pipes > 0) rows.push({ qty: pipes, desc: "Replace pipe boots with painted metal", unit: "ea", total: null });
+    if (pipes > 0) rows.push({ qty: pipes, desc: "Install metal pipe boots", unit: "ea", total: null });
     rows.push({ qty: "", desc: "Inspect and replace flashing as needed", unit: "", total: null });
     rows.push({ qty: "", desc: "Replace gutter apron and drip edge", unit: "", total: null });
     rows.push({ qty: "", desc: "Ice & Water around all eaves, valleys, and where roof meets wall", unit: "", total: null });
