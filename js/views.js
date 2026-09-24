@@ -152,7 +152,7 @@ window.IC = window.IC || {};
     };
     return '<div class="page"><header class="page-head"><div><p class="kicker">Ironclad Roofing</p><h1 class="hero">Let’s go to work, ' + IC.esc(greet) + '.</h1></div><a href="#/jobs">' + IC.btn("New job " + IC.icon("arrow")) + "</a></header>" +
       '<div class="grid-stats">' + stats + "</div>" +
-      (unread[0] ? '<div class="card" style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><p class="kicker">Needs you</p><p style="font-weight:600">' + IC.esc(unread[0].title) + '</p><p class="muted">' + IC.esc(unread[0].body) + '</p></div><a href="#/notifications">' + IC.btn("Alerts", { variant: "outline", size: "sm" }) + "</a></div>" : "") +
+      (unread[0] ? '<div class="card is-unread" style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><p class="kicker">Needs you</p><p style="font-weight:600">' + IC.esc(unread[0].title) + '</p><p class="muted">' + IC.esc(unread[0].body) + '</p></div><a href="#/notifications">' + IC.btn("Alerts", { variant: "outline", size: "sm" }) + "</a></div>" : "") +
       '<div class="grid-2"><div class="card"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' + IC.icon("userplus") + "<h2>Unassigned</h2></div>" +
       stack(unassigned.map(function (j) { return row(j, "Needs a salesperson"); }), '<p class="muted">Every job has a project owner.</p>') +
       '</div><div class="card"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' + IC.icon("pen") + "<h2>Waiting on signature</h2></div>" +
@@ -614,7 +614,7 @@ window.IC = window.IC || {};
         var body = n.jobId
           ? '<a class="alert-body" href="#/jobs/' + n.jobId + '" data-act="read-note" data-id="' + n.id + '">' + inner + "</a>"
           : '<div class="alert-body" data-act="read-note" data-id="' + n.id + '">' + inner + "</div>";
-        return '<li><div class="card alert-row"' + (n.read ? ' style="opacity:.7"' : "") + ">" +
+        return '<li><div class="card alert-row' + (n.read ? " is-read" : " is-unread") + '">' +
           body +
           IC.btn(IC.icon("trash"), { variant: "ghost", class: "btn-icon", data: 'data-act="delete-note" data-id="' + n.id + '" aria-label="Delete alert"' }) +
           "</div></li>";

@@ -192,11 +192,22 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   padding: 0;
   margin: 0;
 }
+.card.is-unread { position: relative; overflow: hidden; }
+.card.is-unread::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--navy);
+}
 .alert-row {
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
+.alert-row.is-read { opacity: 0.62; }
 .alert-row .alert-body {
   flex: 1;
   min-width: 0;
