@@ -627,8 +627,7 @@ window.IC = window.IC || {};
     var profitNote = profitPct.toFixed(1) + "% of sell price" +
       (measured > 0 ? ", approx. " + IC.money(profit / measured) + "/square" : "");
 
-    return '<article class="paper-doc est-sheet cost-report" id="job-cost-sheet">' +
-      '<header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
+    var summary = '<header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
       '<p class="est-tag">Internal record</p><span>' + IC.esc(IC.companyCityLine(settings)) + "</span></div>" +
       '<div class="est-label"><h1>Job cost</h1><p class="tiny">Project #' + IC.esc(String(job.number)) + "</p>" +
       '<p class="tiny">Prepared ' + IC.esc(prepared) + "</p></div></header>" +
@@ -671,9 +670,18 @@ window.IC = window.IC || {};
       row("Financing" + (c.financingName ? " (" + c.financingName + (c.financingPercent ? " " + c.financingPercent + "%" : "") + ")" : ""), financing) +
       '<tr class="cost-total"><td>Job cost</td><td class="num">' + IC.money(jobCost) + "</td></tr>" +
       '<tr class="cost-profit ' + profitClass + '"><td>Profit<div class="cost-note">' + profitNote + "</div></td><td class=\"num\">" + IC.money(profit) + "</td></tr>" +
-      "</tbody></table>" +
-      detailTable("Labor detail", laborLines) +
-      detailTable("Material detail", materialLines) +
-      '<p class="cost-end">Internal record for the job file. Not a customer document. Profit is sell price minus the costs above.</p></article>';
+      "</tbody></table>";
+    var laborBlock = detailTable("Labor detail", laborLines);
+    var materialBlock = detailTable("Material detail", materialLines);
+    var endNote = '<p class="cost-end">Internal record for the job file. Not a customer document. Profit is sell price minus the costs above.</p>';
+    if (!laborBlock && !materialBlock) summary += endNote;
+    else if (!materialBlock) laborBlock += endNote;
+    else materialBlock += endNote;
+
+    return '<article class="paper-doc est-sheet cost-report" id="job-cost-sheet">' +
+      '<div class="pdf-page">' + summary + "</div>" +
+      (laborBlock ? '<div class="pdf-page pdf-page-break">' + laborBlock + "</div>" : "") +
+      (materialBlock ? '<div class="pdf-page pdf-page-break">' + materialBlock + "</div>" : "") +
+      "</article>";
   };
 })(window.IC);
