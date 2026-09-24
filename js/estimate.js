@@ -787,6 +787,7 @@ window.IC = window.IC || {};
   IC.jobSheetLines = function (est) {
     var lines = (est && est.computed && est.computed.lines) || [];
     return lines.filter(function (l) {
+      if (l.key === "mat-chimney") return false;
       return l.kind === "material" || l.kind === "decking" || l.key === "sheathing";
     });
   };

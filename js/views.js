@@ -113,7 +113,7 @@ window.IC = window.IC || {};
       '<nav class="nav-side">' + sideLinks + "</nav>" +
       '<div class="nav-foot"><a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
       (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" +
-      (IC.can(s, "labor", "read") ? '<a href="#/labor" class="' + (laborOn ? "active" : "") + '">' + IC.icon("hammer") + "<span>Labor</span></a>" : "") +
+      (IC.can(s, "labor", "read") ? '<a href="#/labor" class="' + (laborOn ? "active" : "") + '">' + IC.icon("ladder") + "<span>Labor</span></a>" : "") +
       (IC.can(s, "materials", "read") ? '<a href="#/materials" class="' + (materialsOn ? "active" : "") + '">' + IC.icon("box") + "<span>Materials</span></a>" : "") +
       '<a href="#/financing" class="' + (financeOn ? "active" : "") + '">' + IC.icon("finance") + "<span>Financing</span></a>" +
       '<a href="#/settings" class="' + (settingsOn ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" +
@@ -710,10 +710,10 @@ window.IC = window.IC || {};
       IC.field("Website", IC.input({ value: settings.website, "data-set": "website", disabled: !admin, placeholder: "https://ironcladroofing.com" })) +
       IC.field("Workmanship warranty (years)", IC.input({ type: "number", value: settings.warrantyWorkmanshipYears, "data-set": "warrantyWorkmanshipYears", "data-num": "1", disabled: !admin })) +
       IC.field("Insurance %", IC.input({ type: "number", min: "0", step: "0.01", value: settings.insurancePercent != null && settings.insurancePercent !== "" ? settings.insurancePercent : 1, "data-set": "insurancePercent", "data-num": "1", disabled: !admin })) +
-      IC.field("Mfr. warranty flat fee", IC.input({ type: "number", min: "0", step: "0.01", value: settings.mfgWarrantyFlat != null && settings.mfgWarrantyFlat !== "" ? settings.mfgWarrantyFlat : 75, "data-set": "mfgWarrantyFlat", "data-num": "1", disabled: !admin })) +
-      IC.field("Mfr. warranty $/sq outside", IC.input({ type: "number", min: "0", step: "0.01", value: settings.mfgWarrantyPerSq != null && settings.mfgWarrantyPerSq !== "" ? settings.mfgWarrantyPerSq : 3, "data-set": "mfgWarrantyPerSq", "data-num": "1", disabled: !admin })) +
-      IC.field("Mfr. warranty from (sq)", IC.input({ type: "number", min: "0", step: "0.1", value: settings.mfgWarrantyMinSq != null && settings.mfgWarrantyMinSq !== "" ? settings.mfgWarrantyMinSq : 25, "data-set": "mfgWarrantyMinSq", "data-num": "1", disabled: !admin })) +
-      IC.field("Mfr. warranty through (sq)", IC.input({ type: "number", min: "0", step: "0.1", value: settings.mfgWarrantyMaxSq != null && settings.mfgWarrantyMaxSq !== "" ? settings.mfgWarrantyMaxSq : 100, "data-set": "mfgWarrantyMaxSq", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty flat fee ($)", IC.input({ type: "number", min: "0", step: "0.01", value: settings.mfgWarrantyFlat != null && settings.mfgWarrantyFlat !== "" ? settings.mfgWarrantyFlat : 75, "data-set": "mfgWarrantyFlat", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty $/sq outside range", IC.input({ type: "number", min: "0", step: "0.01", value: settings.mfgWarrantyPerSq != null && settings.mfgWarrantyPerSq !== "" ? settings.mfgWarrantyPerSq : 3, "data-set": "mfgWarrantyPerSq", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty min (sq)", IC.input({ type: "number", min: "0", step: "0.1", value: settings.mfgWarrantyMinSq != null && settings.mfgWarrantyMinSq !== "" ? settings.mfgWarrantyMinSq : 25, "data-set": "mfgWarrantyMinSq", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty max (sq)", IC.input({ type: "number", min: "0", step: "0.1", value: settings.mfgWarrantyMaxSq != null && settings.mfgWarrantyMaxSq !== "" ? settings.mfgWarrantyMaxSq : 100, "data-set": "mfgWarrantyMaxSq", "data-num": "1", disabled: !admin })) +
       IC.field("Payment terms", IC.textarea({ value: settings.paymentTerms, "data-set": "paymentTerms", disabled: !admin }), "span-2") +
       IC.field("Contract introduction", IC.textarea({ value: settings.contractIntro, "data-set": "contractIntro", disabled: !admin }), "span-2") +
       IC.field("Our warranty", IC.textarea({ value: settings.estimateWarranty != null ? settings.estimateWarranty : IC.SETTINGS.estimateWarranty, "data-set": "estimateWarranty", disabled: !admin, rows: "10" }), "span-2") +

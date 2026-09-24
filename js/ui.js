@@ -19,6 +19,8 @@ window.IC = window.IC || {};
       pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
       box: '<path d="M3 8.5 12 4l9 4.5-9 4.5L3 8.5Z"/><path d="M3 8.5V16l9 4.5 9-4.5V8.5"/><path d="M12 13v7.5"/>',
       hammer: '<path d="M15 3.5 20.5 9 18 11.5 12.5 6Z"/><path d="M13.2 8.8 5 17l2 2 8.2-8.2"/><path d="M4 20h6"/>',
+      hammerClassic: '<path d="M15 3.5 20.5 9 18 11.5 12.5 6Z"/><path d="M13.2 8.8 5 17l2 2 8.2-8.2"/><path d="M4 20h6"/>',
+      ladder: '<path d="M8 21.2 10.2 2.8"/><path d="M16 21.2 13.8 2.8"/><path d="M9.1 6.6h5.6"/><path d="M8.7 10.6h6.4"/><path d="M8.4 14.6h7"/><path d="M8.1 18.4h7.6"/>',
       finance: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h5"/>',
       pin: '<path d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2.4"/>',
       nav: '<path d="m4 12 16-8-8 16-1.4-6.6Z"/>',
