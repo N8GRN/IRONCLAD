@@ -378,6 +378,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .tabbar svg { width: 20px; height: 20px; }
 
 .page { display: grid; gap: 1.25rem; min-width: 0; max-width: 100%; }
+.page > * { min-width: 0; max-width: 100%; }
 .page-head {
   display: flex;
   flex-wrap: wrap;
@@ -467,15 +468,19 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
 .tabs {
   display: flex;
   gap: 0.25rem;
-  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   border-radius: 16px;
   background: var(--cream);
   padding: 0.25rem;
   box-shadow: var(--shadow);
 }
 .tabs button {
-  flex: 1;
-  min-width: 5.5rem;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 0.3rem;
+  font-size: clamp(0.7rem, 3.05vw, 0.95rem);
   background: transparent;
   color: var(--muted);
   border-radius: 12px;
