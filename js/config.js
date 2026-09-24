@@ -191,6 +191,10 @@ IC.SETTINGS = {
   permissions: IC.clone ? IC.clone(IC.DEFAULT_PERMISSIONS) : JSON.parse(JSON.stringify(IC.DEFAULT_PERMISSIONS)),
   contractIntro:
     "This Residential Roofing Service Agreement (“Agreement”) is entered into by and between Ironclad Roofing LLC (“Contractor”) and the Customer named below. Contractor agrees to furnish labor, materials, and equipment to perform the work described herein at the property listed below, in a good and workmanlike manner consistent with industry standards.",
+  estimateWarranty:
+    "Ironclad Roofing LLC warrants its workmanship on this roof replacement for {years} years from the date of completion, provided the contract is paid in full. The workmanship warranty covers defects in our installation. It does not cover acts of God, wind or hail beyond the product rating, owner neglect, or repairs made by anyone other than Ironclad.\n\nShingles and accessories also carry the manufacturer warranties below. Those warranties are issued by the manufacturer to the property owner. They are separate from our workmanship warranty, and they apply only when the product specified in this estimate includes that coverage.\n\n- Wind coverage up to 130 mph, under the manufacturer’s limited warranty.\n- UL 2218 Class 3 hail-impact resistance, where the specified shingle carries that rating.\n- 50-year non-prorated limited warranty from the shingle manufacturer.\n- 25-year algae-resistance warranty (StreakFighter, where the specified shingle includes it).",
+  estimateScope:
+    "The existing roof will be removed and replaced with {shingle} shingles. Drip edge and gutter apron will be replaced. Ice and water shield will be installed at the eaves, in the valleys, and where the roof meets a wall. Synthetic underlayment will cover the remaining roof. Up to {courtesy} damaged OSB sheet(s) will be replaced at no additional charge. Pipe flashings will be replaced with aluminum pipe boots, and wall counterflashing will be custom-formed from .027 aluminum.",
 };
 
 /* Customer sell rates. Same schedule as crew pay, with its own base. Flat replaces the base. */

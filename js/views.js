@@ -711,8 +711,10 @@ window.IC = window.IC || {};
       IC.field("Mfr. warranty $/sq outside", IC.input({ type: "number", min: "0", step: "0.01", value: settings.mfgWarrantyPerSq != null && settings.mfgWarrantyPerSq !== "" ? settings.mfgWarrantyPerSq : 3, "data-set": "mfgWarrantyPerSq", "data-num": "1", disabled: !admin })) +
       IC.field("Payment terms", IC.textarea({ value: settings.paymentTerms, "data-set": "paymentTerms", disabled: !admin }), "span-2") +
       IC.field("Contract introduction", IC.textarea({ value: settings.contractIntro, "data-set": "contractIntro", disabled: !admin }), "span-2") +
+      IC.field("Our warranty", IC.textarea({ value: settings.estimateWarranty != null ? settings.estimateWarranty : IC.SETTINGS.estimateWarranty, "data-set": "estimateWarranty", disabled: !admin, rows: "10" }), "span-2") +
+      IC.field("Scope of work", IC.textarea({ value: settings.estimateScope != null ? settings.estimateScope : IC.SETTINGS.estimateScope, "data-set": "estimateScope", disabled: !admin, rows: "6" }), "span-2") +
       "</div>" +
-      '<p class="tiny muted" style="margin-top:8px">Insurance % is applied to each job as a percent of the proposed job price, then added to the Proposed Total (1% of $15,000 = $150 → $15,150). Manufacturer warranty is paid by Ironclad, not the customer: a flat fee from the “from” square through the “through” square, and $/sq on every other roof size. It is subtracted from profit only.</p></div>';
+      '<p class="tiny muted" style="margin-top:8px">Our warranty and Scope of work print on the customer Estimate. Lines that start with a hyphen become a list. Scope of work can use {shingle}, {years}, and {courtesy}. Our warranty can use {years}. Insurance % is added to the proposed price. The manufacturer warranty fee is paid by Ironclad and comes out of profit only.</p></div>';
     return IC.settingsPage("Company profile", body);
   };
 

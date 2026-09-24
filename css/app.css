@@ -616,6 +616,7 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
 
 .paper-doc {
   margin: 0 auto;
+  width: 100%;
   max-width: 800px;
   background: #ffffff;
   padding: 2rem 1.5rem;
@@ -683,6 +684,11 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
   text-transform: uppercase;
   color: #444;
   background: #f6f3ec;
+}
+.est-table th:nth-child(3),
+.est-table td:nth-child(3) {
+  min-width: 8.25rem;
+  white-space: nowrap;
 }
 .est-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .est-table tr.est-total td { border: none; }

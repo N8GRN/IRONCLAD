@@ -232,7 +232,6 @@ window.IC = window.IC || {};
     var paidCell = paid != null && Number.isFinite(paid) ? IC.money(paid) : "";
     var dueCell = paid != null && Number.isFinite(paid) ? IC.money(Math.max(0, total - paid)) : "";
 
-    var bullets = (IC.QUOTE_WARRANTY_BULLETS || []).map(function (b) { return "<li>" + IC.esc(b) + "</li>"; }).join("");
     var extraNotes = (comments.extras || []).map(function (p) { return "<p>" + IC.esc(p) + "</p>"; }).join("");
 
     var salesPhone = (sales && sales.phone) ? IC.formatPhone(sales.phone) : companyPhone;
@@ -248,9 +247,9 @@ window.IC = window.IC || {};
         (custCity ? "<div>" + IC.esc(custCity) + "</div>" : "") +
         "</section>" +
         '<section class="est-comments"><p class="est-k">Comments or special instructions</p>' +
-        "<p>" + IC.esc(comments.intro) + "</p>" + extraNotes +
-        "<p>We guarantee our work and back every roof replacement with a " + comments.years + "-year warranty.</p>" +
-        (bullets ? "<ul>" + bullets + "</ul>" : "") +
+        IC.richTextHtml(comments.intro) + extraNotes +
+        '<p class="est-k" style="margin-top:1rem">Our warranty</p>' +
+        IC.richTextHtml(comments.warranty) +
         "</section>" +
         '<table class="est-table"><thead><tr><th>Quantity</th><th>Description</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' +
         tableRows +
@@ -265,12 +264,14 @@ window.IC = window.IC || {};
 
     return '<article class="paper-doc est-sheet" id="customer-quote-sheet">' +
       '<header class="est-head"><div class="est-co">' +
-      "<h3>IRONCLAD Roofing</h3>" +
+      "<h3>" + IC.esc(settings.legalName || "IRONCLAD Roofing") + "</h3>" +
       '<p class="est-tag">' + IC.esc(tagline) + "</p>" +
       "<span>" + IC.esc(cityLine) + "</span>" +
       "<span>Phone: " + IC.esc(companyPhone) + "</span>" +
+      (settings.licenseNumber ? "<span>License: " + IC.esc(settings.licenseNumber) + "</span>" : "") +
       '</div><div class="est-label"><h1>Estimate</h1>' +
-      '<p class="tiny">Project #' + IC.esc(String(job.number)) + "</p></div></header>" +
+      '<p class="tiny">Project #' + IC.esc(String(job.number)) + "</p>" +
+      '<p class="tiny">' + IC.esc(new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })) + "</p></div></header>" +
       body +
       '<footer class="est-foot"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing LLC" />' +
       "<div><p style=\"font-weight:700\">" + IC.esc(salesName) + "</p>" +
@@ -309,6 +310,34 @@ window.IC = window.IC || {};
     return parts.join(" · ") || "Roof Replacement";
   };
 
+  IC.fillEstimateText = function (text, vars) {
+    var out = String(text == null ? "" : text);
+    vars = vars || {};
+    Object.keys(vars).forEach(function (k) {
+      out = out.split("{" + k + "}").join(vars[k] == null ? "" : String(vars[k]));
+    });
+    return out;
+  };
+
+  IC.richTextHtml = function (text) {
+    var lines = String(text || "").replace(/\r\n/g, "\n").split("\n");
+    var html = "";
+    var list = [];
+    function flush() {
+      if (!list.length) return;
+      html += "<ul>" + list.map(function (item) { return "<li>" + IC.esc(item) + "</li>"; }).join("") + "</ul>";
+      list = [];
+    }
+    lines.forEach(function (line) {
+      var bullet = line.match(/^\s*[-*•]\s+(.*)$/);
+      if (bullet) { list.push(bullet[1]); return; }
+      flush();
+      if (line.trim()) html += "<p>" + IC.esc(line.trim()) + "</p>";
+    });
+    flush();
+    return html || "";
+  };
+
   IC.QUOTE_WARRANTY_BULLETS = [
     "130 mph wind warranty.",
     "Level 3 hail impact resistant.",
@@ -317,16 +346,21 @@ window.IC = window.IC || {};
   ];
 
   IC.customerQuoteComments = function (job, est, settings) {
+    settings = settings || (IC.state && IC.state.settings) || IC.SETTINGS;
     var shingle = (est && IC.pickName(est, "shingle")) || "Duration";
-    var free = Number(settings && settings.sheathingLaborCourtesy);
+    var free = Number(settings.sheathingLaborCourtesy);
     if (!Number.isFinite(free) || free < 0) free = 3;
-    var years = (settings && settings.warrantyWorkmanshipYears) || 10;
-    var intro = "Entire roof will be removed and replaced with " + shingle +
-      " shingles. Additionally, all drip edge and gutter apron will be replaced. Ice & Water Shield will be installed on all eaves, valleys, and along wall transitions and flashings. Synthetic felt paper will be installed on all remaining areas of the roof. In the event of damaged sheeting, we will replace up to " +
-      free + " OSB sheet" + (free === 1 ? "" : "s") +
-      " at no additional cost. Pipe flashing will be replaced with aluminum pipe boots. Wall counter flashing will be custom made from .027 aluminum.";
-    var extras = [];
-    return { intro: intro, extras: extras, years: years };
+    var years = Number(settings.warrantyWorkmanshipYears);
+    if (!Number.isFinite(years) || years < 0) years = 10;
+    var vars = { shingle: shingle, years: String(years), courtesy: String(free) };
+    var scope = settings.estimateScope || IC.SETTINGS.estimateScope;
+    var warranty = settings.estimateWarranty || IC.SETTINGS.estimateWarranty;
+    return {
+      intro: IC.fillEstimateText(scope, vars),
+      warranty: IC.fillEstimateText(warranty, vars),
+      extras: [],
+      years: years,
+    };
   };
 
   IC.customerQuoteRows = function (job, est, settings) {
@@ -374,21 +408,24 @@ window.IC = window.IC || {};
     var est = job.estimate;
     var lines = IC.jobSheetLines(est);
     var sub = lines.reduce(function (s, l) { return s + (Number(l.amount) || 0); }, 0);
+    var settings = (IC.state && IC.state.settings) || IC.SETTINGS;
     var body = !est
       ? '<p class="muted" style="margin-top:1.5rem">Build an assessment first.</p>'
-      : '<p class="muted" style="margin-top:1rem">Materials only — for the lumber yard order.</p>' +
-        '<table style="width:100%;margin-top:1rem;font-size:.9rem;border-collapse:collapse"><thead><tr style="border-bottom:1px solid var(--line);text-align:left;font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase"><th style="padding:.5rem 0">Item</th><th>Qty</th><th style="text-align:right">Amount</th></tr></thead><tbody>' +
+      : '<p class="muted" style="margin-top:1rem">Materials only. For the lumber yard order.</p>' +
+        '<table class="est-table"><thead><tr><th>Item</th><th>Qty</th><th>Amount</th></tr></thead><tbody>' +
         (lines.length ? lines.map(function (l) {
-          return '<tr style="border-bottom:1px solid rgba(213,205,190,.6)"><td style="padding:.5rem 0"><div style="font-weight:600">' + IC.esc(l.label) + "</div>" +
+          return "<tr><td><div style=\"font-weight:600\">" + IC.esc(l.label) + "</div>" +
             (l.detail ? '<div class="tiny">' + IC.esc(l.detail) + "</div>" : "") +
-            '</td><td class="tabular">' + IC.esc(l.qty) + " " + IC.esc(l.unit) + '</td><td class="tabular" style="text-align:right">' + IC.money(l.amount) + "</td></tr>";
-        }).join("") : '<tr><td colspan="3" class="muted" style="padding:1rem 0">No material lines yet.</td></tr>') +
-        "</tbody></table>" +
-        '<p class="price-xl" style="text-align:right;margin-top:1.5rem;font-size:1.85rem">' + IC.money(sub) + "</p>";
-    return '<article class="paper-doc" id="job-sheet-sheet"><header class="doc-head"><img src="' + IC.asset("brand/logo.png") + '" alt="" />' +
-      '<div style="text-align:right"><p style="font-family:var(--font-display);font-size:1.25rem;color:var(--navy)">Job sheet</p><p class="muted">#' + job.number + "</p></div></header>" +
-      '<div style="margin-top:1rem;display:flex;justify-content:space-between;font-size:.9rem"><div><p class="field-label">Job</p><p style="font-weight:600">' + IC.esc(job.customerName) +
-      '</p></div><div style="text-align:right"><p class="field-label">From</p><p style="font-weight:600">' + IC.esc(settingsName) + "</p></div></div>" + body + "</article>";
+            '</td><td class="num">' + IC.esc(l.qty) + " " + IC.esc(l.unit) + '</td><td class="num">' + IC.money(l.amount) + "</td></tr>";
+        }).join("") : '<tr><td colspan="3" class="muted">No material lines yet.</td></tr>') +
+        '<tr class="est-total"><td></td><td>Total</td><td class="num">' + IC.money(sub) + "</td></tr>" +
+        "</tbody></table>";
+    return '<article class="paper-doc est-sheet" id="job-sheet-sheet">' +
+      '<header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || settingsName || "IRONCLAD Roofing") + '</h3>' +
+      '<p class="est-tag">Material order</p><span>' + IC.esc(IC.companyCityLine(settings)) + "</span></div>" +
+      '<div class="est-label"><h1>Job sheet</h1><p class="tiny">Project #' + IC.esc(String(job.number)) + "</p>" +
+      '<p class="tiny">' + IC.esc(job.customerName || "") + "</p></div></header>" +
+      body + "</article>";
   };
 
   IC.navySumHtml = function (c, opts) {
