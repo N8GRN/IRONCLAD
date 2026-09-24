@@ -1277,7 +1277,7 @@ window.IC = window.IC || {};
       setTimeout(function () {
         el.classList.add("is-done");
         IC.applyTheme(IC.getThemePref());
-      }, 400);
+      }, 800);  // [26.09.24] Increased splash visibility from 400 ms
     };
     var wait = force ? 0 : Math.max(0, 1800 - (Date.now() - splashShownAt));
     setTimeout(run, wait);
