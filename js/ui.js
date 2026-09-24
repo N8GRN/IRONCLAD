@@ -523,7 +523,7 @@ window.IC = window.IC || {};
     var commWho = c.commissionName || (sales && (sales.salesName || sales.name)) || "";
     var street = customer && customer.street ? customer.street : "";
     var city = customer ? [customer.city, customer.state].filter(Boolean).join(", ") + (customer.zip ? " " + customer.zip : "") : "";
-    var crewName = job.crewId ? (c.crewName || IC.crewLabel(crew)) : "Unassigned";
+    var crewName = job.crewId ? (crew && crew.name ? crew.name : "Crew") : "Unassigned";
     var foreman = job.crewId && crew && crew.foreman ? crew.foreman : "";
     var salesName = (sales && (sales.salesName || sales.name)) || "—";
     var prepared = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -554,6 +554,9 @@ window.IC = window.IC || {};
       quoteNote = "Quoted. Calculated price was " + IC.money(c.listTotal) + ".";
     }
     var profitClass = profit < -0.005 ? "is-neg" : "is-profit";
+    var measured = num(c.measuredSquares);
+    var profitNote = profitPct.toFixed(1) + "% of sell price" +
+      (measured > 0 ? ", approx. " + IC.money(profit / measured) + "/square" : "");
 
     return '<article class="paper-doc est-sheet cost-report" id="job-cost-sheet">' +
       '<header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
@@ -597,7 +600,7 @@ window.IC = window.IC || {};
       row("Insurance (" + (Number(insPct) || 0) + "%)", insurance) +
       row("Financing" + (c.financingName ? " (" + c.financingName + (c.financingPercent ? " " + c.financingPercent + "%" : "") + ")" : ""), financing) +
       '<tr class="cost-total"><td>Job cost</td><td class="num">' + IC.money(jobCost) + "</td></tr>" +
-      '<tr class="cost-profit ' + profitClass + '"><td>Profit<div class="cost-note">' + profitPct.toFixed(1) + "% of sell price</div></td><td class=\"num\">" + IC.money(profit) + "</td></tr>" +
+      '<tr class="cost-profit ' + profitClass + '"><td>Profit<div class="cost-note">' + profitNote + "</div></td><td class=\"num\">" + IC.money(profit) + "</td></tr>" +
       "</tbody></table>" +
       detailTable("Labor detail", laborLines) +
       detailTable("Material detail", materialLines) +

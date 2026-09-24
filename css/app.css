@@ -41,6 +41,9 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
   color-scheme: light;
 }
 
@@ -76,6 +79,7 @@ html, body, #app {
 body {
   font-family: var(--font-sans);
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 button:not(:disabled),
@@ -333,6 +337,8 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .content {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   padding: 1rem 1rem 7rem;
 }
 
@@ -360,7 +366,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .tabbar a.active { color: var(--navy); }
 .tabbar svg { width: 20px; height: 20px; }
 
-.page { display: grid; gap: 1.25rem; }
+.page { display: grid; gap: 1.25rem; min-width: 0; max-width: 100%; }
 .page-head {
   display: flex;
   flex-wrap: wrap;
@@ -1245,15 +1251,15 @@ html[data-theme="dark"] .tone-scheduled {
 .pay-hero { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
 .pay-hero-row { display: flex; align-items: baseline; gap: 8px; font-size: 1.05rem; }
 .pay-hero-input { font-family: var(--font-display); font-size: 2rem; width: 7.5rem; padding: 0.15rem 0.4rem; }
-.pay-wrap { overflow-x: auto; margin: 0 -2px 4px; }
-.pay-table { width: 100%; min-width: 560px; border-collapse: separate; border-spacing: 0; }
-.pay-table th, .pay-table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.pay-table thead th { background: var(--navy); color: #f4f1ea; font-size: 12px; letter-spacing: 0.04em; font-weight: 650; position: sticky; top: 0; }
-.pay-table thead th input { margin-top: 6px; background: #f4f1ea; color: var(--ink); }
-.pay-table tbody th { font-weight: 650; white-space: nowrap; }
-.pay-rate { font-family: var(--font-display); font-size: 1.35rem; line-height: 1; color: var(--navy); }
+.pay-wrap { overflow-x: auto; max-width: 100%; margin: 0 -2px 4px; -webkit-overflow-scrolling: touch; }
+.pay-table { width: 100%; min-width: 0; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.pay-table th, .pay-table td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.pay-table thead th { background: var(--navy); color: #f4f1ea; font-size: 12px; letter-spacing: 0.02em; font-weight: 650; position: sticky; top: 0; }
+.pay-table thead th input { margin-top: 6px; background: #f4f1ea; color: var(--ink); font-size: 16px; min-height: 36px; padding: 0.3rem 0.35rem; }
+.pay-table tbody th { font-weight: 650; white-space: normal; }
+.pay-rate { font-family: var(--font-display); font-size: 1.15rem; line-height: 1; color: var(--navy); }
 .pay-add { margin-top: 6px; }
-.pay-add input { width: 5.5rem; }
+.pay-add input { width: 100%; font-size: 16px; min-height: 36px; padding: 0.3rem 0.35rem; }
 .pay-note { margin-top: 4px; font-size: 11px; color: var(--muted); }
 .pay-samples { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
 .pay-samples li { display: grid; gap: 2px; background: var(--paper); border-radius: 12px; padding: 10px 12px; }
