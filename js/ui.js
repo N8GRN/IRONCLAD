@@ -476,7 +476,7 @@ window.IC = window.IC || {};
       '<div style="display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid rgba(251,248,241,.2)"><dt style="font-weight:700">Profit</dt><dd class="tabular" style="font-weight:700">' + IC.money(profit) + "</dd></div>" +
       "</dl>" +
       (opts.commissionNote ? '<p class="tiny" style="margin-top:10px;opacity:.75">' + IC.esc(opts.commissionNote) + "</p>" : "") +
-      '<p class="tiny" style="margin-top:10px;opacity:.75">Labor Price is install + tear-off charged to the customer. Labor (crew) is what the crew is paid, and it does not change Labor Price.</p>' +
+      '<p class="tiny" style="margin-top:10px;opacity:.75">Labor Price is what the customer pays for the work: measured squares at the labor rate, plus hip & ridge and starter at the base rate. Labor (crew) is what the crew is paid, and it does not change Labor Price.</p>' +
       itemized + "</section>";
   };
 

@@ -45,31 +45,28 @@ window.IC = window.IC || {};
 
   IC.normalizeLaborRates = function (raw) {
     raw = raw || {};
-    function side(kind) {
-      var d = IC.DEFAULT_LABOR_RATES[kind];
-      var src = raw[kind] || {};
-      var story = {};
-      var pitch = {};
-      (IC.STORIES || ["1-Story", "2-Story", "3-Story"]).forEach(function (name) {
-        story[name] = numRate(src.story && src.story[name], d.story[name]);
-      });
-      (IC.PITCHES || []).forEach(function (name) {
-        pitch[name] = numRate(src.pitch && src.pitch[name], d.pitch[name]);
-      });
-      return { base: numRate(src.base, d.base), story: story, pitch: pitch };
-    }
-    return { install: side("install"), tearoff: side("tearoff") };
-  };
-
-  IC.customerLaborRate = function (kind, pitch, level, rates) {
-    var table = IC.normalizeLaborRates(rates)[kind === "tearoff" ? "tearoff" : "install"];
-    var label = IC.normalizePitch(pitch);
-    if (IC.isDeadFlatPitch(label)) return table.pitch["Flat Roof"];
-    var story = table.story[level];
-    if (!Number.isFinite(story)) story = 0;
-    var adder = table.pitch[label];
-    if (!Number.isFinite(adder)) adder = 0;
-    return table.base + story + adder;
+    var d = IC.DEFAULT_LABOR_RATES;
+    var fresh = raw.pitchAdd || raw.layerAdd || raw.storyAdd || raw.flatRate != null;
+    var src = fresh ? raw : {};
+    var pitchAdd = {};
+    var storyAdd = {};
+    var layerAdd = {};
+    (IC.PITCHES || []).forEach(function (name) {
+      pitchAdd[name] = numRate(src.pitchAdd && src.pitchAdd[name], d.pitchAdd[name]);
+    });
+    (IC.STORIES || ["1-Story", "2-Story", "3-Story"]).forEach(function (name) {
+      storyAdd[name] = numRate(src.storyAdd && src.storyAdd[name], d.storyAdd[name]);
+    });
+    ["1", "2", "3", "4", "5"].forEach(function (n) {
+      layerAdd[n] = numRate(src.layerAdd && src.layerAdd[n], d.layerAdd[n]);
+    });
+    return {
+      base: src.base == null || src.base === "" ? d.base : numRate(src.base, d.base),
+      flatRate: src.flatRate == null || src.flatRate === "" ? d.flatRate : numRate(src.flatRate, d.flatRate),
+      pitchAdd: pitchAdd,
+      storyAdd: storyAdd,
+      layerAdd: layerAdd,
+    };
   };
 
   IC.normalizeStory = function (level) {
@@ -77,19 +74,19 @@ window.IC = window.IC || {};
     return stories.indexOf(level) >= 0 ? level : "1-Story";
   };
 
-  IC.crewSquareParts = function (labor, pitch, level, tearoff) {
-    var crew = IC.normalizeCrew({ labor: labor || {} }).labor;
+  IC.squareRateParts = function (table, pitch, level, tearoff) {
+    table = table || {};
     var label = IC.normalizePitch(pitch);
     var storyName = IC.normalizeStory(level);
-    var story = Number(crew.storyAdd[storyName]);
+    var story = Number(table.storyAdd && table.storyAdd[storyName]);
     if (!Number.isFinite(story)) story = 0;
     var flat = IC.isDeadFlatPitch(label);
-    var pitchAdd = flat ? 0 : Number(crew.pitchAdd[label]);
+    var pitchAdd = flat ? 0 : Number(table.pitchAdd && table.pitchAdd[label]);
     if (!Number.isFinite(pitchAdd)) pitchAdd = 0;
-    var base = flat ? Number(crew.flatRate) : Number(crew.base);
+    var base = flat ? Number(table.flatRate) : Number(table.base);
     if (!Number.isFinite(base)) base = 0;
     var layers = typeof tearoff === "number" ? tearoff : (IC.TEAROFF_LAYERS[tearoff] || 0);
-    var layerAdd = layers > 0 ? Number(crew.layerAdd[String(layers)]) : 0;
+    var layerAdd = layers > 0 ? Number(table.layerAdd && table.layerAdd[String(layers)]) : 0;
     if (!Number.isFinite(layerAdd)) layerAdd = 0;
     return {
       base: base,
@@ -102,8 +99,16 @@ window.IC = window.IC || {};
     };
   };
 
+  IC.crewSquareParts = function (labor, pitch, level, tearoff) {
+    return IC.squareRateParts(IC.normalizeCrew({ labor: labor || {} }).labor, pitch, level, tearoff);
+  };
+
   IC.crewSquareRate = function (labor, pitch, level, tearoff) {
     return IC.crewSquareParts(labor, pitch, level, tearoff).rate;
+  };
+
+  IC.customerSquareParts = function (pitch, level, tearoff, rates) {
+    return IC.squareRateParts(IC.normalizeLaborRates(rates), pitch, level, tearoff);
   };
 
   IC.structureIsAllFlat = function (st) {
@@ -357,7 +362,7 @@ window.IC = window.IC || {};
     var steepSquares = 0, lowSquares = 0, deadFlatSquares = 0;
     var laborCostInstall = 0, laborCostTearoff = 0;
     var wasteDisposal = 0, tearoffLayerSquares = 0;
-    var sellInstall = {}, sellTear = {}, crewPay = {};
+    var sellLabor = {}, crewPay = {};
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     var siding = IC.normalizeAddon("siding", est.siding);
     var waste = 1 + (Number(est.wastePercent) || 0) / 100;
@@ -404,22 +409,10 @@ window.IC = window.IC || {};
         laborSquares += sq;
         var layers = IC.TEAROFF_LAYERS[f.tearoff] || 0;
         if (sq > 0) {
-          var installRate = IC.customerLaborRate("install", pitchLabel, level, sellRates);
-          var installAmt = round2(sq * installRate);
-          if (installAmt !== 0) {
-            var installKey = level + "|" + pitchLabel + "|" + installRate;
-            if (!sellInstall[installKey]) sellInstall[installKey] = { sq: 0, rate: installRate, level: level, pitch: pitchLabel };
-            sellInstall[installKey].sq += sq;
-          }
-          if (layers > 0) {
-            var tearSellRate = IC.customerLaborRate("tearoff", pitchLabel, level, sellRates);
-            var tearAmt = round2(sq * layers * tearSellRate);
-            if (tearAmt !== 0) {
-              var tearKey = level + "|" + pitchLabel + "|" + layers + "|" + tearSellRate;
-              if (!sellTear[tearKey]) sellTear[tearKey] = { sq: 0, layers: layers, rate: tearSellRate, level: level, pitch: pitchLabel };
-              sellTear[tearKey].sq += sq;
-            }
-          }
+          var sell = IC.customerSquareParts(pitchLabel, level, f.tearoff, sellRates);
+          var sellKey = level + "|" + pitchLabel + "|" + layers + "|" + sell.rate;
+          if (!sellLabor[sellKey]) sellLabor[sellKey] = { sq: 0, rate: sell.rate, level: level, pitch: pitchLabel, layers: layers };
+          sellLabor[sellKey].sq += sq;
         }
         tearoffLayerSquares += sq * layers;
         wasteDisposal += sq * layers * tearRate;
@@ -534,19 +527,13 @@ window.IC = window.IC || {};
       lines.push(line("mat-boxVent-" + col, "Box vents", bItem.name, boxByColor[col], "ea", bItem.price, "material"));
     });
 
-    function sellDetail(b, tear) {
-      var flat = IC.isDeadFlatPitch(b.pitch);
-      var text = b.level + " · " + b.pitch + (flat ? " · flat rate " : " · ") + "$" + Number(b.rate).toFixed(2) + "/sq";
-      if (tear) text += " × " + b.layers + (b.layers === 1 ? " layer" : " layers");
-      return text;
+    function sellDetail(b) {
+      var layerNote = b.layers > 0 ? b.layers + "-layer" : "no tear-off";
+      return b.level + " · " + b.pitch + " · " + layerNote + " · $" + Number(b.rate).toFixed(2) + "/sq";
     }
-    Object.keys(sellInstall).forEach(function (k) {
-      var b = sellInstall[k];
-      lines.push(line("labor-install-" + k, "Install labor", sellDetail(b, false), b.sq, "sq", b.rate, "labor"));
-    });
-    Object.keys(sellTear).forEach(function (k) {
-      var b = sellTear[k];
-      lines.push(line("labor-tearoff-" + k, "Tear-off labor", sellDetail(b, true), b.sq, "sq", round2(b.rate * b.layers), "labor"));
+    Object.keys(sellLabor).forEach(function (k) {
+      var b = sellLabor[k];
+      lines.push(line("labor-sell-" + k, "Labor", sellDetail(b), b.sq, "sq", b.rate, "labor"));
     });
     wasteDisposal = round2(wasteDisposal);
     tearoffLayerSquares = round2(tearoffLayerSquares);
@@ -614,6 +601,8 @@ window.IC = window.IC || {};
     var starterBundles = startLine ? Number(startLine.qty) || 0 : 0;
     var accessorySquares = (hipBundles + starterBundles) / 3;
     var accessoryLine = line("crew-accessory", "Hip & ridge / starter", hipBundles + " hip & ridge bundles + " + starterBundles + " starter bundles ÷ 3 × $" + Number(crewRates.base || 0).toFixed(2), accessorySquares, "sq", Number(crewRates.base) || 0, "labor");
+    var sellAccessory = line("labor-accessory", "Hip & ridge / starter", hipBundles + " hip & ridge bundles + " + starterBundles + " starter bundles ÷ 3 × $" + Number(sellRates.base || 0).toFixed(2), accessorySquares, "sq", Number(sellRates.base) || 0, "labor");
+    if (sellAccessory.amount > 0) lines.push(sellAccessory);
     var laborCostAccessory = accessoryLine.amount;
     var materialsSubtotal = round2(lines.filter(function (l) { return l.kind === "material"; }).reduce(function (s, l) { return s + l.amount; }, 0));
     var laborSubtotal = round2(lines.filter(function (l) { return l.kind === "labor"; }).reduce(function (s, l) { return s + l.amount; }, 0));
@@ -663,7 +652,7 @@ window.IC = window.IC || {};
     var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + equipmentRental, measuredSquares);
 
     var costLines = lines.filter(function (l) {
-      return l.key !== "labor" && l.key.indexOf("labor-install") !== 0 && l.key.indexOf("labor-tearoff") !== 0;
+      return l.key !== "labor" && l.key.indexOf("labor-") !== 0;
     }).slice();
     var crewLines = [];
     Object.keys(crewPay).forEach(function (k) {

@@ -859,14 +859,16 @@ window.IC = window.IC || {};
     }
     if (el.hasAttribute("data-labor-rate")) {
       if (!IC.isAdmin(IC.state.session)) return;
-      var rateKind = el.getAttribute("data-labor-rate") === "tearoff" ? "tearoff" : "install";
       var ratePart = el.getAttribute("data-rate-part");
       var rateName = el.getAttribute("data-rate-name");
       var rateTable = IC.normalizeLaborRates(IC.state.settings && IC.state.settings.laborRates);
       var rateNum = el.value === "" ? 0 : Number(el.value);
       if (!Number.isFinite(rateNum)) rateNum = 0;
-      if (ratePart === "base") rateTable[rateKind].base = rateNum;
-      else if (rateTable[rateKind][ratePart]) rateTable[rateKind][ratePart][rateName] = rateNum;
+      if (ratePart === "base" || ratePart === "flatRate") rateTable[ratePart] = rateNum;
+      else if (rateTable[ratePart]) {
+        rateTable[ratePart] = Object.assign({}, rateTable[ratePart]);
+        rateTable[ratePart][rateName] = rateNum;
+      }
       IC.updateSettings({ laborRates: rateTable });
       return;
     }
