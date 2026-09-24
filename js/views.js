@@ -442,7 +442,7 @@ window.IC = window.IC || {};
       '<div style="margin-top:12px">' + IC.field("Estimate notes", IC.textarea({ value: value.notes, "data-est": "notes" })) + "</div>" +
       '<div style="margin-top:12px">' + IC.btn(IC.icon("plus") + " Extra line", { variant: "ghost", data: 'data-act="est-add-extra"' }) + extras + "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:8px">Warranty</h3>' +
-      '<p class="muted" style="margin-bottom:12px">Checked warranties print on the estimate, on the page after the price. Unchecking Manufacturer’s Warranty also removes the insurance cost from this job. The wording is edited under Settings → Company profile.</p>' +
+      '<p class="muted" style="margin-bottom:12px">Checked warranties print on the estimate, on the page after the price. Unchecking Manufacturer’s Warranty also removes that fee from the proposal. The wording is edited under Settings → Company profile.</p>' +
       '<label class="check"><input type="checkbox" data-est="warranty-ours"' + (IC.warrantyIncluded(value, "includeOurWarranty") ? " checked" : "") + ' /><span style="font-weight:600">Includes Our Warranty</span></label>' +
       '<label class="check"><input type="checkbox" data-est="warranty-mfg"' + (IC.warrantyIncluded(value, "includeMfgWarranty") ? " checked" : "") + ' /><span style="font-weight:600">Includes Manufacturer’s Warranty</span></label>' +
       "</section>" +

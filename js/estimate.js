@@ -650,10 +650,6 @@ window.IC = window.IC || {};
     insPct = Number(insPct);
     if (!Number.isFinite(insPct) || insPct < 0) insPct = 0;
     var insuranceAmount = round2(jobSubtotal * (insPct / 100));
-    if (!IC.warrantyIncluded(est, "includeMfgWarranty")) {
-      insuranceAmount = 0;
-      insPct = 0;
-    }
     var preFinance = round2(jobSubtotal + insuranceAmount);
     var finance = IC.normalizeFinancing(est.financing);
     var financePlan = null;
@@ -672,7 +668,7 @@ window.IC = window.IC || {};
     var discountPercent = listTotal > 0 && discountAmount > 0.005 ? round2((discountAmount / listTotal) * 100) : 0;
     var salePrice = total;
     var mfgWarranty = IC.manufacturerWarrantyFee(measuredSquares, settings);
-    var mfgWarrantyFee = mfgWarranty.amount;
+    var mfgWarrantyFee = IC.warrantyIncluded(est, "includeMfgWarranty") ? mfgWarranty.amount : 0;
     var comm = IC.salespersonCommission(job, salePrice);
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));

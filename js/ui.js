@@ -517,13 +517,11 @@ window.IC = window.IC || {};
       [commLabel, commission],
       ["Other", otherRemainder],
       ["Gutters / siding", c.addonsSubtotal],
-      ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0]
+      ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
+      ["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount]
     );
-    if (insuranceAmount > 0) rows.push(["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount]);
-    rows.push(
-      ["Manufacturer warranty", Number(c.mfgWarrantyFee) || 0],
-      [financeLabel, financingAmount]
-    );
+    if ((Number(c.mfgWarrantyFee) || 0) > 0) rows.push(["Manufacturer warranty", Number(c.mfgWarrantyFee) || 0]);
+    rows.push([financeLabel, financingAmount]);
     var itemized = opts.itemized !== false
       ? "<ul>" + itemSrc.map(function (l) {
         return "<li><span>" + IC.esc(l.label) + (l.detail ? " — " + IC.esc(l.detail) : "") + " (" + l.qty + " " + IC.esc(l.unit) + ')</span><span class="tabular">' + IC.money(l.amount) + "</span></li>";
