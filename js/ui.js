@@ -248,8 +248,6 @@ window.IC = window.IC || {};
         "</section>" +
         '<section class="est-comments"><p class="est-k">Comments or special instructions</p>' +
         IC.richTextHtml(comments.intro) + extraNotes +
-        '<p class="est-k" style="margin-top:1rem">Our warranty</p>' +
-        IC.richTextHtml(comments.warranty) +
         "</section>" +
         '<table class="est-table"><thead><tr><th>Quantity</th><th>Description</th><th>Unit price</th><th>Total</th></tr></thead><tbody>' +
         tableRows +
@@ -262,8 +260,8 @@ window.IC = window.IC || {};
         "</tbody></table>" +
         '<p class="est-disclaimer">This is an estimate. Actual cost may increase if additional work or repairs are needed.</p>';
 
-    return '<article class="paper-doc est-sheet" id="customer-quote-sheet">' +
-      '<header class="est-head"><div class="est-co">' +
+    var warrantyHtml = IC.richTextHtml(comments.warranty);
+    var head = '<header class="est-head"><div class="est-co">' +
       "<h3>" + IC.esc(settings.legalName || "IRONCLAD Roofing") + "</h3>" +
       '<p class="est-tag">' + IC.esc(tagline) + "</p>" +
       "<span>" + IC.esc(cityLine) + "</span>" +
@@ -271,14 +269,23 @@ window.IC = window.IC || {};
       (settings.licenseNumber ? "<span>License: " + IC.esc(settings.licenseNumber) + "</span>" : "") +
       '</div><div class="est-label"><h1>Estimate</h1>' +
       '<p class="tiny">Project #' + IC.esc(String(job.number)) + "</p>" +
-      '<p class="tiny">' + IC.esc(new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })) + "</p></div></header>" +
-      body +
-      '<footer class="est-foot"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing LLC" />' +
+      '<p class="tiny">' + IC.esc(new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })) + "</p></div></header>";
+    var foot = '<footer class="est-foot"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing LLC" />' +
       "<div><p style=\"font-weight:700\">" + IC.esc(salesName) + "</p>" +
       (salesPhone ? "<p>Phone: " + IC.esc(salesPhone) + "</p>" : "") +
       (salesEmail ? "<p>" + IC.esc(salesEmail) + "</p>" : "") +
       "<p><a href=\"https://" + IC.esc(website) + "\">" + IC.esc(website) + "</a></p>" +
-      "</div></footer></article>";
+      "</div></footer>";
+    var warrantyPage = warrantyHtml
+      ? '<div class="pdf-page pdf-page-break"><header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
+        "<span>Project #" + IC.esc(String(job.number)) + "</span></div>" +
+        '<div class="est-label"><h1>Our warranty</h1></div></header>' +
+        '<section class="est-comments">' + warrantyHtml + "</section></div>"
+      : "";
+
+    return '<article class="paper-doc est-sheet" id="customer-quote-sheet">' +
+      '<div class="pdf-page">' + head + body + foot + "</div>" +
+      warrantyPage + "</article>";
   };
 
   IC.companyCityLine = function (s) {

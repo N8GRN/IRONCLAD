@@ -658,31 +658,45 @@ window.IC = window.IC || {};
     });
   }
 
+  function paintPdfCanvas(pdf, canvas) {
+    var img = canvas.toDataURL("image/jpeg", 0.92);
+    var pageW = 8.5, pageH = 11, margin = 0.4;
+    var w = pageW - margin * 2;
+    var h = (canvas.height / canvas.width) * w;
+    var remaining = h, y = margin, srcY = 0;
+    var pageDrawH = pageH - margin * 2;
+    if (h <= pageDrawH) {
+      pdf.addImage(img, "JPEG", margin, margin, w, h);
+      return;
+    }
+    while (remaining > 0) {
+      pdf.addImage(img, "JPEG", margin, y - srcY, w, h);
+      remaining -= pageDrawH;
+      if (remaining > 0) {
+        pdf.addPage();
+        srcY += pageDrawH;
+        y = margin;
+      }
+    }
+  }
+
   IC.htmlToPdf = function (element, filename) {
     return IC.loadPdfLibs().then(function () {
       var html2canvas = window.html2canvas;
       var jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-      return html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(function (canvas) {
-        var img = canvas.toDataURL("image/jpeg", 0.92);
-        var pdf = new jsPDF({ unit: "in", format: "letter", orientation: "portrait" });
-        var pageW = 8.5, pageH = 11, margin = 0.4;
-        var w = pageW - margin * 2;
-        var h = (canvas.height / canvas.width) * w;
-        var remaining = h, y = margin, srcY = 0;
-        var pageDrawH = pageH - margin * 2;
-        if (h <= pageDrawH) {
-          pdf.addImage(img, "JPEG", margin, margin, w, h);
-        } else {
-          while (remaining > 0) {
-            pdf.addImage(img, "JPEG", margin, y - srcY, w, h);
-            remaining -= pageDrawH;
-            if (remaining > 0) {
-              pdf.addPage();
-              srcY += pageDrawH;
-              y = margin;
-            }
-          }
-        }
+      var marked = element.querySelectorAll(".pdf-page");
+      var targets = marked.length ? Array.prototype.slice.call(marked) : [element];
+      var pdf = new jsPDF({ unit: "in", format: "letter", orientation: "portrait" });
+      var chain = Promise.resolve();
+      targets.forEach(function (node, index) {
+        chain = chain.then(function () {
+          return html2canvas(node, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(function (canvas) {
+            if (index > 0) pdf.addPage();
+            paintPdfCanvas(pdf, canvas);
+          });
+        });
+      });
+      return chain.then(function () {
         return { blob: pdf.output("blob"), filename: filename };
       });
     });

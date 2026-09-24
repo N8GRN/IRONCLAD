@@ -709,6 +709,12 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
   text-transform: uppercase;
   color: #444;
 }
+.pdf-page-break {
+  break-before: page;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(26, 35, 50, 0.18);
+}
 .est-foot {
   display: flex;
   align-items: center;
@@ -1266,6 +1272,7 @@ html[data-theme="dark"] .tone-scheduled {
   .paper-doc { box-shadow: none; max-width: none; }
   .est-table th, .est-table td { border-color: #999; }
   .est-foot { break-inside: avoid; }
+  .pdf-page-break { break-before: page; margin-top: 0; padding-top: 0; border-top: 0; }
   .cost-kpis { grid-template-columns: repeat(5, 1fr); }
   .cost-meta { grid-template-columns: repeat(3, 1fr); }
   .cost-kpi, .cost-statement { break-inside: avoid; }
