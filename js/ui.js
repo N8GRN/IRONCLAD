@@ -287,11 +287,11 @@ window.IC = window.IC || {};
       ? '<div class="pdf-page pdf-page-break"><header class="est-head"><div class="est-co"><h3>' + IC.esc(settings.legalName || "IRONCLAD Roofing") + '</h3>' +
         "<span>Project #" + IC.esc(String(job.number)) + "</span></div>" +
         '<div class="est-label"><h1>' + warrantyTitle + "</h1></div></header>" +
-        warrantySections + "</div>"
+        warrantySections + foot + "</div>"
       : "";
 
     return '<article class="paper-doc est-sheet" id="customer-quote-sheet">' +
-      '<div class="pdf-page">' + head + body + foot + "</div>" +
+      '<div class="pdf-page">' + head + body + (warrantyPage ? "" : foot) + "</div>" +
       warrantyPage + "</article>";
   };
 
