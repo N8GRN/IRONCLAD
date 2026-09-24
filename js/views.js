@@ -705,10 +705,14 @@ window.IC = window.IC || {};
       IC.field("Website", IC.input({ value: settings.website, "data-set": "website", disabled: !admin, placeholder: "https://ironcladroofing.com" })) +
       IC.field("Workmanship warranty (years)", IC.input({ type: "number", value: settings.warrantyWorkmanshipYears, "data-set": "warrantyWorkmanshipYears", "data-num": "1", disabled: !admin })) +
       IC.field("Insurance %", IC.input({ type: "number", min: "0", step: "0.01", value: settings.insurancePercent != null && settings.insurancePercent !== "" ? settings.insurancePercent : 1, "data-set": "insurancePercent", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty flat fee", IC.input({ type: "number", min: "0", step: "0.01", value: settings.mfgWarrantyFlat != null && settings.mfgWarrantyFlat !== "" ? settings.mfgWarrantyFlat : 75, "data-set": "mfgWarrantyFlat", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty from (sq)", IC.input({ type: "number", min: "0", step: "0.1", value: settings.mfgWarrantyMinSq != null && settings.mfgWarrantyMinSq !== "" ? settings.mfgWarrantyMinSq : 25, "data-set": "mfgWarrantyMinSq", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty through (sq)", IC.input({ type: "number", min: "0", step: "0.1", value: settings.mfgWarrantyMaxSq != null && settings.mfgWarrantyMaxSq !== "" ? settings.mfgWarrantyMaxSq : 100, "data-set": "mfgWarrantyMaxSq", "data-num": "1", disabled: !admin })) +
+      IC.field("Mfr. warranty $/sq outside", IC.input({ type: "number", min: "0", step: "0.01", value: settings.mfgWarrantyPerSq != null && settings.mfgWarrantyPerSq !== "" ? settings.mfgWarrantyPerSq : 3, "data-set": "mfgWarrantyPerSq", "data-num": "1", disabled: !admin })) +
       IC.field("Payment terms", IC.textarea({ value: settings.paymentTerms, "data-set": "paymentTerms", disabled: !admin }), "span-2") +
       IC.field("Contract introduction", IC.textarea({ value: settings.contractIntro, "data-set": "contractIntro", disabled: !admin }), "span-2") +
       "</div>" +
-      '<p class="tiny muted" style="margin-top:8px">Insurance % is applied to each job as a percent of the proposed job price, then added to the Proposed Total (1% of $15,000 = $150 → $15,150).</p></div>';
+      '<p class="tiny muted" style="margin-top:8px">Insurance % is applied to each job as a percent of the proposed job price, then added to the Proposed Total (1% of $15,000 = $150 → $15,150). Manufacturer warranty is paid by Ironclad, not the customer: a flat fee from the “from” square through the “through” square, and $/sq on every other roof size. It is subtracted from profit only.</p></div>';
     return IC.settingsPage("Company profile", body);
   };
 

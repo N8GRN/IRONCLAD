@@ -459,6 +459,7 @@ window.IC = window.IC || {};
       ["Gutters / siding", c.addonsSubtotal],
       ["Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", c.salesTax != null ? c.salesTax : 0],
       ["Insurance (" + (Number(insPct) || 0) + "%)", insuranceAmount],
+      ["Manufacturer warranty", Number(c.mfgWarrantyFee) || 0],
       [financeLabel, financingAmount]
     );
     var itemized = opts.itemized !== false
@@ -514,7 +515,8 @@ window.IC = window.IC || {};
     var tax = num(c.salesTax);
     var insurance = num(c.insuranceAmount);
     var financing = num(c.financingAmount);
-    var jobCost = round2(materialCost + laborCost + otherCost + addons + commission + tax + insurance + financing);
+    var mfgWarranty = num(c.mfgWarrantyFee);
+    var jobCost = round2(materialCost + laborCost + otherCost + addons + commission + tax + insurance + financing + mfgWarranty);
     var profit = round2(sell - jobCost);
     var profitPct = sell > 0 ? (profit / sell) * 100 : 0;
     var taxPct = c.salesTaxPercent != null ? c.salesTaxPercent : 7;
@@ -598,6 +600,7 @@ window.IC = window.IC || {};
       row(commWho ? "Sales commission (" + commWho + (commPct ? " " + commPct + "%" : "") + ")" : "Sales commission", commission) +
       row("Sales tax (" + (Number(taxPct) || 0) + "% on material cost)", tax) +
       row("Insurance (" + (Number(insPct) || 0) + "%)", insurance) +
+      row("Manufacturer warranty", mfgWarranty, c.mfgWarrantyNote || "Paid by Ironclad, not the customer") +
       row("Financing" + (c.financingName ? " (" + c.financingName + (c.financingPercent ? " " + c.financingPercent + "%" : "") + ")" : ""), financing) +
       '<tr class="cost-total"><td>Job cost</td><td class="num">' + IC.money(jobCost) + "</td></tr>" +
       '<tr class="cost-profit ' + profitClass + '"><td>Profit<div class="cost-note">' + profitNote + "</div></td><td class=\"num\">" + IC.money(profit) + "</td></tr>" +

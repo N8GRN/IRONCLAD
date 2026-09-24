@@ -645,12 +645,14 @@ window.IC = window.IC || {};
     var discountAmount = round2(listTotal - total);
     var discountPercent = listTotal > 0 && discountAmount > 0.005 ? round2((discountAmount / listTotal) * 100) : 0;
     var salePrice = total;
+    var mfgWarranty = IC.manufacturerWarrantyFee(measuredSquares, settings);
+    var mfgWarrantyFee = mfgWarranty.amount;
     var comm = IC.salespersonCommission(job, salePrice);
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));
     var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost + laborCostAccessory);
-    var profitBilled = round2(total - materialsSubtotal - deckingMaterialCost - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
-    var profitActual = round2(total - materialsSubtotal - deckingMaterialCost - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount);
+    var profitBilled = round2(total - materialsSubtotal - deckingMaterialCost - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount - mfgWarrantyFee);
+    var profitActual = round2(total - materialsSubtotal - deckingMaterialCost - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount - mfgWarrantyFee);
     var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + equipmentRental, measuredSquares);
 
     var costLines = lines.filter(function (l) {
@@ -673,6 +675,9 @@ window.IC = window.IC || {};
     if (insuranceAmount > 0) {
       costLines.push(line("insurance", "Insurance", insPct + "% of job price", 1, "ls", insuranceAmount, "other"));
     }
+    if (mfgWarrantyFee > 0) {
+      costLines.push(line("mfg-warranty", "Manufacturer warranty", mfgWarranty.note, 1, "ls", mfgWarrantyFee, "other"));
+    }
     if (financingAmount > 0) {
       costLines.push(line("financing", "Financing", (financePlan ? financePlan.name + " · " : "") + financePct + "%", 1, "ls", financingAmount, "other"));
     }
@@ -690,6 +695,7 @@ window.IC = window.IC || {};
       equipmentRental: equipmentRental,
       wasteDisposal: wasteDisposal,
       insuranceAmount: insuranceAmount, insurancePercent: insPct,
+      mfgWarrantyFee: mfgWarrantyFee, mfgWarrantyNote: mfgWarranty.note,
       financingAmount: financingAmount, financingPercent: financePct,
       financingName: financePlan ? financePlan.name : "",
       preFinance: preFinance, quoteBase: quoteBase,
@@ -702,6 +708,26 @@ window.IC = window.IC || {};
       structurePrices: structurePrices,
       crewId: IC.crewForJob(job).id, crewName: IC.crewLabel(IC.crewForJob(job)),
     };
+  };
+
+  IC.manufacturerWarrantyFee = function (squares, settings) {
+    settings = settings || (IC.state && IC.state.settings) || IC.SETTINGS;
+    var sq = Number(squares) || 0;
+    if (!Number.isFinite(sq) || sq < 0) sq = 0;
+    function num(key, fallback) {
+      var n = Number(settings[key]);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    var minSq = num("mfgWarrantyMinSq", 25);
+    var maxSq = num("mfgWarrantyMaxSq", 100);
+    var flat = num("mfgWarrantyFlat", 75);
+    var perSq = num("mfgWarrantyPerSq", 3);
+    if (flat < 0) flat = 0;
+    if (perSq < 0) perSq = 0;
+    if (sq >= minSq && sq <= maxSq) {
+      return { amount: round2(flat), note: "Flat fee, " + minSq + "–" + maxSq + " sq. Paid by Ironclad." };
+    }
+    return { amount: round2(sq * perSq), note: "$" + perSq.toFixed(2) + "/sq × " + sq.toFixed(1) + " sq measured. Paid by Ironclad." };
   };
 
   IC.salespersonCommission = function (job, total) {
