@@ -318,14 +318,12 @@ window.IC = window.IC || {};
 
   IC.customerQuoteComments = function (job, est, settings) {
     var shingle = (est && IC.pickName(est, "shingle")) || "Duration";
-    var sheets = (est && est.structures || []).reduce(function (sum, st) {
-      return sum + IC.deckingRows(st, "sheathing").reduce(function (s, r) { return s + (Number(r.qty) || 0); }, 0);
-    }, 0);
-    var allow = sheets > 0 ? sheets : 3;
+    var free = Number(settings && settings.sheathingLaborCourtesy);
+    if (!Number.isFinite(free) || free < 0) free = 3;
     var years = (settings && settings.warrantyWorkmanshipYears) || 10;
     var intro = "Entire roof will be removed and replaced with " + shingle +
       " shingles. Additionally, all drip edge and gutter apron will be replaced. Ice & Water Shield will be installed on all eaves, valleys, and along wall transitions and flashings. Synthetic felt paper will be installed on all remaining areas of the roof. In the event of damaged sheeting, we will replace up to " +
-      allow + " OSB sheet" + (allow === 1 ? "" : "s") +
+      free + " OSB sheet" + (free === 1 ? "" : "s") +
       " at no additional cost. Pipe flashing will be replaced with aluminum pipe boots. Wall counter flashing will be custom made from .027 aluminum.";
     var extras = [];
     return { intro: intro, extras: extras, years: years };
@@ -407,7 +405,7 @@ window.IC = window.IC || {};
     var itemSrc = opts.actual !== false && c.costLines ? c.costLines : (c.lines || []);
     if (opts.itemizeSellLabor && c.lines) {
       var sellLabor = c.lines.filter(function (l) {
-        return l.key.indexOf("labor-install") === 0 || l.key.indexOf("labor-tearoff") === 0;
+        return l.key.indexOf("labor-install") === 0 || l.key.indexOf("labor-tearoff") === 0 || l.key === "labor-sheathing" || l.key === "labor-wood";
       });
       itemSrc = sellLabor.concat(itemSrc);
     }

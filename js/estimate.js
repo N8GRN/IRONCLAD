@@ -573,6 +573,26 @@ window.IC = window.IC || {};
     deckingMaterialCost = round2(deckingMaterialCost);
     var osbLaborCost = round2(sheets * (Number(crewRates.osbPerSheet) || 0));
     var woodLaborCost = round2(boards * (Number(crewRates.woodPerBoard) || 0));
+    function settingNum(key, fallback) {
+      var n = Number(settings[key]);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    var sheathRate = settingNum("sheathingLaborPerSheet", 45);
+    var sheathFree = settingNum("sheathingLaborCourtesy", 3);
+    var woodRate = settingNum("woodLaborPerBoard", 25);
+    var woodFree = settingNum("woodLaborCourtesy", 3);
+    if (sheathRate < 0) sheathRate = 0;
+    if (woodRate < 0) woodRate = 0;
+    if (sheathFree < 0) sheathFree = 0;
+    if (woodFree < 0) woodFree = 0;
+    var sheathBill = Math.max(0, sheets - sheathFree);
+    var woodBill = Math.max(0, boards - woodFree);
+    if (sheathBill > 0 && sheathRate > 0) {
+      lines.push(line("labor-sheathing", "OSB / Plywood install", "First " + sheathFree + " free · " + sheathBill + " × $" + sheathRate.toFixed(2), sheathBill, "sheet", sheathRate, "labor"));
+    }
+    if (woodBill > 0 && woodRate > 0) {
+      lines.push(line("labor-wood", "Wood board install", "First " + woodFree + " free · " + woodBill + " × $" + woodRate.toFixed(2), woodBill, "board", woodRate, "labor"));
+    }
     if (est.dumpster > 0) lines.push(line("dumpster", "Dumpster", "Debris container", 1, "ea", est.dumpster, "other"));
     if (est.permit > 0) lines.push(line("permit", "Permit", "Building permit allowance", 1, "ea", est.permit, "other"));
     var deliveryFee = Number(est.deliveryFee);

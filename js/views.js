@@ -783,6 +783,11 @@ window.IC = window.IC || {};
         return IC.customerSquareParts(pitch, level, tear, laborRates);
       }) +
       "</section>" +
+      group("Sheathing", "Customer labor on the assessment. The first courtesy pieces are installed free. Each piece after that is charged at the rate. This is not the yard price and not what the crew is paid.",
+        field("sheathingLaborPerSheet", "OSB / Plywood $ / sheet", "Charged for each sheet past the courtesy count.", "0.01") +
+        field("sheathingLaborCourtesy", "OSB / Plywood courtesy", "This many sheets are free on every job. Default 3.", "1") +
+        field("woodLaborPerBoard", "Wood boards $ / board", "Charged for each board past the courtesy count.", "0.01") +
+        field("woodLaborCourtesy", "Wood boards courtesy", "This many boards are free on every job. Default 3.", "1")) +
       group("Shingles", "Uses the waste % on that job, not a second waste number.",
         field("shingleBundlesPerSquare", "Shingle bundles / square", "Bundles ordered per roofing square, after that job’s waste %.", "0.1") +
         field("hipRidgeLfPerBundle", "Hip & ridge lf / bundle", "Feet of hip plus ridge one bundle covers, after that job’s waste %.", "1") +
