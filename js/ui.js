@@ -260,7 +260,7 @@ window.IC = window.IC || {};
         '<tr class="est-total"><td></td><td></td><td>Balance due</td><td class="num">' + dueCell + "</td></tr>" +
         "</tbody></table>" +
         '<p class="est-disclaimer">This is an estimate. Actual cost may increase if additional work or repairs are needed.</p>' +
-        '<div class="pdf-page pdf-page-break"></div>';
+        '<div class="pdf-page-break"></div>';
 
     var showOurs = IC.warrantyIncluded(est, "includeOurWarranty");
     var showMfg = IC.warrantyIncluded(est, "includeMfgWarranty");
