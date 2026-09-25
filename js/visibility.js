@@ -9,6 +9,12 @@
     return Boolean(IC.isAdmin && IC.isAdmin(session()));
   }
 
+  function seesAllProjects(sess) {
+    sess = sess || session();
+    if (isAdminSession() || (sess && sess.role === "admin")) return true;
+    return Boolean(IC.projectVisibility && IC.projectVisibility(sess) === "all");
+  }
+
   function memberById(id) {
     return ((IC.state && IC.state.team) || []).find(function (t) { return t.id === id; }) || null;
   }
@@ -157,6 +163,55 @@
     IC.removeTeammate = wrapped;
   }
 
+  function wrapCanAssignSales() {
+    var orig = IC.canAssignSales;
+    if (orig && orig._icVis) return;
+    var wrapped = function (sess) {
+      sess = sess || session();
+      if (orig && orig(sess)) return true;
+      return seesAllProjects(sess);
+    };
+    wrapped._icVis = true;
+    IC.canAssignSales = wrapped;
+  }
+
+  function wrapSalespeople() {
+    var orig = IC.salespeople;
+    if (orig && orig._icVis) return;
+    var wrapped = function () {
+      var list = orig ? orig() : [];
+      if (!seesAllProjects()) return list;
+      var seen = {};
+      list.forEach(function (t) { if (t && t.id) seen[t.id] = true; });
+      ((IC.state && IC.state.team) || []).forEach(function (t) {
+        if (!t || !t.id || seen[t.id]) return;
+        if (t.status === "pending" || t.role === "pending" || t.status === "disabled") return;
+        if (!(IC.isApproved ? IC.isApproved(t) : (t.role === "admin" || t.role === "user"))) return;
+        seen[t.id] = true;
+        list.push(Object.assign({}, t, { salesName: t.salesName || t.name }));
+      });
+      return list;
+    };
+    wrapped._icVis = true;
+    IC.salespeople = wrapped;
+  }
+
+  function wrapAssignOwner() {
+    var orig = IC.assignOwner;
+    if (!orig || orig._icVis) return;
+    var wrapped = function (jobId, ownerId) {
+      orig(jobId, ownerId);
+      var job = (IC.state.jobs || []).find(function (j) { return j.id === jobId; });
+      var member = memberById(ownerId);
+      if (!job || !member || job.ownerId !== member.id) return;
+      var label = member.salesName || member.name || null;
+      if (job.ownerName === label) return;
+      IC.upsertJob(Object.assign({}, job, { ownerName: label }));
+    };
+    wrapped._icVis = true;
+    IC.assignOwner = wrapped;
+  }
+
   function withVisibleJobs(fn) {
     if (!fn || fn._icVis) return fn;
     var wrapped = function () {
@@ -196,8 +251,8 @@
     return '<div class="perm-group ic-projvis" style="margin-top:12px"><h3>Project visibility</h3>' +
       '<div class="perm-page-row"><div class="perm-page-name">Which jobs they can open</div><div class="perm-radios">' + radios + "</div></div>" +
       (isAdm
-        ? '<p class="tiny muted">Admin always sees every project.</p>'
-        : '<p class="tiny muted">My projects = jobs assigned to them. None hides the pipeline.</p>') +
+        ? '<p class="tiny muted">Admin always sees every project and can assign owners.</p>'
+        : '<p class="tiny muted">All = every job, and they can assign owners. Mine = jobs assigned to them. None hides the pipeline.</p>') +
       "</div>";
   }
 
@@ -280,7 +335,7 @@
         e.preventDefault();
         if (teamField === "role") {
           var who = memberById(el.getAttribute("data-id"));
-          if (who) el.value = who.role === "admin" || who.role === "user" || who.role === "manager" || who.role === "sales" ? who.role : "user";
+          if (who) el.value = who.role === "admin" || who.role === "user" ? who.role : "user";
         }
         IC.toast("Only an admin can change Role");
         if (IC.render) IC.render();
@@ -318,6 +373,9 @@
     wrapGrantUser();
     wrapAddTeammate();
     wrapRemoveTeammate();
+    wrapCanAssignSales();
+    wrapSalespeople();
+    wrapAssignOwner();
     wrapViews();
     wrapRender();
     guardEvents();
