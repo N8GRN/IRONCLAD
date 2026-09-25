@@ -246,6 +246,8 @@ window.IC = window.IC || {};
     }
     if (act === "page-perm") {
       if (!IC.isAdmin(s)) return;
+      IC.ui.permOpen = IC.ui.permOpen || {};
+      IC.ui.permOpen[t.getAttribute("data-id")] = true;
       IC.setUserPagePermission(t.getAttribute("data-id"), t.getAttribute("data-page"), t.value);
       return;
     }
@@ -810,6 +812,8 @@ window.IC = window.IC || {};
     }
     if (act === "page-perm") {
       if (!IC.isAdmin(IC.state.session)) return;
+      IC.ui.permOpen = IC.ui.permOpen || {};
+      IC.ui.permOpen[el.getAttribute("data-id")] = true;
       IC.setUserPagePermission(el.getAttribute("data-id"), el.getAttribute("data-page"), el.value);
       return;
     }
@@ -1264,6 +1268,15 @@ window.IC = window.IC || {};
     document.addEventListener("change", onChange);
     document.addEventListener("input", onInput);
     document.addEventListener("submit", onSubmit);
+    document.addEventListener("toggle", function (e) {
+      var el = e.target;
+      if (!el || !el.classList || !el.classList.contains("perm-user-card")) return;
+      var id = el.getAttribute("data-id");
+      if (!id) return;
+      IC.ui.permOpen = IC.ui.permOpen || {};
+      if (el.open) IC.ui.permOpen[id] = true;
+      else delete IC.ui.permOpen[id];
+    }, true);
     document.addEventListener("pointerdown", function (e) {
       var t = e.target.closest('[data-act="clear-date"]');
       if (!t) return;

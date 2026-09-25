@@ -957,15 +957,18 @@ window.IC = window.IC || {};
       var roleNote = person.role === "manager" || person.role === "sales"
         ? "Legacy " + person.role + " login. Page access is already individual. Change the role to User on Team when you are ready."
         : "User";
+      var meta = person.email ? (person.email + " · " + roleNote) : roleNote;
       var sections = groups.map(function (group) {
         var rows = group.pages.map(function (page) {
           return '<div class="perm-page-row"><div class="perm-page-name">' + IC.esc(page.label) + '</div><div class="perm-radios">' + radiosFor(person, page) + "</div></div>";
         }).join("");
         return '<div class="perm-group"><h3>' + IC.esc(group.name) + "</h3>" + rows + "</div>";
       }).join("");
-      return '<div class="card perm-user-card"><h2>' + IC.esc(person.name || "Teammate") + "</h2>" +
-        '<p class="tiny muted">' + IC.esc(person.email || roleNote) + (person.email ? " · " + IC.esc(roleNote) : "") + "</p>" +
-        sections + "</div>";
+      var open = IC.ui.permOpen && IC.ui.permOpen[person.id];
+      return '<details class="card perm-user-card" data-id="' + person.id + '"' + (open ? " open" : "") + ">" +
+        "<summary><span class=\"perm-user-title\">" + IC.esc(person.name || "Teammate") + "</span>" +
+        '<span class="tiny muted">' + IC.esc(meta) + "</span></summary>" +
+        '<div class="perm-user-body">' + sections + "</div></details>";
     }).join("");
     var adminLine = admins.length
       ? '<div class="card"><p class="muted">Admin is always full access, so there is no card for ' +
