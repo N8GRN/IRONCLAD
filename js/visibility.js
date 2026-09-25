@@ -157,17 +157,76 @@
     IC.removeTeammate = wrapped;
   }
 
+  function wrapCanAssignSales() {
+    var orig = IC.canAssignSales;
+    if (orig && orig._icVis) return;
+    var wrapped = function (sess) {
+      sess = sess || session();
+      if (orig && orig(sess)) return true;
+      return IC.projectVisibility(sess) === "all";
+    };
+    wrapped._icVis = true;
+    IC.canAssignSales = wrapped;
+  }
+
+  function wrapSalespeople() {
+    var orig = IC.salespeople;
+    if (orig && orig._icVis) return;
+    var wrapped = function () {
+      var list = orig ? orig() : [];
+      if (IC.projectVisibility(session()) !== "all" && !isAdminSession()) return list;
+      var seen = {};
+      list.forEach(function (t) { if (t && t.id) seen[t.id] = true; });
+      ((IC.state && IC.state.team) || []).forEach(function (t) {
+        if (!t || !t.id || seen[t.id]) return;
+        if (t.status === "pending" || t.role === "pending" || t.status === "disabled") return;
+        seen[t.id] = true;
+        list.push(Object.assign({}, t, { salesName: t.salesName || t.name }));
+      });
+      return list;
+    };
+    wrapped._icVis = true;
+    IC.salespeople = wrapped;
+  }
+
+  function wrapAssignOwner() {
+    var orig = IC.assignOwner;
+    if (!orig || orig._icVis) return;
+    var wrapped = function (jobId, ownerId) {
+      orig(jobId, ownerId);
+      var job = (IC.state.jobs || []).find(function (j) { return j.id === jobId; });
+      var member = memberById(ownerId);
+      if (!job || !member || job.ownerId !== member.id) return;
+      if (job.ownerName) return;
+      IC.upsertJob(Object.assign({}, job, { ownerName: member.salesName || member.name || null }));
+    };
+    wrapped._icVis = true;
+    IC.assignOwner = wrapped;
+  }
+
+  /* views.js mineJobs() only returns every job for admin/manager. For "all"
+     we flip the session role to manager just while that view renders. */
   function withVisibleJobs(fn) {
     if (!fn || fn._icVis) return fn;
     var wrapped = function () {
       var state = IC.state;
-      if (!state || !IC.visibleJobs) return fn.apply(this, arguments);
-      var all = state.jobs;
-      state.jobs = IC.visibleJobs(session());
+      if (!state) return fn.apply(this, arguments);
+      var s = session();
+      var vis = IC.projectVisibility ? IC.projectVisibility(s) : "all";
+      var savedJobs = state.jobs;
+      var savedSession = state.session;
       try {
+        if (vis === "none") {
+          state.jobs = [];
+        } else if (vis === "mine") {
+          state.jobs = IC.visibleJobs ? IC.visibleJobs(s) : savedJobs;
+        } else if (vis === "all" && s && s.role !== "admin") {
+          state.session = Object.assign({}, s, { role: "manager" });
+        }
         return fn.apply(this, arguments);
       } finally {
-        state.jobs = all;
+        state.jobs = savedJobs;
+        state.session = savedSession;
       }
     };
     wrapped._icVis = true;
@@ -318,6 +377,9 @@
     wrapGrantUser();
     wrapAddTeammate();
     wrapRemoveTeammate();
+    wrapCanAssignSales();
+    wrapSalespeople();
+    wrapAssignOwner();
     wrapViews();
     wrapRender();
     guardEvents();
