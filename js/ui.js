@@ -28,3 +28,8 @@ window.IC = window.IC || {};
     };
     return '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">' + (paths[name] || "") + "</svg>";
   };
+
+  IC.badge = function (status) {
+    var tone = IC.statusTone(status);
+    return '<span class="badge tone-' + tone + '">' + IC.esc(status) + "</span>";
+  };
