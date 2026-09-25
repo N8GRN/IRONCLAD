@@ -221,7 +221,7 @@
         } else if (vis === "mine") {
           state.jobs = IC.visibleJobs ? IC.visibleJobs(s) : savedJobs;
         } else if (vis === "all" && s && s.role !== "admin") {
-          state.session = Object.assign({}, s, { role: "manager" });
+          state.session = Object.assign({}, s, { role: "manager", projectVisibility: "all" });
         }
         return fn.apply(this, arguments);
       } finally {
