@@ -20,16 +20,16 @@ window.IC = window.IC || {};
   };
 
   IC.formatDate = function (iso) {
-    if (!iso) return "—";
+    if (!iso) return "\u2014";
     var d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "—";
+    if (Number.isNaN(d.getTime())) return "\u2014";
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
 
   IC.formatDateLong = function (iso) {
-    if (!iso) return "—";
+    if (!iso) return "\u2014";
     var d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "—";
+    if (Number.isNaN(d.getTime())) return "\u2014";
     return d.toLocaleDateString("en-US", {
       weekday: "short", month: "long", day: "numeric", year: "numeric",
     });
@@ -49,10 +49,10 @@ window.IC = window.IC || {};
 
   IC.esc = function (s) {
     return String(s == null ? "" : s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+      .replace(/&/g, "&" + "amp;")
+      .replace(/</g, "&" + "lt;")
+      .replace(/>/g, "&" + "gt;")
+      .replace(/"/g, "&" + "quot;");
   };
 
   IC.customerAddress = function (c) {
@@ -138,7 +138,7 @@ window.IC = window.IC || {};
     }
     var summary = "Job #" + job.number + " | " + (job.customerName || "");
     var location = IC.customerAddress(customer);
-    var details = "IRONCLAD roofing job #" + job.number + (job.customerName ? " — " + job.customerName : "");
+    var details = "IRONCLAD roofing job #" + job.number + (job.customerName ? " \u2014 " + job.customerName : "");
     var gUrl = IC.googleCalendarUrl({
       summary: summary,
       location: location,
@@ -351,13 +351,13 @@ window.IC = window.IC || {};
     var blob = c + " " + m;
     if (/user-not-found|invalid-email/i.test(blob) && /invalid-email/i.test(c)) return "Check the email address.";
     if (/user-not-found/i.test(blob)) return "No account with that email. Create one, then Nate or Matt will turn on access.";
-    if (/wrong-password|invalid-credential/i.test(blob)) return "That password doesn’t match.";
+    if (/wrong-password|invalid-credential/i.test(blob)) return "That password doesn\u2019t match.";
     if (/email-already-in-use/i.test(blob)) return "That email already has an account. Sign in, or reset the password.";
     if (/weak-password/i.test(blob)) return "Use at least 6 characters.";
     if (/too-many-requests/i.test(blob)) return "Too many tries. Wait a minute and try again.";
-    if (/unauthorized-domain/i.test(blob)) return "This website isn’t on the company allow-list yet. Ask Nate or Matt to add it under Authentication → Authorized domains.";
-    if (/network|offline/i.test(blob)) return "Can’t reach the network. If you signed in on this iPad before, use Continue offline.";
-    if (/operation-not-allowed/i.test(blob)) return "Email/password sign-in isn’t enabled yet on the project.";
+    if (/unauthorized-domain/i.test(blob)) return "This website isn\u2019t on the company allow-list yet. Ask Nate or Matt to add it under Authentication \u2192 Authorized domains.";
+    if (/network|offline/i.test(blob)) return "Can\u2019t reach the network. If you signed in on this iPad before, use Continue offline.";
+    if (/operation-not-allowed/i.test(blob)) return "Email/password sign-in isn\u2019t enabled yet on the project.";
     return m.replace(/^Firebase:\s*/i, "").replace(/\s*\([^)]*\)\s*$/, "") || "Something went wrong.";
   };
 
