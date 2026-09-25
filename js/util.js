@@ -49,10 +49,10 @@ window.IC = window.IC || {};
 
   IC.esc = function (s) {
     return String(s == null ? "" : s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   };
 
   IC.customerAddress = function (c) {
@@ -115,7 +115,7 @@ window.IC = window.IC || {};
   /* Google Calendar one-tap handoff.
      Opens Google's create-event page pre-filled with the job title, date,
      and address. The user taps Save — no Google sign-in required.
-     Falls back to the .ics share/download on desktop or if popups are blocked. */
+     Opens outside the app. Falls back to the .ics file if that link cannot be opened. */
   IC.googleCalendarUrl = function (opts) {
     opts = opts || {};
     var date = String(opts.date || "").replace(/-/g, "");
@@ -149,14 +149,18 @@ window.IC = window.IC || {};
       details: details,
       date: date,
     });
-    // Mobile: one-tap handoff into Google Calendar (no sign-in needed).
-    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "") ||
-      (window.matchMedia && window.matchMedia("(max-width: 900px)").matches);
-    if (isMobile && gUrl) {
-      window.open(gUrl, "_blank");
-      return;
+    if (gUrl) {
+      try {
+        var link = document.createElement("a");
+        link.href = gUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      } catch (err) { /* share the ics file instead */ }
     }
-    // Desktop / fallback: share or download the .ics file.
     var ics = IC.buildAllDayIcs({
       summary: summary,
       location: location,
