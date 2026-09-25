@@ -1,8 +1,16 @@
-/* Project visibility — Team card radios + job list filter.
-   Lives outside views.js so the control can ship without rewriting that file. */
+/* Project visibility + admin-only Role on Team cards.
+   Lives outside views.js so these controls can ship without rewriting that file. */
 (function (IC) {
   function session() {
     return IC.state && IC.state.session;
+  }
+
+  function isAdminSession() {
+    return Boolean(IC.isAdmin && IC.isAdmin(session()));
+  }
+
+  function memberById(id) {
+    return ((IC.state && IC.state.team) || []).find(function (t) { return t.id === id; }) || null;
   }
 
   function wrapNormalize() {
@@ -38,10 +46,38 @@
     IC.memberToSession = wrapped;
   }
 
+  function stripUnauthorizedRoleChange(next, prev) {
+    if (isAdminSession()) return next;
+    if (!next) return next;
+    if (!prev) {
+      if (next.role === "admin") {
+        return Object.assign({}, next, {
+          role: "user",
+          title: next.title === "Admin" ? "User" : (next.title || "User"),
+        });
+      }
+      return next;
+    }
+    if (prev.role === "admin" && next.role !== "admin") {
+      return Object.assign({}, next, { role: prev.role, title: prev.title, status: prev.status, active: prev.active });
+    }
+    if (prev.role !== "admin" && next.role === "admin") {
+      return Object.assign({}, next, { role: prev.role, title: prev.title });
+    }
+    return next;
+  }
+
   function wrapUpdateTeam() {
     var orig = IC.updateTeam;
     if (!orig || orig._icVis) return;
     var wrapped = function (team) {
+      var prev = (IC.state && IC.state.team) || [];
+      if (team && !isAdminSession()) {
+        team = team.map(function (n) {
+          var old = prev.find(function (t) { return t.id === n.id; }) || null;
+          return stripUnauthorizedRoleChange(n, old);
+        });
+      }
       orig(team);
       var s = IC.state && IC.state.session;
       if (!s || !team) return;
@@ -54,6 +90,71 @@
     };
     wrapped._icVis = true;
     IC.updateTeam = wrapped;
+  }
+
+  function wrapSaveUser() {
+    var orig = IC.saveUser;
+    if (!orig || orig._icVis) return;
+    var wrapped = function (user) {
+      if (user && user.id) {
+        user = stripUnauthorizedRoleChange(user, memberById(user.id));
+      }
+      return orig(user);
+    };
+    wrapped._icVis = true;
+    IC.saveUser = wrapped;
+  }
+
+  function wrapGrantUser() {
+    var orig = IC.grantUser;
+    if (!orig || orig._icVis) return;
+    var wrapped = function (id, patch) {
+      patch = patch || {};
+      var user = memberById(id);
+      if (!isAdminSession()) {
+        if (patch.role === "admin") {
+          IC.toast("Only an admin can grant Admin");
+          return;
+        }
+        if (user && user.role === "admin") {
+          IC.toast("Only an admin can change an admin");
+          return;
+        }
+      }
+      return orig(id, patch);
+    };
+    wrapped._icVis = true;
+    IC.grantUser = wrapped;
+  }
+
+  function wrapAddTeammate() {
+    var orig = IC.addTeammate;
+    if (!orig || orig._icVis) return;
+    var wrapped = function (draft) {
+      draft = Object.assign({}, draft || {});
+      if (!isAdminSession() && draft.role === "admin") {
+        draft.role = "user";
+        if (!draft.title || draft.title === "Admin") draft.title = "User";
+      }
+      return orig(draft);
+    };
+    wrapped._icVis = true;
+    IC.addTeammate = wrapped;
+  }
+
+  function wrapRemoveTeammate() {
+    var orig = IC.removeTeammate;
+    if (!orig || orig._icVis) return;
+    var wrapped = function (id) {
+      var who = memberById(id);
+      if (who && who.role === "admin" && !isAdminSession()) {
+        IC.toast("Only an admin can remove an admin");
+        return;
+      }
+      return orig(id);
+    };
+    wrapped._icVis = true;
+    IC.removeTeammate = wrapped;
   }
 
   function withVisibleJobs(fn) {
@@ -111,7 +212,7 @@
       var idEl = card.querySelector("[data-team][data-id]");
       if (!idEl) return;
       var id = idEl.getAttribute("data-id");
-      var member = (IC.state.team || []).find(function (t) { return t.id === id; });
+      var member = memberById(id);
       if (!member) return;
       var grid = card.querySelector(".form-grid");
       var html = radioRow(member, canWrite);
@@ -133,6 +234,22 @@
     });
   }
 
+  function lockRoleField() {
+    var admin = isAdminSession();
+    document.querySelectorAll('[data-team="role"], [data-udraft="role"]').forEach(function (el) {
+      el.disabled = !admin;
+      if (!admin) el.title = "Only an admin can change Role";
+    });
+    document.querySelectorAll('[data-act="grant-user"][data-role="admin"]').forEach(function (el) {
+      el.style.display = admin ? "" : "none";
+    });
+    if (admin) return;
+    document.querySelectorAll('[data-act="remove-teammate"]').forEach(function (el) {
+      var who = memberById(el.getAttribute("data-id"));
+      if (who && who.role === "admin") el.style.display = "none";
+    });
+  }
+
   function wrapRender() {
     var orig = IC.render;
     if (!orig || orig._icVis) return;
@@ -141,20 +258,69 @@
       try {
         paintTeamRadios();
         paintNoneState();
+        lockRoleField();
       } catch (err) {
-        console.warn("[ironclad] project visibility paint failed", err);
+        console.warn("[ironclad] team paint failed", err);
       }
     };
     wrapped._icVis = true;
     IC.render = wrapped;
   }
 
+  function guardEvents() {
+    if (document._icRoleGuard) return;
+    document._icRoleGuard = true;
+    document.addEventListener("change", function (e) {
+      var el = e.target;
+      if (!el || !el.getAttribute) return;
+      var teamField = el.getAttribute("data-team");
+      var draftField = el.getAttribute("data-udraft");
+      if ((teamField === "role" || draftField === "role") && !isAdminSession()) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (teamField === "role") {
+          var who = memberById(el.getAttribute("data-id"));
+          if (who) el.value = who.role === "admin" || who.role === "user" || who.role === "manager" || who.role === "sales" ? who.role : "user";
+        }
+        IC.toast("Only an admin can change Role");
+        if (IC.render) IC.render();
+      }
+    }, true);
+    document.addEventListener("click", function (e) {
+      var t = e.target && e.target.closest && e.target.closest("[data-act]");
+      if (!t) return;
+      var act = t.getAttribute("data-act");
+      if (act === "grant-user" && t.getAttribute("data-role") === "admin" && !isAdminSession()) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        IC.toast("Only an admin can grant Admin");
+      }
+      if (act === "remove-teammate" && !isAdminSession()) {
+        var who = memberById(t.getAttribute("data-id"));
+        if (who && who.role === "admin") {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          IC.toast("Only an admin can remove an admin");
+        }
+      }
+      if (act === "save-teammate" && !isAdminSession() && IC.ui && IC.ui.addUserDraft && IC.ui.addUserDraft.role === "admin") {
+        IC.ui.addUserDraft.role = "user";
+        if (!IC.ui.addUserDraft.title || IC.ui.addUserDraft.title === "Admin") IC.ui.addUserDraft.title = "User";
+      }
+    }, true);
+  }
+
   function install() {
     wrapNormalize();
     wrapMemberToSession();
     wrapUpdateTeam();
+    wrapSaveUser();
+    wrapGrantUser();
+    wrapAddTeammate();
+    wrapRemoveTeammate();
     wrapViews();
     wrapRender();
+    guardEvents();
   }
 
   install();
