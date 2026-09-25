@@ -49,10 +49,10 @@ window.IC = window.IC || {};
 
   IC.esc = function (s) {
     return String(s == null ? "" : s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """);
   };
 
   IC.customerAddress = function (c) {
@@ -112,6 +112,28 @@ window.IC = window.IC || {};
     ].join("\r\n");
   };
 
+  /* Google Calendar one-tap handoff.
+     Opens Google's create-event page pre-filled with the job title, date,
+     and address. The user taps Save — no Google sign-in required.
+     Falls back to the .ics share/download on desktop or if popups are blocked. */
+  IC.googleCalendarUrl = function (opts) {
+    opts = opts || {};
+    var date = String(opts.date || "").replace(/-/g, "");
+    if (!/^\d{8}$/.test(date)) return "";
+    var y = date.slice(0, 4), m = date.slice(4, 6), d = date.slice(6, 8);
+    var end = new Date(Number(y), Number(m) - 1, Number(d) + 1);
+    var endStr = String(end.getFullYear()) +
+      ("0" + (end.getMonth() + 1)).slice(-2) +
+      ("0" + end.getDate()).slice(-2);
+    var params = new URLSearchParams();
+    params.set("action", "TEMPLATE");
+    params.set("text", opts.summary || "IRONCLAD job");
+    params.set("dates", date + "/" + endStr);
+    if (opts.location) params.set("location", opts.location);
+    if (opts.details) params.set("details", opts.details);
+    return "https://calendar.google.com/calendar/render?" + params.toString();
+  };
+
   IC.addJobToCalendar = function (job, customer) {
     var date = IC.validIsoDate(job && job.scheduledDate);
     if (!date) {
@@ -120,6 +142,21 @@ window.IC = window.IC || {};
     }
     var summary = "Job #" + job.number + " | " + (job.customerName || "");
     var location = IC.customerAddress(customer);
+    var details = "IRONCLAD roofing job #" + job.number + (job.customerName ? " — " + job.customerName : "");
+    var gUrl = IC.googleCalendarUrl({
+      summary: summary,
+      location: location,
+      details: details,
+      date: date,
+    });
+    // Mobile: one-tap handoff into Google Calendar (no sign-in needed).
+    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "") ||
+      (window.matchMedia && window.matchMedia("(max-width: 900px)").matches);
+    if (isMobile && gUrl) {
+      window.open(gUrl, "_blank");
+      return;
+    }
+    // Desktop / fallback: share or download the .ics file.
     var ics = IC.buildAllDayIcs({
       summary: summary,
       location: location,
