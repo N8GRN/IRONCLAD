@@ -182,6 +182,7 @@ window.IC = window.IC || {};
     if (person.status === "disabled") return "Off";
     if (person.title) return person.title;
     if (person.role === "admin") return "Admin";
+    if (person.role === "user") return "User";
     if (person.role === "manager") return "Manager";
     if (person.role === "sales") return "Sales";
     return "Waiting";
@@ -190,46 +191,79 @@ window.IC = window.IC || {};
   IC.isApproved = function (person) {
     if (!person) return false;
     if (person.status === "pending" || person.status === "disabled") return false;
-    return person.role === "admin" || person.role === "manager" || person.role === "sales";
+    return person.role === "admin" || person.role === "user" || person.role === "manager" || person.role === "sales";
   };
 
   IC.isAdmin = function (person) {
     return Boolean(person && person.role === "admin" && IC.isApproved(person));
   };
 
-  IC.normalizePermissions = function (raw) {
-    var src = raw || {};
+  IC.normalizePageLevel = function (raw) {
+    var v = String(raw || "").trim().toLowerCase().replace(/_/g, "-").replace(/\s+/g, "-");
+    if (v === "read/write" || v === "readwrite" || v === "write") v = "read-write";
+    if (v === "readonly" || v === "read") v = "read-only";
+    if (v === "restrict" || v === "none" || v === "off" || v === "hidden") v = "restricted";
+    if (v === "read-write" || v === "read-only" || v === "restricted") return v;
+    return "";
+  };
+
+  IC.defaultPageLevel = function (pageId) {
+    var map = IC.DEFAULT_USER_PERMISSION || {};
+    return IC.normalizePageLevel(map[pageId]) || "restricted";
+  };
+
+  IC.normalizePermissionMap = function (raw) {
+    var src = raw && typeof raw === "object" ? raw : {};
     var out = {};
-    ["manager", "sales"].forEach(function (role) {
-      var def = IC.DEFAULT_PERMISSIONS[role] || {};
-      var have = src[role] || {};
-      out[role] = {};
-      (IC.PERM_RESOURCES || []).forEach(function (res) {
-        var d = def[res.id] || { read: false, write: false };
-        var h = have[res.id] || {};
-        var write = h.write != null ? Boolean(h.write) : Boolean(d.write);
-        var read = h.read != null ? Boolean(h.read) : Boolean(d.read);
-        if (write) read = true;
-        out[role][res.id] = { read: read, write: write };
-      });
+    (IC.PAGES || []).forEach(function (page) {
+      var set = IC.normalizePageLevel(src[page.id]);
+      out[page.id] = set || IC.defaultPageLevel(page.id);
+    });
+    Object.keys(src).forEach(function (key) {
+      if (out[key]) return;
+      var set = IC.normalizePageLevel(src[key]);
+      if (set) out[key] = set;
     });
     return out;
   };
 
-  IC.livePermissions = function () {
-    var saved = IC.state && IC.state.settings && IC.state.settings.permissions;
-    return IC.normalizePermissions(saved);
+  IC.pageLevel = function (session, pageId) {
+    if (!session || !IC.isApproved(session)) return "restricted";
+    if (session.role === "admin") return "read-write";
+    var map = IC.normalizePermissionMap(session.permission);
+    return map[pageId] || IC.defaultPageLevel(pageId);
+  };
+
+  IC.pageIdForRoute = function (route) {
+    route = route || {};
+    if (route.name === "settings") return route.page || "settings";
+    if (route.name === "job") {
+      var tab = IC.ui && IC.ui.jobTab;
+      if (tab === "Estimate") tab = "Assessment";
+      if (tab === "Quote") tab = "Summary";
+      if (tab === "Assessment") return "assessment";
+      if (tab === "Summary") return "summary";
+      if (tab === "Contract") return "contract";
+      return "jobs";
+    }
+    if (route.name === "customer") return "customers";
+    if (route.name === "login" || route.name === "sign") return "";
+    return route.name || "home";
   };
 
   IC.can = function (session, resource, action) {
-    if (!session || !IC.isApproved(session)) return false;
-    if (session.role === "admin") return true;
-    var perms = IC.livePermissions();
-    var role = perms[session.role] || {};
-    var cell = role[resource] || { read: false, write: false };
-    if (action === "write") return Boolean(cell.write);
-    if (action === "read") return Boolean(cell.read) || Boolean(cell.write);
+    var level = IC.pageLevel(session, resource);
+    if (action === "write") return level === "read-write";
+    if (action === "read") return level === "read-write" || level === "read-only";
     return false;
+  };
+
+  IC.normalizePermissions = function (raw) {
+    return raw && typeof raw === "object" ? raw : {};
+  };
+
+  IC.livePermissions = function () {
+    return IC.normalizePermissions(IC.state && IC.state.settings && IC.state.settings.permissions);
   };
 
   IC.canAssignSales = function (session) {
@@ -238,7 +272,7 @@ window.IC = window.IC || {};
 
   IC.canAssignCrew = function (session, job) {
     if (!session || !IC.isApproved(session)) return false;
-    if (session.role === "admin" || session.role === "manager") return true;
+    if (IC.isAdmin(session) || IC.can(session, "jobs", "write")) return true;
     return Boolean(session.salesName && job && job.ownerId === session.memberId);
   };
 
@@ -252,12 +286,14 @@ window.IC = window.IC || {};
     });
   };
 
-  IC.roleOptions = function () {
-    return [
+  IC.roleOptions = function (current) {
+    var opts = [
       { value: "admin", label: "Admin (full access)" },
-      { value: "manager", label: "Manager" },
-      { value: "sales", label: "Sales" },
+      { value: "user", label: "User" },
     ];
+    if (current === "manager") opts.push({ value: "manager", label: "Manager (change to User)" });
+    if (current === "sales") opts.push({ value: "sales", label: "Sales (change to User)" });
+    return opts;
   };
 
   IC.authFriendly = function (err) {
