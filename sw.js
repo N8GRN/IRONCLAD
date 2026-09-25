@@ -1,5 +1,5 @@
 /* IRONCLAD CRM service worker — caches the app shell for offline / Home Screen. */
-var CACHE = "ironclad-crm-v74";
+var CACHE = "ironclad-crm-v75";
 var SHELL = [
   "./",
   "./index.html",
@@ -87,7 +87,7 @@ try {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
   var jobId = event.notification.data && event.notification.data.jobId;
-  var url = jobId ? "./#/jobs/" + jobId : "./#/notifications";
+  var url = jobId ? "./" + "#/jobs/" + jobId : "./" + "#/notifications";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
       if (clientList.length) {
