@@ -644,15 +644,12 @@ window.IC = window.IC || {};
     if (!Number.isFinite(taxPct) || taxPct < 0) taxPct = 0;
     // Tax is on material COST (catalog prices) only — not on material margin, labor, permit, or delivery.
     var salesTax = round2(materialsSubtotal * (taxPct / 100));
-    var extrasTotal = round2(lines.filter(function (l) { return l.key.indexOf("extra-") === 0; }).reduce(function (s, l) { return s + l.amount; }, 0));
     var jobSubtotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal + salesTax);
     var insPct = settings.insurancePercent;
     if (insPct == null || insPct === "") insPct = 1;
     insPct = Number(insPct);
     if (!Number.isFinite(insPct) || insPct < 0) insPct = 0;
-    var insuranceBase = round2(jobSubtotal - extrasTotal);
-    if (insuranceBase < 0) insuranceBase = 0;
-    var insuranceAmount = round2(insuranceBase * (insPct / 100));
+    var insuranceAmount = round2(jobSubtotal * (insPct / 100));
     var preFinance = round2(jobSubtotal + insuranceAmount);
     var finance = IC.normalizeFinancing(est.financing);
     var financePlan = null;
