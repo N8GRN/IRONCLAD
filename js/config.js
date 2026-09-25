@@ -32,7 +32,7 @@ IC.JOB_STATUSES = [
   "Complete",
 ];
 
-IC.ROLES = ["admin", "manager", "sales"];
+IC.ROLES = ["admin", "user"];
 
 /* Emails here skip the waiting room and always get Admin. */
 IC.ADMIN_EMAILS = ["nathangreen.me@gmail.com"];
@@ -71,24 +71,64 @@ IC.DEFAULT_CREW_LABOR = {
   woodPerBoard: 15,
 };
 
-IC.PERM_RESOURCES = [
-  { id: "materials", label: "Materials catalog" },
-  { id: "labor", label: "Labor catalog" },
-  { id: "team", label: "Team" },
+/* One card per page on Manage permissions. Add a row here when a new page ships. */
+IC.PERM_LEVELS = [
+  { id: "read-write", label: "Read/write" },
+  { id: "read-only", label: "Read-only" },
+  { id: "restricted", label: "Restricted" },
 ];
 
-IC.DEFAULT_PERMISSIONS = {
-  manager: {
-    materials: { read: true, write: false },
-    labor: { read: true, write: false },
-    team: { read: true, write: false },
-  },
-  sales: {
-    materials: { read: false, write: false },
-    labor: { read: false, write: false },
-    team: { read: false, write: false },
-  },
+IC.PAGES = [
+  { id: "home", label: "Home", group: "App" },
+  { id: "jobs", label: "Jobs", group: "App" },
+  { id: "schedule", label: "Schedule", group: "App" },
+  { id: "customers", label: "Customers", group: "App" },
+  { id: "notifications", label: "Alerts", group: "App" },
+  { id: "financing", label: "Financing", group: "App" },
+  { id: "assessment", label: "Assessment", group: "Job" },
+  { id: "summary", label: "Summary", group: "Job" },
+  { id: "contract", label: "Contract", group: "Job" },
+  { id: "customer-quote", label: "Customer quote", group: "Job" },
+  { id: "job-sheet", label: "Job Sheet", group: "Job" },
+  { id: "job-cost", label: "Job cost", group: "Job" },
+  { id: "settings", label: "Settings", group: "Settings" },
+  { id: "company", label: "Company profile", group: "Settings" },
+  { id: "defaults", label: "Estimate defaults", group: "Settings" },
+  { id: "calculations", label: "Estimate calculations", group: "Settings" },
+  { id: "team", label: "Team", group: "Settings" },
+  { id: "crews", label: "Crews", group: "Settings" },
+  { id: "labor", label: "Labor catalog", group: "Settings" },
+  { id: "materials", label: "Materials catalog", group: "Settings" },
+  { id: "permissions", label: "Manage permissions", group: "Settings" },
+];
+
+/* Used until an admin sets a radio for that page on that user. */
+IC.DEFAULT_USER_PERMISSION = {
+  home: "read-only",
+  jobs: "read-only",
+  schedule: "read-only",
+  customers: "read-only",
+  notifications: "read-only",
+  financing: "restricted",
+  assessment: "restricted",
+  summary: "restricted",
+  contract: "restricted",
+  "customer-quote": "restricted",
+  "job-sheet": "restricted",
+  "job-cost": "restricted",
+  settings: "read-only",
+  company: "restricted",
+  defaults: "restricted",
+  calculations: "restricted",
+  team: "restricted",
+  crews: "restricted",
+  labor: "restricted",
+  materials: "restricted",
+  permissions: "restricted",
 };
+
+IC.PERM_RESOURCES = IC.PAGES;
+IC.DEFAULT_PERMISSIONS = {};
 
 IC.normalizeCrew = function (c) {
   c = c || {};
