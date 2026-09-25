@@ -1119,6 +1119,61 @@ html[data-theme="dark"] button.text-link { color: var(--cream); }
 }
 .perm-table td .check { margin: 0; }
 
+.perm-user-card { margin-bottom: 12px; }
+.perm-user-card > h2 { margin-bottom: 2px; }
+.perm-group { margin-top: 16px; }
+.perm-group h3 {
+  margin: 0 0 2px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.perm-page-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.perm-page-name { font-weight: 600; min-width: 9rem; }
+.perm-user {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.perm-user:first-of-type { border-top: 0; }
+.perm-user-name { font-weight: 600; min-width: 7rem; }
+.perm-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.perm-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.perm-radio input { accent-color: var(--navy); }
+.readonly-banner {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--paper-2);
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .card-head {
   display: flex;
   align-items: center;

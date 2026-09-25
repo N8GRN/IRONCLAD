@@ -231,6 +231,7 @@ window.IC = window.IC || {};
           salesName: mem.salesName,
           status: mem.status || (IC.isApproved(mem) ? "active" : mem.role),
           email: mem.email || IC.state.session.email,
+          permission: mem.permission || IC.state.session.permission,
         });
       }
     }
@@ -292,6 +293,7 @@ window.IC = window.IC || {};
       if (!next.title) {
         if (status === "pending") next.title = "Waiting";
         else if (next.role === "admin") next.title = "Admin";
+        else if (next.role === "user") next.title = "User";
         else if (next.role === "manager") next.title = "Manager";
         else if (next.role === "sales") next.title = "Sales";
         else next.title = "Waiting";
@@ -725,17 +727,13 @@ window.IC = window.IC || {};
       next.status = "active";
       next.active = true;
       if (!next.title || next.title === "Waiting" || next.title === "Sales" || next.title === "Manager") next.title = "Admin";
-    } else if (patch && patch.role === "manager") {
-      next.role = "manager";
+    } else if (patch && (patch.role === "user" || patch.role === "manager" || patch.role === "sales")) {
+      next.role = "user";
       next.status = "active";
       next.active = true;
-      if (!next.title || next.title === "Waiting" || next.title === "Sales") next.title = "Manager";
-    } else if (patch && patch.role === "sales") {
-      next.role = "sales";
-      next.status = "active";
-      next.active = true;
-      if (!next.title || next.title === "Waiting") next.title = "Sales";
+      if (!next.title || next.title === "Waiting" || next.title === "Sales" || next.title === "Manager") next.title = "User";
       if (!next.salesName) next.salesName = next.name;
+      next.permission = IC.normalizePermissionMap(next.permission);
     } else if (patch && (patch.status === "disabled" || patch.role === "pending")) {
       next.role = "pending";
       next.status = patch.status || "pending";
@@ -750,7 +748,8 @@ window.IC = window.IC || {};
           name: user.name || seat.name,
           status: "active",
           active: true,
-          role: next.role === "admin" ? "admin" : (next.role === "manager" ? "manager" : (seat.role === "admin" ? "admin" : seat.role || "sales")),
+          role: next.role === "admin" ? "admin" : (seat.role === "admin" ? "admin" : "user"),
+          permission: IC.normalizePermissionMap(seat.permission || next.permission),
           title: next.title || seat.title,
           salesName: next.salesName || seat.salesName,
           placeholder: false,
@@ -773,10 +772,10 @@ window.IC = window.IC || {};
     if (!IC.canManageTeam(IC.state.session)) return null;
     draft = draft || {};
     var name = String(draft.name || "").trim() || "New teammate";
-    var role = draft.role === "admin" ? "admin" : (draft.role === "manager" ? "manager" : "sales");
-    var title = String(draft.title || "").trim() || (role === "admin" ? "Admin" : (role === "manager" ? "Manager" : "Sales"));
+    var role = draft.role === "admin" ? "admin" : "user";
+    var title = String(draft.title || "").trim() || (role === "admin" ? "Admin" : "User");
     var salesName = String(draft.salesName || "").trim();
-    if (!salesName && role === "sales") salesName = name;
+    if (!salesName && role === "user") salesName = name;
     var member = {
       id: IC.uid(),
       name: name,
@@ -785,6 +784,7 @@ window.IC = window.IC || {};
       role: role,
       title: title,
       salesName: salesName || null,
+      permission: IC.normalizePermissionMap(draft.permission),
       commissionPercent: Number(draft.commissionPercent) || 0,
       notifyPrefs: IC.normalizeNotifyPrefs(null, { role: role }),
       active: true,
@@ -1037,6 +1037,7 @@ window.IC = window.IC || {};
       title: IC.roleLabel(member),
       salesName: member.salesName,
       status: member.status || (IC.isApproved(member) ? "active" : "pending"),
+      permission: member.permission || {},
       firebaseUid: firebaseUid || member.firebaseUid || null,
       mode: mode || "online",
     };
@@ -1047,20 +1048,22 @@ window.IC = window.IC || {};
     IC.setSession(IC.memberToSession(member, "offline", null));
   };
 
-  IC.updatePermissions = function (role, resource, action, on) {
+  IC.updatePermissions = function () { /* replaced by per-user page radios */ };
+
+  IC.setUserPagePermission = function (userId, pageId, level) {
     if (!IC.isAdmin(IC.state.session)) return;
-    if (role !== "manager" && role !== "sales") return;
-    var perms = IC.livePermissions();
-    perms[role] = perms[role] || {};
-    perms[role][resource] = perms[role][resource] || { read: false, write: false };
-    if (action === "write") {
-      perms[role][resource].write = Boolean(on);
-      if (on) perms[role][resource].read = true;
-    } else if (action === "read") {
-      perms[role][resource].read = Boolean(on);
-      if (!on) perms[role][resource].write = false;
+    var user = IC.state.team.find(function (t) { return t.id === userId; });
+    if (!user) return;
+    if (user.role === "admin") {
+      IC.toast("Admin always has full access");
+      return;
     }
-    IC.updateSettings({ permissions: IC.normalizePermissions(perms) });
+    var nextLevel = IC.normalizePageLevel(level);
+    if (!nextLevel) return;
+    var map = IC.normalizePermissionMap(user.permission);
+    map[pageId] = nextLevel;
+    IC.saveUser(Object.assign({}, user, { permission: map }));
+    IC.toast("Saved for " + (user.name || "that user"));
   };
 
   IC.toast = function (msg, opts) {

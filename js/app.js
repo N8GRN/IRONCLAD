@@ -132,7 +132,10 @@ window.IC = window.IC || {};
         html = IC.viewWaiting();
       } else {
       var inner = "";
-      if (route.name === "jobs") inner = IC.viewJobs();
+      var pageId = IC.pageIdForRoute(route);
+      if (pageId && IC.pageLevel(IC.state.session, pageId) === "restricted") {
+        inner = IC.viewRestricted(pageId);
+      } else if (route.name === "jobs") inner = IC.viewJobs();
       else if (route.name === "job") inner = IC.viewJob(route.id);
       else if (route.name === "customer-quote" || route.name === "job-sheet" || route.name === "job-cost") {
         var docJob = IC.state.jobs.find(function (j) { return j.id === route.id; });
@@ -210,6 +213,24 @@ window.IC = window.IC || {};
     if (t.getAttribute("data-act") === "close-modal" && e.target.closest("[data-stop]") && e.target !== t) return;
     var act = t.getAttribute("data-act");
     var s = IC.state.session;
+    var allowedWhenLocked = {
+      "offline-login": 1, "auth-panel": 1, "sign-out": 1, "refresh-access": 1,
+      "set-theme": 1, "close-modal": 1, "job-tab": 1, "job-search": 1, "job-filter": 1,
+      "customer-search": 1, "keep-signed-in": 1, "page-perm": 1, "copy-invite": 1,
+      "invite-app": 1, "job-calendar": 1, "job-navigate": 1, "printed-name": 1,
+      "read-note": 1, "mark-all": 1, "delete-note": 1, "clear-inbox": 1, "enable-push": 1,
+      "notify-pref": 1
+    };
+    if (s && IC.isApproved(s) && !allowedWhenLocked[act]) {
+      var lockPage = IC.pageIdForRoute(IC.parseRoute());
+      if (lockPage && !IC.can(s, lockPage, "write") && act !== "grant-user" && act !== "deny-user") {
+        if (IC.pageLevel(s, lockPage) === "restricted") return;
+        if (IC.pageLevel(s, lockPage) === "read-only") {
+          IC.toast("Read-only on this page");
+          return;
+        }
+      }
+    }
 
     if (act === "offline-login") {
       if (IC.continueOffline()) IC.go("#/");
@@ -221,6 +242,11 @@ window.IC = window.IC || {};
       IC.ui.loginError = "";
       IC.ui.loginInfo = "";
       IC.render();
+      return;
+    }
+    if (act === "page-perm") {
+      if (!IC.isAdmin(s)) return;
+      IC.setUserPagePermission(t.getAttribute("data-id"), t.getAttribute("data-page"), t.value);
       return;
     }
     if (act === "grant-user") {
@@ -394,7 +420,7 @@ window.IC = window.IC || {};
       return;
     }
     if (act === "finance-add") {
-      if (!IC.isAdmin(IC.state.session)) return;
+      if (!IC.can(IC.state.session, "financing", "write")) return;
       var fname = String(IC.ui.financeAddName || "").trim();
       var fpct = Number(IC.ui.financeAddPct);
       if (!fname) { IC.toast("Name the plan"); return; }
@@ -407,7 +433,7 @@ window.IC = window.IC || {};
       return;
     }
     if (act === "finance-remove") {
-      if (!IC.isAdmin(IC.state.session)) return;
+      if (!IC.can(IC.state.session, "financing", "write")) return;
       var dropPlan = t.getAttribute("data-id");
       IC.updateSettings({ financingPlans: IC.financingPlans().filter(function (p) { return p.id !== dropPlan; }) });
       return;
@@ -619,7 +645,7 @@ window.IC = window.IC || {};
       return;
     }
     if (act === "add-crew") {
-      if (!IC.isAdmin(s) && !IC.can(s, "labor", "write")) return;
+      if (!IC.can(s, "crews", "write") && !IC.can(s, "labor", "write")) return;
       var crew = IC.normalizeCrew({ id: IC.uid(), name: "Crew " + (IC.state.crews.length + 1), foreman: "", phone: "", notes: "", active: true });
       IC.upsertCrew(crew);
       IC.ui.laborCrew = crew.id;
@@ -754,6 +780,14 @@ window.IC = window.IC || {};
     }
   }
 
+  function readOnlyOnThisPage() {
+    var s = IC.state.session;
+    if (!s || !IC.isApproved(s) || s.role === "admin") return false;
+    var pageId = IC.pageIdForRoute(IC.parseRoute());
+    if (!pageId) return false;
+    return !IC.can(s, pageId, "write");
+  }
+
   function onChange(e) {
     var el = e.target;
     if (!el || !document.body.contains(el)) return;
@@ -771,14 +805,19 @@ window.IC = window.IC || {};
     }
     if (act === "link-seat") {
       var to = el.value;
-      if (to) IC.grantUser(el.getAttribute("data-id"), { role: "sales", linkTo: to });
+      if (to) IC.grantUser(el.getAttribute("data-id"), { role: "user", linkTo: to });
+      return;
+    }
+    if (act === "page-perm") {
+      if (!IC.isAdmin(IC.state.session)) return;
+      IC.setUserPagePermission(el.getAttribute("data-id"), el.getAttribute("data-page"), el.value);
       return;
     }
     if (act === "perm") {
-      IC.updatePermissions(el.getAttribute("data-role"), el.getAttribute("data-resource"), el.getAttribute("data-perm"), el.checked);
       return;
     }
     if (act === "catalog-show-off") { IC.ui.catalogShowOff = el.checked; IC.render(); return; }
+    if (readOnlyOnThisPage()) return;
     if (el.hasAttribute("data-labor")) {
       if (!IC.can(IC.state.session, "labor", "write")) return;
       var laborCrew = IC.state.crews.find(function (c) { return c.id === el.getAttribute("data-id"); });
@@ -857,7 +896,8 @@ window.IC = window.IC || {};
       return;
     }
     if (el.hasAttribute("data-set")) {
-      if (!IC.isAdmin(IC.state.session)) return;
+      var setPage = IC.pageIdForRoute(IC.parseRoute()) || "settings";
+      if (!IC.can(IC.state.session, setPage, "write")) return;
       var key = el.getAttribute("data-set");
       var val = el.getAttribute("data-num") ? Number(el.value) : el.value;
       var p = {};
@@ -866,7 +906,7 @@ window.IC = window.IC || {};
       return;
     }
     if (el.hasAttribute("data-labor-rate")) {
-      if (!IC.isAdmin(IC.state.session)) return;
+      if (!IC.can(IC.state.session, "calculations", "write")) return;
       var ratePart = el.getAttribute("data-rate-part");
       var rateName = el.getAttribute("data-rate-name");
       var rateTable = IC.normalizeLaborRates(IC.state.settings && IC.state.settings.laborRates);
@@ -904,19 +944,17 @@ window.IC = window.IC || {};
         if (field === "role" && el.value === "sales" && !n.salesName) {
           n.salesName = n.name || null;
         }
-        if (field === "role" && el.value === "admin" && (!n.title || n.title === "Sales" || n.title === "Manager")) {
-          n.title = n.title && n.title !== "Sales" && n.title !== "Manager" ? n.title : "Admin";
+        if (field === "role" && el.value === "admin" && (!n.title || n.title === "Sales" || n.title === "Manager" || n.title === "User")) {
+          n.title = "Admin";
         }
-        if (field === "role" && el.value === "manager" && (!n.title || n.title === "Sales" || n.title === "Admin")) {
-          n.title = "Manager";
+        if (field === "role" && el.value === "user" && (!n.title || n.title === "Admin" || n.title === "Manager" || n.title === "Sales")) {
+          n.title = "User";
         }
-        if (field === "role" && el.value === "sales" && (!n.title || n.title === "Admin" || n.title === "Manager")) {
-          n.title = "Sales";
-        }
-        if (field === "role" && (el.value === "admin" || el.value === "manager" || el.value === "sales")) {
+        if (field === "role" && (el.value === "admin" || el.value === "user" || el.value === "manager" || el.value === "sales")) {
           n.status = "active";
           n.active = true;
           n.role = el.value;
+          if (el.value === "user") n.permission = IC.normalizePermissionMap(n.permission);
         }
         return n;
       }));
@@ -941,7 +979,7 @@ window.IC = window.IC || {};
     if (el.hasAttribute("data-crew")) {
       var crew = IC.state.crews.find(function (c) { return c.id === el.getAttribute("data-id"); });
       if (!crew) return;
-      if (!IC.isAdmin(IC.state.session) && !IC.can(IC.state.session, "labor", "write")) return;
+      if (!IC.can(IC.state.session, "crews", "write") && !IC.can(IC.state.session, "labor", "write")) return;
       var nc = Object.assign({}, crew);
       nc[el.getAttribute("data-crew")] = el.value;
       IC.upsertCrew(nc);
@@ -949,7 +987,7 @@ window.IC = window.IC || {};
     }
 
     if (el.hasAttribute("data-fin")) {
-      if (!IC.isAdmin(IC.state.session)) return;
+      if (!IC.can(IC.state.session, "financing", "write")) return;
       var finId = el.getAttribute("data-id");
       var finField = el.getAttribute("data-fin");
       var finPlans = IC.financingPlans().map(function (p) {

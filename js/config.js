@@ -71,7 +71,7 @@ IC.DEFAULT_CREW_LABOR = {
   woodPerBoard: 15,
 };
 
-/* One card per page on Manage permissions. Add a row here when a new page ships. */
+/* One row per page inside each person’s card. Add a row here when a new page ships. */
 IC.PERM_LEVELS = [
   { id: "read-write", label: "Read/write" },
   { id: "read-only", label: "Read-only" },

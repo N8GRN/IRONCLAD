@@ -212,6 +212,17 @@ window.IC = window.IC || {};
     return IC.normalizePageLevel(map[pageId]) || "restricted";
   };
 
+  /* Only keys an admin has actually set. Missing pages use the default at read time. */
+  IC.storedPermissionMap = function (raw) {
+    var src = raw && typeof raw === "object" ? raw : {};
+    var out = {};
+    Object.keys(src).forEach(function (key) {
+      var set = IC.normalizePageLevel(src[key]);
+      if (set) out[key] = set;
+    });
+    return out;
+  };
+
   IC.normalizePermissionMap = function (raw) {
     var src = raw && typeof raw === "object" ? raw : {};
     var out = {};
@@ -291,8 +302,8 @@ window.IC = window.IC || {};
       { value: "admin", label: "Admin (full access)" },
       { value: "user", label: "User" },
     ];
-    if (current === "manager") opts.push({ value: "manager", label: "Manager (change to User)" });
-    if (current === "sales") opts.push({ value: "sales", label: "Sales (change to User)" });
+    if (current === "manager") opts.push({ value: "manager", label: "Manager (legacy)" });
+    if (current === "sales") opts.push({ value: "sales", label: "Sales (legacy)" });
     return opts;
   };
 

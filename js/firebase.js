@@ -355,7 +355,7 @@ window.IC = window.IC || {};
     next.status = "active";
     next.active = true;
     next.placeholder = false;
-    if (!next.title || next.title === "Waiting" || next.title === "Sales" || next.title === "Manager") next.title = "Admin";
+    if (!next.title || next.title === "Waiting" || next.title === "Sales" || next.title === "Manager" || next.title === "User") next.title = "Admin";
     var seed = IC.BOOTSTRAP[email.toLowerCase()] || IC.BOOTSTRAP[(user.email || "").trim().toLowerCase()];
     var local = email.split("@")[0];
     if (!next.name || next.name === "Teammate" || next.name === local) {
@@ -375,7 +375,7 @@ window.IC = window.IC || {};
 
   IC.normalizeUser = function (raw, id) {
     raw = raw || {};
-    var role = raw.role === "admin" || raw.role === "manager" || raw.role === "sales" ? raw.role : "pending";
+    var role = raw.role === "admin" || raw.role === "user" || raw.role === "manager" || raw.role === "sales" ? raw.role : "pending";
     var status = raw.status || (role === "pending" ? "pending" : "active");
     var user = {
       id: id || raw.id,
@@ -385,6 +385,7 @@ window.IC = window.IC || {};
       role: status === "pending" ? "pending" : role,
       title: raw.title || "",
       salesName: raw.salesName || null,
+      permission: IC.storedPermissionMap ? IC.storedPermissionMap(raw.permission) : (raw.permission && typeof raw.permission === "object" ? raw.permission : {}),
       commissionPercent: (function () {
         if (raw.commissionPercent != null && raw.commissionPercent !== "") {
           var n = Number(raw.commissionPercent);

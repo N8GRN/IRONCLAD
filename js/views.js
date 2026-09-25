@@ -21,7 +21,7 @@ window.IC = window.IC || {};
     if (panel === "signup") {
       body = '<form class="login-card" data-act="auth-signup">' +
         "<h2>Create account</h2>" +
-        '<p class="sub" style="text-align:left;margin:0 0 12px">Anyone can create an account. Nate or Matt have to turn on Sales, Manager, or Admin before you can see jobs.</p>' +
+        '<p class="sub" style="text-align:left;margin:0 0 12px">Anyone can create an account. Nate has to grant User or Admin before you can see jobs.</p>' +
         IC.field("Your name", IC.input({ name: "displayName", autocomplete: "name", value: IC.ui.loginName, placeholder: "First name" })) +
         IC.field("Email", IC.input({ type: "email", name: "email", autocomplete: "username", value: IC.ui.loginEmail })) +
         IC.field("Password", IC.input({ type: "password", name: "password", autocomplete: "new-password", value: IC.ui.loginPassword, placeholder: "At least 6 characters" })) +
@@ -78,7 +78,7 @@ window.IC = window.IC || {};
       '<p class="muted" style="margin-top:8px">' +
       (off
         ? "This login was turned off. Ask Nate or Matt if you still need into IRONCLAD."
-        : "Your account is in. Nate or Matt still need to give you Sales, Manager, or Admin rights before you can see jobs.") +
+        : "Your account is in. Nate still needs to grant User or Admin before you can see jobs.") +
       "</p>" +
       '<p class="tiny" style="margin-top:12px">' + IC.esc(s.email || "") + "</p>" +
       '<div style="margin-top:16px">' +
@@ -87,6 +87,13 @@ window.IC = window.IC || {};
       IC.btn("Sign out", { variant: "outline", class: "btn-block", data: 'data-act="sign-out"' }) +
       "</div>" +
       "</div></div></div>";
+  };
+
+  IC.viewRestricted = function (pageId) {
+    var page = (IC.PAGES || []).find(function (p) { return p.id === pageId; });
+    var label = page ? page.label : "This page";
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">No access</p><h1 class="title">' + IC.esc(label) + "</h1></div></header>" +
+      '<div class="card"><p>This page is restricted for your login.</p><p class="muted" style="margin-top:8px">Ask Nate to change it under Settings → Manage permissions.</p></div></div>';
   };
 
   IC.viewShell = function (inner, route) {
@@ -102,7 +109,7 @@ window.IC = window.IC || {};
       if (id === "home") return route.name === "home";
       return route.name === id || (id === "jobs" && (route.name === "job" || route.name === "customer-quote" || route.name === "job-sheet" || route.name === "job-cost")) || (id === "customers" && route.name === "customer");
     };
-    var sideLinks = nav.map(function (item) {
+    var sideLinks = nav.filter(function (item) { return IC.can(s, item.id, "read"); }).map(function (item) {
       return '<a href="' + item.to + '" class="' + (isActive(item.id) ? "active" : "") + '">' + IC.icon(item.icon) + "<span>" + item.label + "</span></a>";
     }).join("");
     var settingsOn = route.name === "settings";
@@ -111,19 +118,28 @@ window.IC = window.IC || {};
     var financeOn = route.name === "financing";
     return '<div class="shell"><aside class="sidebar"><a class="brand" href="#/"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing" /><div class="brand-copy"><div class="brand-name">IRONCLAD</div><div class="brand-sub">CRM</div></div></a>' +
       '<nav class="nav-side">' + sideLinks + "</nav>" +
-      '<div class="nav-foot"><a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
-      (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" +
+      '<div class="nav-foot">' +
+      (IC.can(s, "notifications", "read") ? '<a href="#/notifications" class="' + (route.name === "notifications" ? "active" : "") + '">' + IC.icon("bell") + "<span>Alerts</span>" +
+      (unread ? '<span class="nav-count">' + unread + "</span>" : "") + "</a>" : "") +
       (IC.can(s, "labor", "read") ? '<a href="#/labor" class="' + (laborOn ? "active" : "") + '">' + IC.icon("ladder") + "<span>Labor</span></a>" : "") +
       (IC.can(s, "materials", "read") ? '<a href="#/materials" class="' + (materialsOn ? "active" : "") + '">' + IC.icon("box") + "<span>Materials</span></a>" : "") +
-      '<a href="#/financing" class="' + (financeOn ? "active" : "") + '">' + IC.icon("finance") + "<span>Financing</span></a>" +
-      '<a href="#/settings" class="' + (settingsOn ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" +
+      (IC.can(s, "financing", "read") ? '<a href="#/financing" class="' + (financeOn ? "active" : "") + '">' + IC.icon("finance") + "<span>Financing</span></a>" : "") +
+      (IC.can(s, "settings", "read") ? '<a href="#/settings" class="' + (settingsOn ? "active" : "") + '">' + IC.icon("settings") + "<span>Settings</span></a>" : "") +
       '<div class="who"><strong>' + IC.esc(s.name) + "</strong><span>" + IC.esc(IC.roleLabel(s)) + (s.mode === "offline" || !IC.ui.online ? " · offline" : "") + "</span></div></div></aside>" +
       '<div class="main-wrap"><header class="topbar"><a class="brand" href="#/"><img src="' + IC.asset("brand/logo.png") + '" alt="Ironclad Roofing" /></a>' +
-      '<div class="top-actions"><a href="#/notifications">' + IC.icon("bell") + (unread ? '<span class="dot"></span>' : "") + '</a><a href="#/settings">' + IC.icon("settings") + "</a></div></header>" +
+      '<div class="top-actions">' +
+      (IC.can(s, "notifications", "read") ? '<a href="#/notifications">' + IC.icon("bell") + (unread ? '<span class="dot"></span>' : "") + "</a>" : "") +
+      (IC.can(s, "settings", "read") ? '<a href="#/settings">' + IC.icon("settings") + "</a>" : "") +
+      "</div></header>" +
       '<main class="content">' +
       (!IC.ui.online ? '<div class="offline-banner">You’re offline. Changes save on this iPad and sync when you’re back.</div>' : "") +
+      (function () {
+        var here = IC.pageIdForRoute(route);
+        if (!here || IC.pageLevel(s, here) !== "read-only") return "";
+        return '<div class="readonly-banner">Read-only — you can look, not change this page.</div>';
+      })() +
       inner + "</main>" +
-      '<nav class="tabbar">' + nav.map(function (item) {
+      '<nav class="tabbar">' + nav.filter(function (item) { return IC.can(s, item.id, "read"); }).map(function (item) {
         return '<a href="' + item.to + '" class="' + (isActive(item.id) ? "active" : "") + '">' + IC.icon(item.icon) + item.label + "</a>";
       }).join("") + "</nav></div></div>" +
       (IC.ui.toast ? '<div class="toast' + (IC.ui.toastMode === "center" ? " toast-center" : "") + '">' + (IC.ui.toastMode === "center" ? IC.icon("rotate") : "") + "<span>" + IC.esc(IC.ui.toast) + "</span></div>" : "");
@@ -150,7 +166,9 @@ window.IC = window.IC || {};
     var stack = function (items, empty) {
       return items && items.length ? '<div class="job-stack">' + items.join("") + "</div>" : empty;
     };
-    return '<div class="page"><header class="page-head"><div><p class="kicker">Ironclad Roofing</p><h1 class="hero">Let’s go to work, ' + IC.esc(greet) + '.</h1></div><a href="#/jobs">' + IC.btn("New job " + IC.icon("arrow")) + "</a></header>" +
+    return '<div class="page"><header class="page-head"><div><p class="kicker">Ironclad Roofing</p><h1 class="hero">Let’s go to work, ' + IC.esc(greet) + '.</h1></div>' +
+      (IC.can(s, "jobs", "write") ? '<a href="#/jobs">' + IC.btn("New job " + IC.icon("arrow")) + "</a>" : "") +
+      "</header>" +
       '<div class="grid-stats">' + stats + "</div>" +
       (unread[0] ? '<div class="card is-unread" style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><p class="kicker">Needs you</p><p style="font-weight:600">' + IC.esc(unread[0].title) + '</p><p class="muted">' + IC.esc(unread[0].body) + '</p></div><a href="#/notifications">' + IC.btn("Alerts", { variant: "outline", size: "sm" }) + "</a></div>" : "") +
       '<div class="grid-2"><div class="card"><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' + IC.icon("userplus") + "<h2>Unassigned</h2></div>" +
@@ -175,7 +193,7 @@ window.IC = window.IC || {};
     }).sort(function (a, b) { return b.number - a.number; });
     var statusOpts = [{ value: "", label: "All statuses" }].concat(IC.JOB_STATUSES.map(function (s) { return { value: s, label: s }; }));
     return '<div class="page"><header class="page-head"><div><p class="kicker muted">Pipeline</p><h1 class="title">Jobs</h1></div>' +
-      IC.btn(IC.icon("plus") + " New job", { data: 'data-act="open-new-job"' }) + "</header>" +
+      (IC.can(session(), "jobs", "write") ? IC.btn(IC.icon("plus") + " New job", { data: 'data-act="open-new-job"' }) : "") + "</header>" +
       '<div class="filters"><div class="search-wrap">' + IC.icon("search") + IC.input({ placeholder: "Search name, #, owner", value: IC.ui.jobSearch, "data-act": "job-search" }) + "</div>" +
       IC.select({ "data-act": "job-filter", value: status }, statusOpts) + "</div>" +
       '<div class="list-card"><div class="list-head"><span>#</span><span>Customer</span><span>Owner</span><span>Status</span><span>Schedule</span><span style="text-align:right">Price</span></div>' +
@@ -224,9 +242,13 @@ window.IC = window.IC || {};
     var tab = IC.ui.jobTab || "Overview";
     if (tab === "Estimate") tab = "Assessment";
     if (tab === "Quote") tab = "Summary";
-    var tabs = ["Overview", "Assessment", "Summary", "Contract"].map(function (t) {
+    var tabPage = { Overview: "jobs", Assessment: "assessment", Summary: "summary", Contract: "contract" };
+    var tabs = ["Overview", "Assessment", "Summary", "Contract"].filter(function (t) {
+      return IC.can(session(), tabPage[t], "read");
+    }).map(function (t) {
       return '<button type="button" class="' + (tab === t ? "on" : "") + '" data-act="job-tab" data-tab="' + t + '">' + t + "</button>";
     }).join("");
+    if (tab !== "Overview" && !IC.can(session(), tabPage[tab], "read")) tab = "Overview";
     var body = "";
     if (tab === "Overview") body = IC.viewJobOverview(job, customer);
     else if (tab === "Assessment") body = IC.viewEstimator(job);
@@ -635,14 +657,14 @@ window.IC = window.IC || {};
   };
 
   IC.viewAddUserModal = function () {
-    var d = IC.ui.addUserDraft || { name: "", role: "sales", title: "Sales", salesName: "", email: "" };
+    var d = IC.ui.addUserDraft || { name: "", role: "user", title: "User", salesName: "", email: "" };
     IC.ui.addUserDraft = d;
     return '<div class="modal-bg" data-act="close-modal"><div class="modal" data-stop="1"><h2>Add a teammate</h2>' +
       '<p class="muted" style="margin:8px 0 12px">For someone who doesn’t have a login yet — so you can still assign jobs to them. When they create an account, grant access and link them to this seat.</p>' +
       '<div class="form-grid two">' +
       IC.field("Name", IC.input({ value: d.name, "data-udraft": "name", placeholder: "First name", autocomplete: "off" })) +
-      IC.field("Role", IC.select({ "data-udraft": "role", value: d.role }, IC.roleOptions())) +
-      IC.field("Shown as", IC.input({ value: d.title, "data-udraft": "title", placeholder: "Admin, Owner, Manager, Sales…" })) +
+      IC.field("Role", IC.select({ "data-udraft": "role", value: d.role }, IC.roleOptions(d.role))) +
+      IC.field("Shown as", IC.input({ value: d.title, "data-udraft": "title", placeholder: "Admin, Owner, User…" })) +
       IC.field("Owns jobs as", IC.input({ value: d.salesName, "data-udraft": "salesName", placeholder: "Blank if they don’t own jobs" })) +
       IC.field("Commission %", IC.input({ type: "number", min: "0", step: "0.1", value: d.commissionPercent != null ? d.commissionPercent : 0, "data-udraft": "commissionPercent", placeholder: "e.g. 6" })) +
       '</div><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem">' +
@@ -669,7 +691,7 @@ window.IC = window.IC || {};
       }).join("") +
       "</div></div>" +
       '<div class="card"><h2 style="margin-bottom:8px">Invite a teammate</h2>' +
-      '<p class="muted" style="margin-bottom:12px">Send the IRONCLAD link in a text or email. They install the app and create an account. You still grant Sales, Manager, or Admin before they can see jobs.</p>' +
+      '<p class="muted" style="margin-bottom:12px">Send the IRONCLAD link in a text or email. They install the app and create an account. You still grant User or Admin before they can see jobs.</p>' +
       (function () {
         var join = IC.appJoinUrl();
         if (/localhost|127\.0\.0\.1/.test(join)) return "";
@@ -679,14 +701,14 @@ window.IC = window.IC || {};
       IC.btn(IC.icon("share") + " Invite", { data: 'data-act="invite-app"' }) +
       IC.btn("Copy link", { variant: "outline", data: 'data-act="copy-invite"' }) +
       "</div></div>" +
-      IC.settingsCard("#/settings/company", "Company profile", "Legal name, address, phone, warranty, insurance, and contract language.") +
-      IC.settingsCard("#/settings/defaults", "Estimate defaults", "Waste, tax rate, chimney price, dumpster, permit, and delivery.") +
-      (admin ? IC.settingsCard("#/settings/calculations", "Estimate calculations", "Labor rates, coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
-      (IC.can(s, "team", "read") || admin ? IC.settingsCard("#/settings/team", "Team", "Who can sign in, roles, and commission. Only admins can change this.") : "") +
-      (admin ? IC.settingsCard("#/settings/crews", "Crews", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
+      (IC.can(s, "company", "read") ? IC.settingsCard("#/settings/company", "Company profile", "Legal name, address, phone, warranty, insurance, and contract language.") : "") +
+      (IC.can(s, "defaults", "read") ? IC.settingsCard("#/settings/defaults", "Estimate defaults", "Waste, tax rate, chimney price, dumpster, permit, and delivery.") : "") +
+      (IC.can(s, "calculations", "read") ? IC.settingsCard("#/settings/calculations", "Estimate calculations", "Labor rates, coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
+      (IC.can(s, "team", "read") ? IC.settingsCard("#/settings/team", "Team", "Who can sign in, roles, and commission.") : "") +
+      (IC.can(s, "crews", "read") ? IC.settingsCard("#/settings/crews", "Crews", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
       (IC.can(s, "labor", "read") ? IC.settingsCard("#/labor", "Labor catalog", "Crew pay: one rate per measured square, plus hip & ridge and starter at the base rate. Not the customer price.") : "") +
       (IC.can(s, "materials", "read") ? IC.settingsCard("#/materials", "Materials catalog", "Add colors, retire SKUs, and update prices. Changes apply the next time an estimate is saved.") : "") +
-      (admin ? IC.settingsCard("#/settings/permissions", "Manage permissions", "Control what Managers and Sales can see and edit.") : "") +
+      (IC.can(s, "permissions", "read") ? IC.settingsCard("#/settings/permissions", "Manage permissions", "One card per person. Set each page to read/write, read-only, or restricted.") : "") +
       (admin
         ? '<div class="card"><h2 style="margin-bottom:8px">Sync</h2><p class="muted">Everyone who is signed in shares the same company jobs, customers, catalog, and team list from Firestore. Removing samples is permanent for the whole company — they will not come back from other iPads.</p></div>' +
           IC.btn("Remove sample jobs & customers", { variant: "outline", data: 'data-act="clear-seed"' })
@@ -696,7 +718,7 @@ window.IC = window.IC || {};
 
   IC.viewSettingsCompany = function () {
     var s = session();
-    var admin = IC.isAdmin(s);
+    var admin = IC.can(s, "company", "write");
     var settings = IC.state.settings;
     var body = '<div class="card"><h2 style="margin-bottom:12px">On the paperwork</h2><div class="form-grid two">' +
       IC.field("Legal name", IC.input({ value: settings.legalName, "data-set": "legalName", disabled: !admin })) +
@@ -725,7 +747,7 @@ window.IC = window.IC || {};
   };
 
   IC.viewSettingsDefaults = function () {
-    var admin = IC.isAdmin(session());
+    var admin = IC.can(session(), "defaults", "write");
     var settings = IC.state.settings;
     var rates = [
       ["wastePercent", "Waste %"],
@@ -744,9 +766,9 @@ window.IC = window.IC || {};
   };
 
   IC.viewSettingsCalculations = function () {
-    var admin = IC.isAdmin(session());
-    if (!admin) {
-      return IC.settingsPage("Estimate calculations", '<div class="card"><p class="muted">Only an admin can change how the takeoff is counted.</p></div>');
+    var admin = IC.can(session(), "calculations", "write");
+    if (!IC.can(session(), "calculations", "read")) {
+      return IC.settingsPage("Estimate calculations", '<div class="card"><p class="muted">You don’t have access to Estimate calculations. Ask an admin to turn it on under Manage permissions.</p></div>');
     }
     var settings = IC.state.settings || IC.SETTINGS;
     function num(key, fallback) {
@@ -833,8 +855,8 @@ window.IC = window.IC || {};
       (canWrite ? IC.btn("Add seat", { size: "sm", variant: "outline", data: 'data-act="add-teammate"' }) : "") +
       '</div><p class="muted" style="margin-bottom:12px">' +
       (canWrite
-        ? "People create their own account on the sign-in screen. You grant Sales, Manager, or Admin here. Until then they see a waiting page — no jobs. Only people in Firestore show up here."
-        : "View only. Commission and roles can be changed by an Admin.") +
+        ? "People create their own account on the sign-in screen. You grant User or Admin here. Until then they see a waiting page — no jobs. Page access is set under Manage permissions."
+        : "View only. Roles and page access are set by an Admin.") +
       "</p>" +
       (function () {
         var pending = IC.state.team.filter(function (m) { return m.status === "pending" || m.role === "pending"; });
@@ -846,8 +868,7 @@ window.IC = window.IC || {};
           return '<div class="team-card pending-card"><p style="font-weight:600">' + IC.esc(m.name) + '</p><p class="muted">' + IC.esc(m.email || "No email") + "</p>" +
             (canWrite
               ? '<div class="grant-row">' +
-                IC.btn("Grant sales", { size: "sm", data: 'data-act="grant-user" data-id="' + m.id + '" data-role="sales"' }) +
-                IC.btn("Grant manager", { size: "sm", variant: "outline", data: 'data-act="grant-user" data-id="' + m.id + '" data-role="manager"' }) +
+                IC.btn("Grant user", { size: "sm", data: 'data-act="grant-user" data-id="' + m.id + '" data-role="user"' }) +
                 IC.btn("Grant admin", { size: "sm", variant: "outline", data: 'data-act="grant-user" data-id="' + m.id + '" data-role="admin"' }) +
                 (seatOpts.length ? IC.select({ "data-act": "link-seat", "data-id": m.id }, [{ value: "", label: "Link to existing seat…" }].concat(seatOpts)) : "") +
                 IC.btn("Deny", { size: "sm", variant: "ghost", data: 'data-act="deny-user" data-id="' + m.id + '"' }) +
@@ -856,11 +877,11 @@ window.IC = window.IC || {};
             "</div>";
         }).join("") : "";
         var seatsHtml = seats.map(function (m) {
-          var roleVal = m.role === "admin" || m.role === "manager" || m.role === "sales" ? m.role : "sales";
+          var roleVal = m.role === "admin" || m.role === "user" || m.role === "manager" || m.role === "sales" ? m.role : "user";
           return '<div class="team-card"><div class="form-grid two">' +
             IC.field("Name", IC.input({ value: m.name, "data-team": "name", "data-id": m.id, disabled: !canWrite })) +
-            IC.field("Role", IC.select({ "data-team": "role", "data-id": m.id, value: roleVal, disabled: !canWrite }, IC.roleOptions())) +
-            IC.field("Shown as", IC.input({ value: IC.roleLabel(m), "data-team": "title", "data-id": m.id, placeholder: "Admin, Owner, Manager, Sales…", disabled: !canWrite })) +
+            IC.field("Role", IC.select({ "data-team": "role", "data-id": m.id, value: roleVal, disabled: !canWrite }, IC.roleOptions(roleVal))) +
+            IC.field("Shown as", IC.input({ value: IC.roleLabel(m), "data-team": "title", "data-id": m.id, placeholder: "Admin, Owner, User…", disabled: !canWrite })) +
             IC.field("Owns jobs as", IC.input({ value: m.salesName || "", "data-team": "salesName", "data-id": m.id, placeholder: "Name on jobs, or blank", disabled: !canWrite })) +
             IC.field("Commission %", IC.input({ type: "number", min: "0", step: "0.1", value: m.commissionPercent != null ? m.commissionPercent : 0, "data-team": "commissionPercent", "data-id": m.id, disabled: !canWrite, placeholder: "e.g. 6" })) +
             IC.field("Email", IC.input({ value: m.email, type: "email", "data-team": "email", "data-id": m.id, disabled: !canWrite, placeholder: m.placeholder ? "Creates an account, then you grant access" : "" })) +
@@ -881,9 +902,9 @@ window.IC = window.IC || {};
   };
 
   IC.viewSettingsCrews = function () {
-    var admin = IC.isAdmin(session());
-    if (!admin) {
-      return IC.settingsPage("Crews", '<div class="card"><p class="muted">Only admins can edit the crew roster. Labor rates are in Labor catalog.</p></div>');
+    var admin = IC.can(session(), "crews", "write");
+    if (!IC.can(session(), "crews", "read")) {
+      return IC.settingsPage("Crews", '<div class="card"><p class="muted">You don’t have access to Crews. Ask an admin to turn it on under Manage permissions.</p></div>');
     }
     var body = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2>Crew roster</h2>' +
       IC.btn("Add crew", { size: "sm", variant: "outline", data: 'data-act="add-crew"' }) + "</div>" +
@@ -898,28 +919,62 @@ window.IC = window.IC || {};
   };
 
   IC.viewSettingsPermissions = function () {
-    if (!IC.isAdmin(session())) {
-      return IC.settingsPage("Permissions", '<div class="card"><p class="muted">Only admins can manage permissions.</p></div>');
+    if (!IC.can(session(), "permissions", "read") && !IC.isAdmin(session())) {
+      return IC.settingsPage("Manage permissions", '<div class="card"><p class="muted">You don’t have access to Manage permissions.</p></div>');
     }
-    var perms = IC.livePermissions();
-    var roles = [
-      { id: "manager", label: "Manager" },
-      { id: "sales", label: "Sales" },
-    ];
-    var head = "<thead><tr><th>Area</th>" + roles.map(function (r) {
-      return "<th>" + r.label + " read</th><th>" + r.label + " edit</th>";
-    }).join("") + "</tr></thead>";
-    var rows = (IC.PERM_RESOURCES || []).map(function (res) {
-      return "<tr><td>" + IC.esc(res.label) + "</td>" + roles.map(function (r) {
-        var cell = (perms[r.id] && perms[r.id][res.id]) || { read: false, write: false };
-        return "<td>" + '<label class="check"><input type="checkbox" data-act="perm" data-role="' + r.id + '" data-resource="' + res.id + '" data-perm="read"' + (cell.read ? " checked" : "") + " /></label></td>" +
-          "<td>" + '<label class="check"><input type="checkbox" data-act="perm" data-role="' + r.id + '" data-resource="' + res.id + '" data-perm="write"' + (cell.write ? " checked" : "") + " /></label></td>";
-      }).join("") + "</tr>";
+    var me = session();
+    var canWrite = IC.isAdmin(me);
+    var people = (IC.state.team || []).filter(function (m) {
+      return m.status !== "pending" && m.role !== "pending" && m.status !== "disabled";
+    }).slice().sort(function (a, b) {
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+    var admins = people.filter(function (m) { return m.role === "admin"; });
+    var users = people.filter(function (m) {
+      if (m.role === "admin") return false;
+      if (!canWrite && me && m.id !== me.memberId) return false;
+      return true;
+    });
+    var levels = IC.PERM_LEVELS || [];
+    var groups = [];
+    (IC.PAGES || []).forEach(function (page) {
+      var name = page.group || "App";
+      var bucket = groups.filter(function (g) { return g.name === name; })[0];
+      if (!bucket) {
+        bucket = { name: name, pages: [] };
+        groups.push(bucket);
+      }
+      bucket.pages.push(page);
+    });
+    function radiosFor(person, page) {
+      var level = IC.pageLevel(person, page.id);
+      return levels.map(function (opt) {
+        return '<label class="perm-radio"><input type="radio" name="perm-' + person.id + "-" + page.id + '" data-act="page-perm" data-id="' + person.id + '" data-page="' + page.id + '" value="' + opt.id + '"' +
+          (level === opt.id ? " checked" : "") + (canWrite ? "" : " disabled") + " /><span>" + opt.label + "</span></label>";
+      }).join("");
+    }
+    var cards = users.map(function (person) {
+      var roleNote = person.role === "manager" || person.role === "sales"
+        ? "Legacy " + person.role + " login. Page access is already individual. Change the role to User on Team when you are ready."
+        : "User";
+      var sections = groups.map(function (group) {
+        var rows = group.pages.map(function (page) {
+          return '<div class="perm-page-row"><div class="perm-page-name">' + IC.esc(page.label) + '</div><div class="perm-radios">' + radiosFor(person, page) + "</div></div>";
+        }).join("");
+        return '<div class="perm-group"><h3>' + IC.esc(group.name) + "</h3>" + rows + "</div>";
+      }).join("");
+      return '<div class="card perm-user-card"><h2>' + IC.esc(person.name || "Teammate") + "</h2>" +
+        '<p class="tiny muted">' + IC.esc(person.email || roleNote) + (person.email ? " · " + IC.esc(roleNote) : "") + "</p>" +
+        sections + "</div>";
     }).join("");
-    var body = '<div class="card"><h2 style="margin-bottom:8px">What each role can see</h2>' +
-      '<p class="muted" style="margin-bottom:12px">Admins always have full access. Managers start with view-only Materials, Labor, and Team. Sales starts with none of these. Uncheck Read to hide a page entirely.</p>' +
-      '<div class="perm-wrap"><table class="perm-table">' + head + "<tbody>" + rows + "</tbody></table></div></div>";
-    return IC.settingsPage("Manage permissions", body);
+    var adminLine = admins.length
+      ? '<div class="card"><p class="muted">Admin is always full access, so there is no card for ' +
+        admins.map(function (m) { return IC.esc(m.name || "Admin"); }).join(", ") +
+        ".</p></div>"
+      : "";
+    var empty = users.length ? "" : '<div class="card"><p class="muted">No user accounts yet. Grant someone User on Team, then set their pages here.</p></div>';
+    var intro = '<div class="card"><p class="muted">Each card is one person. Pick read/write, read-only, or restricted for every page. The first change writes a <span class="tabular">permission</span> map on that person’s Firestore user document. Until then, the radios show the starting access: read-only on Home, Jobs, Schedule, Customers, Alerts, and Settings. Financing and everything else start restricted. Waiting and off accounts stay on Team.</p></div>';
+    return IC.settingsPage("Manage permissions", intro + adminLine + (cards || empty));
   };
 
   function payScheduleHtml(rates, control, partsOf) {
@@ -1096,7 +1151,7 @@ window.IC = window.IC || {};
   };
 
   IC.viewFinancing = function () {
-    var admin = IC.isAdmin(session());
+    var admin = IC.can(session(), "financing", "write");
     var plans = IC.financingPlans();
     var rows = plans.map(function (p) {
       return '<div class="deck-row finance-row">' +
@@ -1114,7 +1169,7 @@ window.IC = window.IC || {};
           IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: IC.ui.financeAddPct || "", placeholder: "3.25", "data-ui": "financeAddPct", "aria-label": "New plan fee percent" }) +
           IC.btn(IC.icon("plus") + " Add", { data: 'data-act="finance-add"' }) +
           "</div></div>"
-        : '<p class="tiny muted" style="margin-top:12px">Only an admin can change plans.</p>') +
+        : '<p class="tiny muted" style="margin-top:12px">Read-only. Ask an admin for edit access under Manage permissions.</p>') +
       "</div></div>";
   };
 
