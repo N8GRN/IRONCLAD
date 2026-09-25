@@ -319,6 +319,45 @@ window.IC = window.IC || {};
     return [item].concat(list);
   }
 
+  IC.syncJobCustomerNames = function () {
+    if (IC._syncingNames) return;
+    var customers = IC.state.customers || [];
+    var jobs = IC.state.jobs || [];
+    if (!customers.length || !jobs.length) return;
+    var byId = {};
+    customers.forEach(function (c) { if (c && c.id) byId[c.id] = c; });
+    var pushed = IC._custNamePushed || (IC._custNamePushed = {});
+    var localChanged = false;
+    var toCloud = [];
+    var nextJobs = jobs.map(function (j) {
+      if (!j || !j.customerId || !byId[j.customerId]) return j;
+      var name = IC.fullName(byId[j.customerId].firstName, byId[j.customerId].lastName);
+      if ((j.customerName || "") === name) {
+        if (pushed[j.id] === name) delete pushed[j.id];
+        return j;
+      }
+      localChanged = true;
+      var updated = Object.assign({}, j, { customerName: name, updatedAt: IC.nowIso() });
+      if (pushed[j.id] !== name) {
+        pushed[j.id] = name;
+        toCloud.push(updated);
+      }
+      return updated;
+    });
+    if (!localChanged) return;
+    IC._syncingNames = true;
+    try {
+      IC.state.jobs = nextJobs;
+      IC.emit();
+      toCloud.forEach(function (j) {
+        IC.cloudUpsert("jobs", j.id, j);
+        if (j.contract && j.contract.signingToken && IC.publishSignLink) IC.publishSignLink(j);
+      });
+    } finally {
+      IC._syncingNames = false;
+    }
+  };
+
   IC.upsertCustomer = function (c) {
     if (IC.seedCleared() && IC.isSampleCustomer(c)) {
       IC.cloudDelete("customers", c.id);
@@ -327,6 +366,7 @@ window.IC = window.IC || {};
     IC.state.customers = upsertList(IC.state.customers, c);
     IC.emit();
     IC.cloudUpsert("customers", c.id, c);
+    IC.syncJobCustomerNames();
   };
 
   IC.deleteCustomer = function (id) {

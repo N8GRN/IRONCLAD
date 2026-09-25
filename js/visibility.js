@@ -365,6 +365,24 @@
     }, true);
   }
 
+  function wrapEmitForCustomerNames() {
+    var orig = IC.emit;
+    if (!orig || orig._icNames) return;
+    var timer = null;
+    var wrapped = function () {
+      var r = orig.apply(this, arguments);
+      if (IC._syncingNames) return r;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(function () {
+        timer = null;
+        if (IC.syncJobCustomerNames) IC.syncJobCustomerNames();
+      }, 400);
+      return r;
+    };
+    wrapped._icNames = true;
+    IC.emit = wrapped;
+  }
+
   function install() {
     wrapNormalize();
     wrapMemberToSession();
@@ -376,6 +394,7 @@
     wrapCanAssignSales();
     wrapSalespeople();
     wrapAssignOwner();
+    wrapEmitForCustomerNames();
     wrapViews();
     wrapRender();
     guardEvents();
