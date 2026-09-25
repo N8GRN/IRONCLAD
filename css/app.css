@@ -717,6 +717,10 @@ h1.hero { font-size: clamp(1.8rem, 4vw, 2.5rem); color: var(--navy); }
   text-transform: uppercase;
   color: #444;
 }
+.pdf-page { /* Hide overflow in Portrait mode */
+   overflow-x: hidden;
+}
+
 .pdf-page-break {
   break-before: page;
   margin-top: 1.75rem;
