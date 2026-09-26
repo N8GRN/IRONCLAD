@@ -40,6 +40,18 @@ window.IC = window.IC || {};
     if (job.includeSiding || (estimate && estimate.siding && estimate.siding.included)) {
       items.push("Siding: " + ((estimate && estimate.siding && estimate.siding.description) || "Siding as specified."));
     }
+    if (estimate && IC.normalizeMisc) {
+      var misc = IC.normalizeMisc(estimate.misc);
+      var miscSettings = (IC.state && IC.state.settings) || IC.SETTINGS;
+      IC.MISC_DEFS.forEach(function (def) {
+        var item = misc[def.id];
+        if (!item || !item.included || !(item.qty > 0)) return;
+        var price = IC.miscUnitPrice(def, item, miscSettings);
+        var line = def.label + ": " + item.qty + " × " + IC.money(price);
+        if (item.notes) line += ". " + item.notes;
+        items.push(line + ".");
+      });
+    }
     if (estimate && estimate.notes) items.push(estimate.notes);
     if (job.notes) items.push("Job notes: " + job.notes);
     return items;

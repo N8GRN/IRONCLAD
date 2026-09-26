@@ -31,6 +31,7 @@ window.IC = window.IC || {};
     { id: "capSheet", label: "Flat roof — Cap sheet", soldAs: "roll", coverageAmount: 2, coverageUnit: "square", items: [{ name: "MuleHide", price: 165.25, sku: "" }] },
     { id: "customEdge", label: "Flat roof — Custom edge metal", soldAs: "lf", coverageAmount: 1, coverageUnit: "lf", items: [{ name: "Custom edge metal", price: 1.03, sku: "" }] },
     { id: "lomance", label: "Lomanco 750", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [{ name: "Black", price: 23.8, sku: "" }, { name: "Brown", price: 23.8, sku: "" }] },
+    { id: "skylight", label: "Miscellaneous", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [{ name: "Skylight", price: 900, sku: "" }] },
     { id: "sheathing", label: "OSB / Plywood", soldAs: "sheet", coverageAmount: 32, coverageUnit: "sq ft", items: [
       { name: "OSB 7/16 × 4 × 8", price: 68, sku: "" },
       { name: "Plywood 7/16 × 4 × 8", price: 68, sku: "" },

@@ -24,6 +24,56 @@ window.IC = window.IC || {};
     return o;
   };
 
+  /* Assessment miscellaneous items. Price on the job is optional:
+     null follows Estimate defaults until the salesman types a number. */
+  IC.MISC_DEFS = [
+    { id: "skylight", label: "Skylight", priceKey: "skylightPrice", laborKey: "skylightEach", fallbackPrice: 1700, fallbackLabor: 500, material: true },
+    { id: "satellite", label: "Satellite Dish", priceKey: "satellitePrice", laborKey: "satelliteEach", fallbackPrice: 500, fallbackLabor: 150, material: false },
+    { id: "antenna", label: "Antenna", priceKey: "antennaPrice", laborKey: "antennaEach", fallbackPrice: 500, fallbackLabor: 150, material: false },
+  ];
+
+  IC.miscDefaultPrice = function (def, settings) {
+    var n = Number(settings && settings[def.priceKey]);
+    return Number.isFinite(n) && n >= 0 ? n : def.fallbackPrice;
+  };
+
+  IC.normalizeMiscItem = function (def, raw) {
+    raw = raw || {};
+    var qty = Number(raw.qty);
+    if (!Number.isFinite(qty) || qty < 0) qty = 0;
+    var price = raw.price;
+    if (price == null || price === "") price = null;
+    else {
+      price = Number(price);
+      if (!Number.isFinite(price) || price < 0) price = 0;
+    }
+    return {
+      included: Boolean(raw.included),
+      qty: qty,
+      price: price,
+      notes: String(raw.notes == null ? "" : raw.notes),
+    };
+  };
+
+  IC.normalizeMisc = function (raw) {
+    raw = raw || {};
+    var out = {};
+    IC.MISC_DEFS.forEach(function (def) {
+      out[def.id] = IC.normalizeMiscItem(def, raw[def.id]);
+    });
+    return out;
+  };
+
+  IC.miscUnitPrice = function (def, item, settings) {
+    if (!item || item.price == null) return IC.miscDefaultPrice(def, settings);
+    return item.price;
+  };
+
+  IC.miscCrewRate = function (labor, def) {
+    var n = Number(labor && labor[def.laborKey]);
+    return Number.isFinite(n) && n >= 0 ? n : def.fallbackLabor;
+  };
+
   IC.normalizePitch = function (pitch) {
     if (pitch === "2/12 - 3/12") return "2/12 - 3.9/12";
     if (pitch === "0 - 2/12" || pitch === "0/12 - 1.9/12") return "Flat Roof";
@@ -277,6 +327,7 @@ window.IC = window.IC || {};
       extras: [],
       gutters: IC.normalizeAddon("gutters", { included: false }),
       siding: IC.normalizeAddon("siding", { included: false }),
+      misc: IC.normalizeMisc(null),
       financing: IC.normalizeFinancing(null),
       notes: "",
       wastePercent: settings.wastePercent,
@@ -367,6 +418,7 @@ window.IC = window.IC || {};
     var sellLabor = {}, crewPay = {};
     var gutters = IC.normalizeAddon("gutters", est.gutters);
     var siding = IC.normalizeAddon("siding", est.siding);
+    var misc = IC.normalizeMisc(est.misc);
     var waste = 1 + (Number(est.wastePercent) || 0) / 100;
     var wastePct = Number(est.wastePercent) || 0;
     var tearRate = Number(est.tearoffRatePerSquare) || 0;
@@ -390,6 +442,7 @@ window.IC = window.IC || {};
     var ridgeVentPerRoll = calcNum("ridgeVentLfPerRoll", 30);
     var stepPerBundle = calcNum("stepLfPerBundle", 50);
     var stepPerChimney = calcNum("stepLfPerChimney", 10, true);
+    var stepPerSkylight = calcNum("skylightFlashingLf", 0, true);
     var basePerRoll = calcNum("baseSheetSquaresPerRoll", 1);
     var capPerRoll = calcNum("capSheetSquaresPerRoll", 2);
 
@@ -466,7 +519,8 @@ window.IC = window.IC || {};
     var broanKitchen = Number(est.broanKitchen) || 0;
     var chimneyCount = Number(est.chimneyCount != null ? est.chimneyCount : 0) || 0;
     var wallLf = Number(est.wallFlashingLf) || 0;
-    var stepFlashingLf = wallLf + chimneyCount * stepPerChimney;
+    var skylightQty = misc.skylight.included ? misc.skylight.qty : 0;
+    var stepFlashingLf = wallLf + chimneyCount * stepPerChimney + skylightQty * stepPerSkylight;
     var stepBundles = ceilQty(stepFlashingLf / stepPerBundle);
     var chimneyPrice = Number(settings.chimneyEachPrice);
     if (!Number.isFinite(chimneyPrice) || chimneyPrice < 0) chimneyPrice = 500;
@@ -508,7 +562,9 @@ window.IC = window.IC || {};
         if (iceLf > 0) bits.push(round1(iceLf) + " lf at " + icePerRoll + " lf/roll");
         if (bits.length) detail = p.itemName + " · " + bits.join(" + ");
       } else if (cat === "flashing") {
-        detail = p.itemName + " · " + round1(wallLf) + " lf wall + " + chimneyCount + " chimney × " + stepPerChimney + " lf ÷ " + stepPerBundle + " lf/bundle";
+        var flashBits = [round1(wallLf) + " lf wall", chimneyCount + " chimney × " + stepPerChimney + " lf"];
+        if (skylightQty > 0 && stepPerSkylight > 0) flashBits.push(skylightQty + " skylight × " + stepPerSkylight + " lf");
+        detail = p.itemName + " · " + flashBits.join(" + ") + " ÷ " + stepPerBundle + " lf/bundle";
       } else if (cat === "chimney") {
         detail = chimneyCount + " × " + IC.money(chimneyPrice);
       } else if (spec.need && category.coverageUnit !== "each") {
@@ -614,6 +670,28 @@ window.IC = window.IC || {};
     if (siding.included) {
       lines.push(line("siding", "Siding", siding.description, 1, "ls", siding.price, "addon"));
     }
+    var miscMaterialCost = 0;
+    var laborCostMisc = 0;
+    IC.MISC_DEFS.forEach(function (def) {
+      var item = misc[def.id];
+      if (!item.included || !(item.qty > 0)) return;
+      var unitPrice = IC.miscUnitPrice(def, item, settings);
+      var note = item.notes ? item.notes : "Customer price";
+      lines.push(line("misc-" + def.id, def.label, note, item.qty, "ea", unitPrice, "misc"));
+      if (def.material) {
+        var yard = IC.catalogItem("skylight", "Skylight");
+        var yardPrice = yard ? Number(yard.price) || 0 : 900;
+        if (yardPrice < 0) yardPrice = 0;
+        miscMaterialCost += item.qty * yardPrice;
+        var yardDetail = (yard && yard.name ? yard.name : "Skylight") + (yard && yard.sku ? " · " + yard.sku : "");
+        if (item.notes) yardDetail += (yardDetail ? " · " : "") + item.notes;
+        lines.push(line("yard-" + def.id, def.label + " (material)", yardDetail, item.qty, "ea", yardPrice, "yard"));
+      }
+      var crewEach = IC.miscCrewRate(crewRates, def);
+      laborCostMisc += item.qty * crewEach;
+    });
+    miscMaterialCost = round2(miscMaterialCost);
+    laborCostMisc = round2(laborCostMisc);
 
     var hipLine = null;
     var startLine = null;
@@ -632,6 +710,7 @@ window.IC = window.IC || {};
     var laborSubtotal = round2(lines.filter(function (l) { return l.kind === "labor"; }).reduce(function (s, l) { return s + l.amount; }, 0));
     var otherSubtotal = round2(lines.filter(function (l) { return l.kind === "other"; }).reduce(function (s, l) { return s + l.amount; }, 0));
     var addonsSubtotal = round2(lines.filter(function (l) { return l.kind === "addon"; }).reduce(function (s, l) { return s + l.amount; }, 0));
+    var miscSubtotal = round2(lines.filter(function (l) { return l.kind === "misc"; }).reduce(function (s, l) { return s + l.amount; }, 0));
     var markupAmount = round2(materialsSubtotal * ((Number(est.markupPercent) || 0) / 100));
     if (markupAmount > 0) {
       lines.push(line("markup", "Material margin", est.markupPercent + "% on materials", 1, "ls", markupAmount, "other"));
@@ -643,8 +722,9 @@ window.IC = window.IC || {};
     taxPct = Number(taxPct);
     if (!Number.isFinite(taxPct) || taxPct < 0) taxPct = 0;
     // Tax is on material COST (catalog prices) only — not on material margin, labor, permit, or delivery.
-    var salesTax = round2(materialsSubtotal * (taxPct / 100));
-    var jobSubtotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal + salesTax);
+    // Miscellaneous sell prices are not taxed again. The skylight yard price is a catalog cost, so it is.
+    var salesTax = round2((materialsSubtotal + miscMaterialCost) * (taxPct / 100));
+    var jobSubtotal = round2(materialsSubtotal + laborSubtotal + otherSubtotal + addonsSubtotal + miscSubtotal + salesTax);
     var insPct = settings.insurancePercent;
     if (insPct == null || insPct === "") insPct = 1;
     insPct = Number(insPct);
@@ -672,10 +752,10 @@ window.IC = window.IC || {};
     var comm = IC.salespersonCommission(job, salePrice);
     var commission = comm.amount;
     var otherCost = round2(otherSubtotal - (markupAmount || 0));
-    var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost + laborCostAccessory);
-    var profitBilled = round2(total - materialsSubtotal - deckingMaterialCost - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount - mfgWarrantyFee);
-    var profitActual = round2(total - materialsSubtotal - deckingMaterialCost - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount - mfgWarrantyFee);
-    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + equipmentRental, measuredSquares);
+    var laborCost = round2(laborCostInstall + laborCostTearoff + osbLaborCost + woodLaborCost + laborCostAccessory + laborCostMisc);
+    var profitBilled = round2(total - materialsSubtotal - deckingMaterialCost - miscMaterialCost - laborSubtotal - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount - mfgWarrantyFee);
+    var profitActual = round2(total - materialsSubtotal - deckingMaterialCost - miscMaterialCost - laborCost - otherCost - addonsSubtotal - commission - salesTax - insuranceAmount - financingAmount - mfgWarrantyFee);
+    var structurePrices = IC.structurePrices(est.structures, salePrice, addonsSubtotal + deliveryFee + equipmentRental + miscSubtotal, measuredSquares);
 
     var costLines = lines.filter(function (l) {
       return l.key !== "labor" && l.key.indexOf("labor-") !== 0;
@@ -694,6 +774,14 @@ window.IC = window.IC || {};
     if (woodLaborCost > 0) {
       costLines.push(line("wood-labor", "Wood boards (crew)", boards + " boards", boards, "board", Number(crewRates.woodPerBoard) || 0, "labor"));
     }
+    IC.MISC_DEFS.forEach(function (def) {
+      var item = misc[def.id];
+      if (!item.included || !(item.qty > 0)) return;
+      var crewEach = IC.miscCrewRate(crewRates, def);
+      if (!(crewEach > 0)) return;
+      var crewDetail = item.notes || (def.label + " install");
+      costLines.push(line("crew-misc-" + def.id, def.label + " (crew)", crewDetail, item.qty, "ea", crewEach, "labor"));
+    });
     if (insuranceAmount > 0) {
       costLines.push(line("insurance", "Insurance", insPct + "% of job price", 1, "ls", insuranceAmount, "other"));
     }
@@ -711,7 +799,8 @@ window.IC = window.IC || {};
       laborCostAccessory: laborCostAccessory,
       osbLaborCost: osbLaborCost, woodLaborCost: woodLaborCost,
       deckingMaterialCost: deckingMaterialCost,
-      otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, markupAmount: markupAmount,
+      otherSubtotal: otherSubtotal, addonsSubtotal: addonsSubtotal, miscSubtotal: miscSubtotal, markupAmount: markupAmount,
+      miscMaterialCost: miscMaterialCost, laborCostMisc: laborCostMisc,
       salesTax: salesTax, salesTaxPercent: taxPct,
       deliveryFee: deliveryFee,
       equipmentRental: equipmentRental,
@@ -788,7 +877,7 @@ window.IC = window.IC || {};
     var lines = (est && est.computed && est.computed.lines) || [];
     return lines.filter(function (l) {
       if (l.key === "mat-chimney") return false;
-      return l.kind === "material" || l.kind === "decking" || l.key === "sheathing";
+      return l.kind === "material" || l.kind === "decking" || l.kind === "yard" || l.key === "sheathing";
     });
   };
 
@@ -796,6 +885,7 @@ window.IC = window.IC || {};
     var next = Object.assign({}, est);
     next.gutters = IC.normalizeAddon("gutters", est.gutters);
     next.siding = IC.normalizeAddon("siding", est.siding);
+    next.misc = IC.normalizeMisc(est.misc);
     next.financing = IC.normalizeFinancing(est.financing);
     next.structures = (est.structures || []).map(function (st, i) {
       var n = Object.assign({}, st);

@@ -321,6 +321,7 @@ window.IC = window.IC || {};
     var c = value.computed;
     var gutters = IC.normalizeAddon("gutters", value.gutters);
     var siding = IC.normalizeAddon("siding", value.siding);
+    var misc = IC.normalizeMisc(value.misc);
     var financing = IC.normalizeFinancing(value.financing);
     var financePlans = IC.activeFinancingPlans();
     function deckOptions(cat) {
@@ -390,7 +391,7 @@ window.IC = window.IC || {};
         "</div></div></section>";
     }).join("");
     var materials = IC.liveCatalog().filter(function (cat) {
-      return cat.id !== "broan" && cat.id !== "boxVent" && cat.id !== "lomance" && cat.id !== "chimney" && cat.id !== "sheathing" && cat.id !== "woodBoard";
+      return cat.id !== "broan" && cat.id !== "boxVent" && cat.id !== "lomance" && cat.id !== "chimney" && cat.id !== "sheathing" && cat.id !== "woodBoard" && cat.id !== "skylight";
     }).map(function (cat) {
       var pick = value.materials.find(function (m) { return m.categoryId === cat.id; });
       var active = cat.items.filter(function (item) { return item.active !== false; });
@@ -423,7 +424,7 @@ window.IC = window.IC || {};
       IC.field("Broan 8\" (kitchen)", IC.input({ type: "number", min: "0", value: value.broanKitchen || 0, "data-est": "num", "data-key": "broanKitchen" })) +
       IC.field("Chimneys", IC.input({ type: "number", min: "0", step: "1", value: value.chimneyCount || 0, "data-est": "num", "data-key": "chimneyCount" })) +
       IC.field("Wall flashing lf", IC.input({ type: "number", min: "0", value: value.wallFlashingLf, "data-est": "num", "data-key": "wallFlashingLf" })) +
-      "</div><p class=\"tiny muted\" style=\"margin-top:8px\">Chimneys are $" + Number((IC.state.settings && IC.state.settings.chimneyEachPrice) || 500).toFixed(0) + " each. Step flashing bundles = ceil((wall lf + chimneys × 10) / 50).</p></section>" +
+      "</div><p class=\"tiny muted\" style=\"margin-top:8px\">Chimneys are $" + Number((IC.state.settings && IC.state.settings.chimneyEachPrice) || 500).toFixed(0) + " each. Step flashing bundles = ceil((wall lf + chimneys × " + (Number(settings.stepLfPerChimney) >= 0 ? Number(settings.stepLfPerChimney) : 10) + (Number(settings.skylightFlashingLf) > 0 ? " + skylights × " + Number(settings.skylightFlashingLf) : "") + ") / " + (Number(settings.stepLfPerBundle) > 0 ? Number(settings.stepLfPerBundle) : 50) + ").</p></section>" +
       '<section class="card"><h3 style="margin-bottom:12px">Materials</h3><div class="form-grid two">' + materials + "</div></section>" +
       '<section class="card"><h3 style="margin-bottom:12px">Add-ons & job costs</h3><div class="form-grid two">' +
       IC.field("Equipment rental", IC.input({ type: "number", min: "0", step: "0.01", value: value.equipmentRental || 0, "data-est": "num", "data-key": "equipmentRental" })) +
@@ -436,6 +437,27 @@ window.IC = window.IC || {};
       IC.field("Sales tax %", IC.input({ type: "number", min: "0", step: "0.1", value: value.salesTaxPercent != null ? value.salesTaxPercent : 7, "data-est": "num", "data-key": "salesTaxPercent" })) +
       "</div>" +
       '<p class="tiny muted" style="margin-top:8px">Labor price comes from Settings → Estimate calculations → Labor rates: one rate per measured square, plus hip & ridge and starter at the base rate. Tear-off $/sq / layer is landfill dump cost: measured squares × tear-off layers × this rate. Equipment rental is one lump sum and is not taxed. Delivery fee is not taxed. Sales tax is on material cost only.</p>' +
+      (function () {
+        return '<section class="card" style="margin-top:16px;background:var(--paper)"><h3 style="margin-bottom:4px">Miscellaneous</h3>' +
+          '<p class="tiny muted" style="margin-bottom:4px">Check an item to price it on this job. Qty × price is what the customer pays. A blank-until-typed price follows Estimate defaults. Crew pay is in the Labor catalog. Skylight yard price is in Materials → Miscellaneous, and any step flashing per skylight is under Estimate calculations.</p>' +
+          IC.MISC_DEFS.map(function (def) {
+            var item = misc[def.id];
+            var price = IC.miscUnitPrice(def, item, settings);
+            var following = item.price == null;
+            return '<div class="addon-block"><label class="check"><input type="checkbox" data-est="misc-on" data-id="' + def.id + '"' + (item.included ? " checked" : "") + ' /><span style="font-weight:600">' + IC.esc(def.label) + "</span></label>" +
+              (item.included
+                ? '<div class="addon-fields"><div class="addon-split">' +
+                    IC.field("Qty", IC.input({ type: "number", min: "0", step: "1", inputmode: "numeric", value: item.qty, "data-est": "misc-qty", "data-id": def.id })) +
+                    IC.field("Price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: price, "data-est": "misc-price", "data-id": def.id }), "addon-price") +
+                  "</div>" +
+                  (following ? '<p class="tiny muted">Price is the estimate default, $' + Number(price).toFixed(2) + " each. Type a number to keep a different price on this job.</p>" : "") +
+                  IC.field("Special notes", IC.textarea({ value: item.notes, placeholder: "Install instructions, location, or anything special", rows: "2", "data-est": "misc-notes", "data-id": def.id })) +
+                  "</div>"
+                : "") +
+              "</div>";
+          }).join("") +
+          "</section>";
+      })() +
       '<div class="addon-block"><label class="check"><input type="checkbox" data-est="gutter-on"' + (gutters.included ? " checked" : "") + ' /><span style="font-weight:600">Include gutters (lump sum)</span></label>' +
       (gutters.included
         ? '<div class="addon-fields">' +
@@ -702,7 +724,7 @@ window.IC = window.IC || {};
       IC.btn("Copy link", { variant: "outline", data: 'data-act="copy-invite"' }) +
       "</div></div>" +
       (IC.can(s, "company", "read") ? IC.settingsCard("#/settings/company", "Company profile", "Legal name, address, phone, warranty, insurance, and contract language.") : "") +
-      (IC.can(s, "defaults", "read") ? IC.settingsCard("#/settings/defaults", "Estimate defaults", "Waste, tax rate, chimney price, dumpster, permit, and delivery.") : "") +
+      (IC.can(s, "defaults", "read") ? IC.settingsCard("#/settings/defaults", "Estimate defaults", "Waste, tax rate, chimney price, skylight, satellite, antenna, dumpster, permit, and delivery.") : "") +
       (IC.can(s, "calculations", "read") ? IC.settingsCard("#/settings/calculations", "Estimate calculations", "Labor rates, coverage, edge-metal waste, and sell prices the takeoff uses on every job.") : "") +
       (IC.can(s, "team", "read") ? IC.settingsCard("#/settings/team", "Team", "Who can sign in, roles, and commission.") : "") +
       (IC.can(s, "crews", "read") ? IC.settingsCard("#/settings/crews", "Crews", "Crew names, foremen, and phones. Pay rates live in Labor catalog.") : "") +
@@ -758,8 +780,11 @@ window.IC = window.IC || {};
       ["deliveryFeeDefault", "Delivery fee default"],
       ["salesTaxPercent", "Sales tax % (on material cost)"],
       ["chimneyEachPrice", "Chimney $ / each"],
+      ["skylightPrice", "Skylight $ / each"],
+      ["satellitePrice", "Satellite dish $ / each"],
+      ["antennaPrice", "Antenna $ / each"],
     ];
-    var body = '<div class="card"><h2 style="margin-bottom:8px">Default estimate rates</h2><p class="muted" style="margin-bottom:12px">Used when a new estimate is created. Customer install and tear-off prices live under Estimate calculations. Each job can override tax, dump, and delivery on Assessment.</p><div class="form-grid two">' +
+    var body = '<div class="card"><h2 style="margin-bottom:8px">Default estimate rates</h2><p class="muted" style="margin-bottom:12px">Used when a new estimate is created. Skylight, satellite dish, and antenna prices fill the Assessment price box until someone types a different price on that job. Customer install and tear-off prices live under Estimate calculations. Each job can override tax, dump, and delivery on Assessment.</p><div class="form-grid two">' +
       rates.map(function (r) { return IC.field(r[1], IC.input({ type: "number", value: settings[r[0]], "data-set": r[0], "data-num": "1", disabled: !admin })); }).join("") +
       "</div></div>";
     return IC.settingsPage("Estimate defaults", body);
@@ -836,6 +861,8 @@ window.IC = window.IC || {};
         field("stepLfPerBundle", "Step flashing lf / bundle", "Feet in one bundle of step flashing.", "1") +
         field("stepLfPerChimney", "Step flashing lf / chimney", "Added for each chimney, on top of the wall flashing footage.", "1") +
         field("chimneyEachPrice", "Chimney flashing $ / each", "Customer price per chimney. Same number as Estimate defaults.", "1")) +
+      group("Skylight", "Step flashing added for each skylight checked on the Assessment. It is bundled with wall and chimney step flashing. Default is 0 until you know how much flashing a skylight needs. This is not the customer price and not the yard price.",
+        field("skylightFlashingLf", "Step flashing lf / skylight", "Feet of step flashing ordered for each skylight. 0 orders none.", "1")) +
       group("Flat roof", "Base and cap use the job waste %. Custom edge metal stays a price in the materials catalog.",
         field("baseSheetSquaresPerRoll", "Base sheet squares / roll", "Squares one base-sheet roll covers, after that job’s waste %.", "0.1") +
         field("capSheetSquaresPerRoll", "Cap sheet squares / roll", "Squares one cap-sheet roll covers, after that job’s waste %.", "0.1")) +
@@ -1087,6 +1114,13 @@ window.IC = window.IC || {};
       '<div class="form-grid two">' +
       IC.field("OSB replacement $/sheet", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.osbPerSheet, "data-labor": "osbPerSheet", "data-id": crew.id, disabled: !canWrite, "aria-label": "OSB per sheet" })) +
       IC.field("Wood $/board", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.woodPerBoard, "data-labor": "woodPerBoard", "data-id": crew.id, disabled: !canWrite, "aria-label": "Wood per board" })) +
+      "</div>" +
+      '<h3 style="margin:18px 0 8px">Miscellaneous</h3>' +
+      '<p class="tiny muted" style="margin-bottom:10px">Paid once per item checked on the Assessment. This is crew pay, not the customer price.</p>' +
+      '<div class="form-grid two">' +
+      IC.field("Skylight $ / each", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.skylightEach, "data-labor": "skylightEach", "data-id": crew.id, disabled: !canWrite, "aria-label": "Skylight each" })) +
+      IC.field("Satellite dish $ / each", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.satelliteEach, "data-labor": "satelliteEach", "data-id": crew.id, disabled: !canWrite, "aria-label": "Satellite each" })) +
+      IC.field("Antenna $ / each", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.antennaEach, "data-labor": "antennaEach", "data-id": crew.id, disabled: !canWrite, "aria-label": "Antenna each" })) +
       "</div></div></div>";
   };
 
@@ -1130,6 +1164,7 @@ window.IC = window.IC || {};
       '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p>" +
       (cat.id === "sheathing" ? '<p class="tiny muted">Size is part of the name. Add another item for a new size, such as OSB 1/2 × 4 × 8.</p>' : "") +
       (cat.id === "woodBoard" ? '<p class="tiny muted">Each width has its own price. The job can use more than one.</p>' : "") +
+      (cat.id === "skylight" ? '<p class="tiny muted">Yard cost for a skylight. The customer price is Estimate defaults, and it can be changed on the Assessment. Satellite dish and antenna have no material line.</p>' : "") +
       "</div>" +
       '<label class="check"><input type="checkbox" data-act="catalog-show-off"' + (showOff ? " checked" : "") + ' /><span>Show discontinued</span></label></div>' +
       '<div class="mat-head"><span>Name / color</span><span>SKU</span><span>Price ($)</span><span></span></div>' +

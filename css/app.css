@@ -999,6 +999,13 @@ input.date-overlay {
 .addon-fields .addon-price {
   max-width: 14rem;
 }
+.addon-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+.addon-split .addon-price { max-width: none; }
 
 ::placeholder { color: var(--muted); opacity: 0.9; }
 

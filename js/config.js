@@ -69,6 +69,9 @@ IC.DEFAULT_CREW_LABOR = {
   layerAdd: { "1": 0, "2": 10, "3": 20, "4": 30, "5": 40 },
   osbPerSheet: 15,
   woodPerBoard: 15,
+  skylightEach: 500,
+  satelliteEach: 150,
+  antennaEach: 150,
 };
 
 /* One row per page inside each person’s card. Add a row here when a new page ships. */
@@ -165,6 +168,9 @@ IC.normalizeCrew = function (c) {
     layerAdd: layerAdd,
     osbPerSheet: numLabor(laborIn.osbPerSheet, d.osbPerSheet),
     woodPerBoard: numLabor(laborIn.woodPerBoard, d.woodPerBoard),
+    skylightEach: numLabor(laborIn.skylightEach, d.skylightEach),
+    satelliteEach: numLabor(laborIn.satelliteEach, d.satelliteEach),
+    antennaEach: numLabor(laborIn.antennaEach, d.antennaEach),
   };
   return Object.assign({}, c, {
     id: c.id,
@@ -216,6 +222,10 @@ IC.SETTINGS = {
   woodLaborCourtesy: 3,
   salesTaxPercent: 7,
   chimneyEachPrice: 500,
+  skylightPrice: 1700,
+  satellitePrice: 500,
+  antennaPrice: 500,
+  skylightFlashingLf: 0,
   insurancePercent: 1,
   mfgWarrantyMinSq: 25,
   mfgWarrantyMaxSq: 100,

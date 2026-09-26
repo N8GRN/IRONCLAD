@@ -1071,6 +1071,31 @@ window.IC = window.IC || {};
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { description: el.value, included: true }) });
     } else if (kind === "siding-price") {
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { price: Number(el.value), included: true }) });
+    } else if (kind === "misc-on" || kind === "misc-qty" || kind === "misc-price" || kind === "misc-notes") {
+      var miscId = el.getAttribute("data-id");
+      var miscNext = IC.normalizeMisc(est.misc);
+      if (!miscNext[miscId]) return;
+      var miscItem = miscNext[miscId];
+      if (kind === "misc-on") {
+        miscItem.included = el.checked;
+        if (miscItem.included && !(miscItem.qty > 0)) miscItem.qty = 1;
+      } else if (kind === "misc-qty") {
+        var miscQty = Number(el.value);
+        miscItem.qty = Number.isFinite(miscQty) && miscQty > 0 ? miscQty : 0;
+        miscItem.included = true;
+      } else if (kind === "misc-price") {
+        if (el.value === "") miscItem.price = null;
+        else {
+          var miscPrice = Number(el.value);
+          miscItem.price = Number.isFinite(miscPrice) && miscPrice >= 0 ? miscPrice : 0;
+        }
+        miscItem.included = true;
+      } else {
+        miscItem.notes = el.value;
+        miscItem.included = true;
+      }
+      miscNext[miscId] = miscItem;
+      patchEstimate(jobE, { misc: miscNext });
     } else if (kind === "warranty-ours") {
       patchEstimate(jobE, { includeOurWarranty: el.checked });
     } else if (kind === "warranty-mfg") {
