@@ -883,7 +883,7 @@ window.IC = window.IC || {};
         field("stepLfPerBundle", "Step flashing lf / bundle", "Feet in one bundle of step flashing.", "1") +
         field("stepLfPerChimney", "Step flashing lf / chimney", "Added for each chimney, on top of the wall flashing footage.", "1") +
         field("chimneyEachPrice", "Chimney flashing $ / each", "Customer price per chimney. Same number as Estimate defaults.", "1")) +
-      group("Skylight", "Step flashing added for each skylight checked on the Assessment. It is bundled with wall and chimney step flashing. Default is 0 until you know how much flashing a skylight needs. This is not the customer price and not the yard price.",
+      group("Skylight", "Step flashing added for each skylight checked on the Assessment. It is bundled with wall and chimney step flashing.",
         field("skylightFlashingLf", "Step flashing lf / skylight", "Feet of step flashing ordered for each skylight. 0 orders none.", "1")) +
       group("Flat roof", "Base and cap use the job waste %. Custom edge metal stays a price in the materials catalog.",
         field("baseSheetSquaresPerRoll", "Base sheet squares / roll", "Squares one base-sheet roll covers, after that job’s waste %.", "0.1") +
