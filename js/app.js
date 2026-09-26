@@ -219,7 +219,7 @@ window.IC = window.IC || {};
       "customer-search": 1, "keep-signed-in": 1, "page-perm": 1, "copy-invite": 1,
       "invite-app": 1, "job-calendar": 1, "job-navigate": 1, "printed-name": 1,
       "read-note": 1, "mark-all": 1, "delete-note": 1, "clear-inbox": 1, "enable-push": 1,
-      "notify-pref": 1
+      "notify-pref": 1, "catalog-cat": 1
     };
     if (s && IC.isApproved(s) && !allowedWhenLocked[act]) {
       var lockPage = IC.pageIdForRoute(IC.parseRoute());

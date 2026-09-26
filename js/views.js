@@ -136,6 +136,7 @@ window.IC = window.IC || {};
       (function () {
         var here = IC.pageIdForRoute(route);
         if (!here || IC.pageLevel(s, here) !== "read-only") return "";
+        if (here === "materials") return '<div class="readonly-banner">Read-only — switch categories to look. Price, retire, and delete stay locked.</div>';
         return '<div class="readonly-banner">Read-only — you can look, not change this page.</div>';
       })() +
       inner + "</main>" +
@@ -1180,7 +1181,7 @@ window.IC = window.IC || {};
           : "") +
         "</div></div>";
     }).join("") : '<p class="muted">No items in this list' + (showOff ? "." : ". Turn on discontinued to see retired SKUs.") + "</p>";
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1><p class="muted" style="margin-top:4px">' + (canWrite ? "What the estimator can pick. Price changes apply the next time a job estimate is saved — sold and signed jobs keep their quoted total until you re-save." : "View only. Ask an admin if a price needs to change.") + "</p></div></header>" +
+    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1><p class="muted" style="margin-top:4px">' + (canWrite ? "What the estimator can pick. Price changes apply the next time a job estimate is saved — sold and signed jobs keep their quoted total until you re-save." : "Browse every category. Price, retire, and delete stay locked.") + "</p></div></header>" +
       '<div class="card"><div class="cat-pills" role="tablist" aria-label="Material category">' + pills + "</div>" +
       '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p>" +
       (cat.id === "sheathing" ? '<p class="tiny muted">Size is part of the name. Add another item for a new size, such as OSB 1/2 × 4 × 8.</p>' : "") +
