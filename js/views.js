@@ -454,7 +454,7 @@ window.IC = window.IC || {};
               var yard = IC.catalogItem("skylight", selected);
               extra += IC.field("Type", IC.select({ "data-est": "misc-item", "data-id": def.id, value: selected },
                 skyItems.map(function (it) {
-                  return { value: it.name, label: it.name + " · $" + Number(it.price).toFixed(0) + " yard" };
+                  return { value: it.name, label: it.name + " · $" + Number(it.price).toFixed(2) + "/each" };
                 })));
               extra += '<p class="tiny muted">Yard cost ' + IC.money(yard ? yard.price : 0) + " each, from Materials → Skylights. Crew pay does not change with the type.</p>";
             }
