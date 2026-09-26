@@ -31,7 +31,13 @@ window.IC = window.IC || {};
     { id: "capSheet", label: "Flat roof — Cap sheet", soldAs: "roll", coverageAmount: 2, coverageUnit: "square", items: [{ name: "MuleHide", price: 165.25, sku: "" }] },
     { id: "customEdge", label: "Flat roof — Custom edge metal", soldAs: "lf", coverageAmount: 1, coverageUnit: "lf", items: [{ name: "Custom edge metal", price: 1.03, sku: "" }] },
     { id: "lomance", label: "Lomanco 750", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [{ name: "Black", price: 23.8, sku: "" }, { name: "Brown", price: 23.8, sku: "" }] },
-    { id: "skylight", label: "Miscellaneous", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [{ name: "Skylight", price: 900, sku: "" }] },
+    { id: "skylight", label: "Skylights", soldAs: "each", coverageAmount: 1, coverageUnit: "each", items: [
+      { name: "Fixed 22 × 22", price: 450, sku: "" },
+      { name: "Fixed 22 × 46", price: 625, sku: "" },
+      { name: "Fixed 30 × 46", price: 900, sku: "" },
+      { name: "Manual vent 22 × 46", price: 800, sku: "" },
+      { name: "Solar vent 22 × 46", price: 1175, sku: "" },
+    ] },
     { id: "sheathing", label: "OSB / Plywood", soldAs: "sheet", coverageAmount: 32, coverageUnit: "sq ft", items: [
       { name: "OSB 7/16 × 4 × 8", price: 68, sku: "" },
       { name: "Plywood 7/16 × 4 × 8", price: 68, sku: "" },
@@ -77,6 +83,19 @@ window.IC = window.IC || {};
       var items = have && have.items && have.items.length ? have.items : def.items;
       if (def.id === "chimney" && items.length && items.every(function (it) { return Number(it.price) < 50; })) {
         items = def.items;
+      }
+      if (def.id === "skylight") {
+        var onlyLegacy = items.length && items.every(function (it) {
+          return String(it.name || "").trim().toLowerCase() === "skylight";
+        });
+        if (onlyLegacy) {
+          items = def.items;
+        } else {
+          def.items.forEach(function (seed) {
+            var exists = items.some(function (it) { return String(it.name || "").trim() === seed.name; });
+            if (!exists) items = items.concat([seed]);
+          });
+        }
       }
       return {
         id: def.id,

@@ -1006,6 +1006,11 @@ input.date-overlay {
   min-width: 0;
 }
 .addon-split .addon-price { max-width: none; }
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
 
 ::placeholder { color: var(--muted); opacity: 0.9; }
 

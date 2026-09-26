@@ -439,7 +439,8 @@ window.IC = window.IC || {};
         if (!item.included || !(item.qty > 0)) return;
         var unit = IC.miscUnitPrice(def, item, miscSettings);
         var desc = def.label;
-        if (item.notes) desc += " — " + item.notes;
+        var detail = IC.miscDetail(def, item);
+        if (detail) desc += " — " + detail;
         rows.push({ qty: item.qty, desc: desc, unit: "ea", total: Math.round(item.qty * unit * 100) / 100 });
       });
     }
@@ -473,9 +474,11 @@ window.IC = window.IC || {};
       var sheetMisc = IC.normalizeMisc(est.misc);
       IC.MISC_DEFS.forEach(function (def) {
         var item = sheetMisc[def.id];
-        if (item && item.included && item.qty > 0 && item.notes) {
-          miscNotes.push("<p><strong>" + IC.esc(def.label) + " × " + IC.esc(String(item.qty)) + ".</strong> " + IC.esc(item.notes) + "</p>");
-        }
+        if (!item || !item.included || !(item.qty > 0)) return;
+        if (!item.notes && !def.mode) return;
+        var detail = IC.miscDetail(def, item);
+        if (!detail) return;
+        miscNotes.push("<p><strong>" + IC.esc(def.label) + " × " + IC.esc(String(item.qty)) + ".</strong> " + IC.esc(detail) + "</p>");
       });
     }
     if (miscNotes.length) {

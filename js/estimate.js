@@ -28,8 +28,8 @@ window.IC = window.IC || {};
      null follows Estimate defaults until the salesman types a number. */
   IC.MISC_DEFS = [
     { id: "skylight", label: "Skylight", priceKey: "skylightPrice", laborKey: "skylightEach", fallbackPrice: 1700, fallbackLabor: 500, material: true },
-    { id: "satellite", label: "Satellite Dish", priceKey: "satellitePrice", laborKey: "satelliteEach", fallbackPrice: 500, fallbackLabor: 150, material: false },
-    { id: "antenna", label: "Antenna", priceKey: "antennaPrice", laborKey: "antennaEach", fallbackPrice: 500, fallbackLabor: 150, material: false },
+    { id: "satellite", label: "Satellite Dish", priceKey: "satellitePrice", laborKey: "satelliteEach", fallbackPrice: 500, fallbackLabor: 150, material: false, mode: true },
+    { id: "antenna", label: "Antenna", priceKey: "antennaPrice", laborKey: "antennaEach", fallbackPrice: 500, fallbackLabor: 150, material: false, mode: true },
   ];
 
   IC.miscDefaultPrice = function (def, settings) {
@@ -47,11 +47,15 @@ window.IC = window.IC || {};
       price = Number(price);
       if (!Number.isFinite(price) || price < 0) price = 0;
     }
+    var itemName = String(raw.itemName || "").trim();
+    if (def.material && !itemName) itemName = "Fixed 22 × 46";
     return {
       included: Boolean(raw.included),
       qty: qty,
       price: price,
       notes: String(raw.notes == null ? "" : raw.notes),
+      itemName: itemName,
+      mode: raw.mode === "remove" ? "remove" : "reinstall",
     };
   };
 
@@ -72,6 +76,15 @@ window.IC = window.IC || {};
   IC.miscCrewRate = function (labor, def) {
     var n = Number(labor && labor[def.laborKey]);
     return Number.isFinite(n) && n >= 0 ? n : def.fallbackLabor;
+  };
+
+  IC.miscDetail = function (def, item) {
+    item = item || {};
+    var bits = [];
+    if (def.material && item.itemName) bits.push(item.itemName);
+    if (def.mode) bits.push(item.mode === "remove" ? "Remove only" : "Reinstall");
+    if (item.notes) bits.push(item.notes);
+    return bits.join(" · ");
   };
 
   IC.normalizePitch = function (pitch) {
@@ -676,16 +689,19 @@ window.IC = window.IC || {};
       var item = misc[def.id];
       if (!item.included || !(item.qty > 0)) return;
       var unitPrice = IC.miscUnitPrice(def, item, settings);
-      var note = item.notes ? item.notes : "Customer price";
+      var note = IC.miscDetail(def, item) || "Customer price";
       lines.push(line("misc-" + def.id, def.label, note, item.qty, "ea", unitPrice, "misc"));
       if (def.material) {
-        var yard = IC.catalogItem("skylight", "Skylight");
-        var yardPrice = yard ? Number(yard.price) || 0 : 900;
+        var picked = item.itemName || "Fixed 22 × 46";
+        var yard = IC.catalogItem("skylight", picked);
+        var yardPrice = yard ? Number(yard.price) || 0 : 0;
         if (yardPrice < 0) yardPrice = 0;
         miscMaterialCost += item.qty * yardPrice;
-        var yardDetail = (yard && yard.name ? yard.name : "Skylight") + (yard && yard.sku ? " · " + yard.sku : "");
-        if (item.notes) yardDetail += (yardDetail ? " · " : "") + item.notes;
-        lines.push(line("yard-" + def.id, def.label + " (material)", yardDetail, item.qty, "ea", yardPrice, "yard"));
+        var yardName = yard && yard.name ? yard.name : picked;
+        var yardDetail = "Skylights";
+        if (yard && yard.sku) yardDetail += " · " + yard.sku;
+        if (item.notes) yardDetail += " · " + item.notes;
+        lines.push(line("yard-" + def.id, yardName, yardDetail, item.qty, "ea", yardPrice, "yard"));
       }
       var crewEach = IC.miscCrewRate(crewRates, def);
       laborCostMisc += item.qty * crewEach;
@@ -779,7 +795,7 @@ window.IC = window.IC || {};
       if (!item.included || !(item.qty > 0)) return;
       var crewEach = IC.miscCrewRate(crewRates, def);
       if (!(crewEach > 0)) return;
-      var crewDetail = item.notes || (def.label + " install");
+      var crewDetail = IC.miscDetail(def, item) || (def.label + " install");
       costLines.push(line("crew-misc-" + def.id, def.label + " (crew)", crewDetail, item.qty, "ea", crewEach, "labor"));
     });
     if (insuranceAmount > 0) {

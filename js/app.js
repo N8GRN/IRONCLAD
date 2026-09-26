@@ -1071,7 +1071,7 @@ window.IC = window.IC || {};
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { description: el.value, included: true }) });
     } else if (kind === "siding-price") {
       patchEstimate(jobE, { siding: Object.assign({}, IC.normalizeAddon("siding", est.siding), { price: Number(el.value), included: true }) });
-    } else if (kind === "misc-on" || kind === "misc-qty" || kind === "misc-price" || kind === "misc-notes") {
+    } else if (kind === "misc-on" || kind === "misc-qty" || kind === "misc-price" || kind === "misc-notes" || kind === "misc-item" || kind === "misc-mode") {
       var miscId = el.getAttribute("data-id");
       var miscNext = IC.normalizeMisc(est.misc);
       if (!miscNext[miscId]) return;
@@ -1089,6 +1089,12 @@ window.IC = window.IC || {};
           var miscPrice = Number(el.value);
           miscItem.price = Number.isFinite(miscPrice) && miscPrice >= 0 ? miscPrice : 0;
         }
+        miscItem.included = true;
+      } else if (kind === "misc-item") {
+        miscItem.itemName = el.value;
+        miscItem.included = true;
+      } else if (kind === "misc-mode") {
+        miscItem.mode = el.value === "remove" ? "remove" : "reinstall";
         miscItem.included = true;
       } else {
         miscItem.notes = el.value;

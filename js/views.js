@@ -439,14 +439,35 @@ window.IC = window.IC || {};
       '<p class="tiny muted" style="margin-top:8px">Labor price comes from Settings → Estimate calculations → Labor rates: one rate per measured square, plus hip & ridge and starter at the base rate. Tear-off $/sq / layer is landfill dump cost: measured squares × tear-off layers × this rate. Equipment rental is one lump sum and is not taxed. Delivery fee is not taxed. Sales tax is on material cost only.</p>' +
       (function () {
         return '<section class="card" style="margin-top:16px;background:var(--paper)"><h3 style="margin-bottom:4px">Miscellaneous</h3>' +
-          '<p class="tiny muted" style="margin-bottom:4px">Check an item to price it on this job. Qty × price is what the customer pays. A blank-until-typed price follows Estimate defaults. Crew pay is in the Labor catalog. Skylight yard price is in Materials → Miscellaneous, and any step flashing per skylight is under Estimate calculations.</p>' +
+          '<p class="tiny muted" style="margin-bottom:4px">Check an item to price it on this job. Qty × price is what the customer pays. A blank-until-typed price follows Estimate defaults. Skylight crew pay is one rate for every size. Satellite and antenna default to reinstall.</p>' +
           IC.MISC_DEFS.map(function (def) {
             var item = misc[def.id];
             var price = IC.miscUnitPrice(def, item, settings);
             var following = item.price == null;
+            var extra = "";
+            if (def.material) {
+              var skyItems = IC.catalogActiveItems("skylight");
+              if (!skyItems.length) skyItems = (IC.catalogCategory("skylight") || { items: [] }).items || [];
+              var selected = item.itemName && skyItems.some(function (it) { return it.name === item.itemName; })
+                ? item.itemName
+                : ((skyItems[0] && skyItems[0].name) || "");
+              var yard = IC.catalogItem("skylight", selected);
+              extra += IC.field("Type", IC.select({ "data-est": "misc-item", "data-id": def.id, value: selected },
+                skyItems.map(function (it) {
+                  return { value: it.name, label: it.name + " · $" + Number(it.price).toFixed(0) + " yard" };
+                })));
+              extra += '<p class="tiny muted">Yard cost ' + IC.money(yard ? yard.price : 0) + " each, from Materials → Skylights. Crew pay does not change with the type.</p>";
+            }
+            if (def.mode) {
+              extra += '<div class="mode-row" role="radiogroup" aria-label="' + IC.esc(def.label) + '">' +
+                '<label class="check"><input type="radio" name="misc-mode-' + def.id + '" data-est="misc-mode" data-id="' + def.id + '" value="reinstall"' + (item.mode !== "remove" ? " checked" : "") + ' /><span>Reinstall</span></label>' +
+                '<label class="check"><input type="radio" name="misc-mode-' + def.id + '" data-est="misc-mode" data-id="' + def.id + '" value="remove"' + (item.mode === "remove" ? " checked" : "") + ' /><span>Remove only</span></label>' +
+                "</div>";
+            }
             return '<div class="addon-block"><label class="check"><input type="checkbox" data-est="misc-on" data-id="' + def.id + '"' + (item.included ? " checked" : "") + ' /><span style="font-weight:600">' + IC.esc(def.label) + "</span></label>" +
               (item.included
-                ? '<div class="addon-fields"><div class="addon-split">' +
+                ? '<div class="addon-fields">' + extra +
+                    '<div class="addon-split">' +
                     IC.field("Qty", IC.input({ type: "number", min: "0", step: "1", inputmode: "numeric", value: item.qty, "data-est": "misc-qty", "data-id": def.id })) +
                     IC.field("Price ($)", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: price, "data-est": "misc-price", "data-id": def.id }), "addon-price") +
                   "</div>" +
@@ -1116,7 +1137,7 @@ window.IC = window.IC || {};
       IC.field("Wood $/board", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.woodPerBoard, "data-labor": "woodPerBoard", "data-id": crew.id, disabled: !canWrite, "aria-label": "Wood per board" })) +
       "</div>" +
       '<h3 style="margin:18px 0 8px">Miscellaneous</h3>' +
-      '<p class="tiny muted" style="margin-bottom:10px">Paid once per item checked on the Assessment. This is crew pay, not the customer price.</p>' +
+      '<p class="tiny muted" style="margin-bottom:10px">Paid once per item checked on the Assessment. Skylight pay is the same for every size. Satellite and antenna pay is the same for reinstall and remove only.</p>' +
       '<div class="form-grid two">' +
       IC.field("Skylight $ / each", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.skylightEach, "data-labor": "skylightEach", "data-id": crew.id, disabled: !canWrite, "aria-label": "Skylight each" })) +
       IC.field("Satellite dish $ / each", IC.input({ type: "number", min: "0", step: "0.01", inputmode: "decimal", value: labor.satelliteEach, "data-labor": "satelliteEach", "data-id": crew.id, disabled: !canWrite, "aria-label": "Satellite each" })) +
@@ -1164,7 +1185,7 @@ window.IC = window.IC || {};
       '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p>" +
       (cat.id === "sheathing" ? '<p class="tiny muted">Size is part of the name. Add another item for a new size, such as OSB 1/2 × 4 × 8.</p>' : "") +
       (cat.id === "woodBoard" ? '<p class="tiny muted">Each width has its own price. The job can use more than one.</p>' : "") +
-      (cat.id === "skylight" ? '<p class="tiny muted">Yard cost for a skylight. The customer price is Estimate defaults, and it can be changed on the Assessment. Satellite dish and antenna have no material line.</p>' : "") +
+      (cat.id === "skylight" ? '<p class="tiny muted">Deck-mount sizes common on Indiana shingle roofs. Price is the yard cost, including a flashing kit. The customer price is still Estimate defaults, and crew pay does not change with the size.</p>' : "") +
       "</div>" +
       '<label class="check"><input type="checkbox" data-act="catalog-show-off"' + (showOff ? " checked" : "") + ' /><span>Show discontinued</span></label></div>' +
       '<div class="mat-head"><span>Name / color</span><span>SKU</span><span>Price ($)</span><span></span></div>' +

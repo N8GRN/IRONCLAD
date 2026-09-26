@@ -48,7 +48,8 @@ window.IC = window.IC || {};
         if (!item || !item.included || !(item.qty > 0)) return;
         var price = IC.miscUnitPrice(def, item, miscSettings);
         var line = def.label + ": " + item.qty + " × " + IC.money(price);
-        if (item.notes) line += ". " + item.notes;
+        var detail = IC.miscDetail(def, item);
+        if (detail) line += ". " + detail;
         items.push(line + ".");
       });
     }
