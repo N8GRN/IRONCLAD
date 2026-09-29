@@ -1,1 +1,1 @@
-window.IC = window.IC || {};
+PLACEHOLDER
