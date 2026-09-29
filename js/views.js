@@ -92,7 +92,7 @@ window.IC = window.IC || {};
   IC.viewRestricted = function (pageId) {
     var page = (IC.PAGES || []).find(function (p) { return p.id === pageId; });
     var label = page ? page.label : "This page";
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">No access</p><h1 class="title">' + IC.esc(label) + "</h1></div></header>" +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">No access</p><h1 class="title">' + IC.esc(label) + "</h1></div></header>" +
       '<div class="card"><p>This page is restricted for your login.</p><p class="muted" style="margin-top:8px">Ask Nate to change it under Settings → Manage permissions.</p></div></div>';
   };
 
