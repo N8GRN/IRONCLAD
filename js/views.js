@@ -193,7 +193,7 @@ window.IC = window.IC || {};
       return hay.indexOf(q) >= 0;
     }).sort(function (a, b) { return b.number - a.number; });
     var statusOpts = [{ value: "", label: "All statuses" }].concat(IC.JOB_STATUSES.map(function (s) { return { value: s, label: s }; }));
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Pipeline</p><h1 class="title">Jobs</h1></div>' +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Pipeline</p><h1 class="title">Jobs</h1></div>' +
       (IC.can(session(), "jobs", "write") ? IC.btn(IC.icon("plus") + " New job", { data: 'data-act="open-new-job"' }) : "") + "</header>" +
       '<div class="filters"><div class="search-wrap">' + IC.icon("search") + IC.input({ placeholder: "Search name, #, owner", value: IC.ui.jobSearch, "data-act": "job-search" }) + "</div>" +
       IC.select({ "data-act": "job-filter", value: status }, statusOpts) + "</div>" +
@@ -257,7 +257,7 @@ window.IC = window.IC || {};
     else body = IC.viewJobContract(job, customer, settings);
     return '<div class="page"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">' +
       '<a class="back" href="#/jobs">' + IC.icon("back") + "</a>" +
-      '<div style="min-width:0;flex:1"><p class="kicker muted">Job #' + job.number + '</p><h1 class="title" style="font-size:1.6rem">' + IC.esc(job.customerName) + "</h1></div>" +
+      '<div style="min-width:0;flex:1;"><p class="kicker muted">Job #' + job.number + '</p><h1 class="title" style="font-size:1.6rem">' + IC.esc(job.customerName) + "</h1></div>" +
       IC.badge(job.status) + "</div>" +
       '<div class="tabs no-print">' + tabs + "</div>" + body + "</div>";
   };
@@ -585,7 +585,7 @@ window.IC = window.IC || {};
     var list = IC.state.customers.filter(function (c) {
       return (c.firstName + " " + c.lastName + " " + c.phone + " " + c.email + " " + c.city + " " + c.street).toLowerCase().indexOf(q) >= 0;
     }).sort(function (a, b) { return a.lastName.localeCompare(b.lastName); });
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">People</p><h1 class="title">Customers</h1></div>' +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">People</p><h1 class="title">Customers</h1></div>' +
       IC.btn(IC.icon("plus") + " Add", { data: 'data-act="open-new-customer"' }) + "</header>" +
       '<div class="search-wrap">' + IC.icon("search") + IC.input({ placeholder: "Search customers", value: IC.ui.customerSearch, "data-act": "customer-search" }) + "</div>" +
       '<div class="list-card">' + (list.length ? list.map(function (c) {
@@ -668,7 +668,7 @@ window.IC = window.IC || {};
       { key: "jobScheduled", label: "My project has been scheduled" },
       { key: "jobComplete", label: "My project is complete" },
     ];
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Inbox</p><h1 class="title">Alerts</h1></div><div style="display:flex;flex-wrap:wrap;gap:8px">' +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Inbox</p><h1 class="title">Alerts</h1></div><div style="display:flex;flex-wrap:wrap;gap:8px">' +
       IC.btn("Mark all read", { variant: "outline", size: "sm", data: 'data-act="mark-all"' }) +
       (mine.length ? IC.btn("Clear inbox", { variant: "outline", size: "sm", data: 'data-act="clear-inbox"' }) : "") +
       IC.btn("Enable push", { variant: "outline", size: "sm", data: 'data-act="enable-push"' }) +
@@ -697,7 +697,7 @@ window.IC = window.IC || {};
   };
 
   IC.settingsPage = function (title, body, extraHead) {
-    return '<div class="page"><header class="page-head"><a class="back" href="#/settings" aria-label="Back to Settings">' + IC.icon("back") + '</a><div><p class="kicker muted">Settings</p><h1 class="title">' + title + "</h1></div>" + (extraHead || "") + "</header>" + body + "</div>";
+    return '<div class="page"><header class="page-head"><a class="back" href="#/settings" aria-label="Back to Settings">' + IC.icon("back") + '</a><div style="flex: 1;"><p class="kicker muted">Settings</p><h1 class="title">' + title + "</h1></div>" + (extraHead || "") + "</header>" + body + "</div>";
   };
 
   IC.viewAddUserModal = function () {
@@ -725,7 +725,7 @@ window.IC = window.IC || {};
     if (page === "permissions") return IC.viewSettingsPermissions();
     var s = session();
     var admin = IC.isAdmin(s);
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Company</p><h1 class="title">Settings</h1></div>' +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Company</p><h1 class="title">Settings</h1></div>' +
       IC.btn("Sign out", { variant: "outline", data: 'data-act="sign-out"' }) + "</header>" +
       '<div class="card"><h2 style="margin-bottom:8px">Appearance</h2><p class="muted" style="margin-bottom:12px">This iPad only. Light, dark, or match the system setting.</p>' +
       '<div class="theme-pills" role="group" aria-label="Theme">' +
@@ -1110,11 +1110,11 @@ window.IC = window.IC || {};
     var canRead = IC.can(s, "labor", "read");
     var canWrite = IC.can(s, "labor", "write");
     if (!canRead) {
-      return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1></div></header><div class="card"><p class="muted">You don’t have access to the Labor catalog. Ask an admin to turn it on under Settings → Manage permissions.</p></div></div>';
+      return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1></div></header><div class="card"><p class="muted">You don’t have access to the Labor catalog. Ask an admin to turn it on under Settings → Manage permissions.</p></div></div>';
     }
     var crews = (IC.state.crews || []).map(IC.normalizeCrew);
     if (!crews.length) {
-      return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1></div>' +
+      return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1></div>' +
         (canWrite ? IC.btn(IC.icon("plus") + " Add crew", { variant: "outline", data: 'data-act="add-crew"' }) : "") +
         "</header><div class=\"card\"><p class=\"muted\">No crews yet. Add Crew 1 from here — it syncs with the job’s crew picker.</p></div></div>";
     }
@@ -1139,7 +1139,7 @@ window.IC = window.IC || {};
     var schedule = payScheduleHtml(labor, moneyInput, function (pitch, level, tear) {
       return IC.crewSquareParts(labor, pitch, level, tear);
     });
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1><p class="muted" style="margin-top:4px">What we pay the crew. Install and tear-off are one rate per measured square. Customer price is still Settings → Estimate calculations.</p></div>' +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Catalog</p><h1 class="title">Labor</h1><p class="muted" style="margin-top:4px">What we pay the crew. Install and tear-off are one rate per measured square. Customer price is still Settings → Estimate calculations.</p></div>' +
       (canWrite ? IC.btn(IC.icon("plus") + " Add crew", { variant: "outline", data: 'data-act="add-crew"' }) : "") +
       "</header>" +
       '<div class="card"><div class="cat-pills" role="tablist" aria-label="Crew">' + pills + "</div>" +
@@ -1169,7 +1169,7 @@ window.IC = window.IC || {};
     var canRead = IC.can(s, "materials", "read");
     var canWrite = IC.can(s, "materials", "write");
     if (!canRead) {
-      return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1></div></header><div class="card"><p class="muted">You don’t have access to the Materials catalog. Ask an admin to turn it on under Settings → Manage permissions.</p></div></div>';
+      return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1></div></header><div class="card"><p class="muted">You don’t have access to the Materials catalog. Ask an admin to turn it on under Settings → Manage permissions.</p></div></div>';
     }
     var catalog = IC.liveCatalog();
     var catId = IC.ui.catalogCat || "shingle";
@@ -1199,7 +1199,7 @@ window.IC = window.IC || {};
           : "") +
         "</div></div>";
     }).join("") : '<p class="muted">No items in this list' + (showOff ? "." : ". Turn on discontinued to see retired SKUs.") + "</p>";
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1><p class="muted" style="margin-top:4px">' + (canWrite ? "What the estimator can pick. Price changes apply the next time a job estimate is saved — sold and signed jobs keep their quoted total until you re-save." : "Browse every category. Price, retire, and delete stay locked.") + "</p></div></header>" +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Catalog</p><h1 class="title">Materials</h1><p class="muted" style="margin-top:4px">' + (canWrite ? "What the estimator can pick. Price changes apply the next time a job estimate is saved — sold and signed jobs keep their quoted total until you re-save." : "Browse every category. Price, retire, and delete stay locked.") + "</p></div></header>" +
       '<div class="card"><div class="cat-pills" role="tablist" aria-label="Material category">' + pills + "</div>" +
       '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(cat.label) + '</h2><p class="tiny">Sold as ' + IC.esc(cat.soldAs) + (cat.coverageUnit && cat.coverageUnit !== "each" ? " · covers " + cat.coverageAmount + " " + cat.coverageUnit : "") + "</p>" +
       (cat.id === "sheathing" ? '<p class="tiny muted">Size is part of the name. Add another item for a new size, such as OSB 1/2 × 4 × 8.</p>' : "") +
@@ -1238,7 +1238,7 @@ window.IC = window.IC || {};
         (admin ? IC.btn(IC.icon("trash"), { variant: "ghost", size: "sm", class: "btn-icon", data: 'data-act="finance-remove" data-id="' + p.id + '"' }) : "<span></span>") +
         "</div>";
     }).join("");
-    return '<div class="page"><header class="page-head"><div><p class="kicker muted">Catalog</p><h1 class="title">Financing</h1><p class="muted" style="margin-top:4px">Plans a salesman can put on a job. The fee is a percent of the customer price. Ironclad pays it, so it reduces profit and is not added to the customer Estimate.</p></div></header>' +
+    return '<div class="page"><header class="page-head"><div style="flex: 1;"><p class="kicker muted">Catalog</p><h1 class="title">Financing</h1><p class="muted" style="margin-top:4px">Plans a salesman can put on a job. The fee is a percent of the customer price. Ironclad pays it, so it reduces profit and is not added to the customer Estimate.</p></div></header>' +
       '<div class="card"><div class="finance-head"><span>Plan</span><span>Fee %</span><span></span></div>' +
       (rows || '<p class="muted">No plans yet. Add one, for example “12 months” at 3.25.</p>') +
       (admin
