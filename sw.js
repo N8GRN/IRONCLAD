@@ -1,5 +1,5 @@
 /* IRONCLAD CRM service worker — caches the app shell for offline / Home Screen. */
-var CACHE = "ironclad-crm-v83";
+var CACHE = "ironclad-crm-v84";
 var SHELL = [
   "./",
   "./index.html",

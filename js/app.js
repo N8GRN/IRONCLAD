@@ -100,6 +100,10 @@ window.IC = window.IC || {};
     }
     var scrollY = window.scrollY;
     var route = IC.parseRoute();
+    var viewKey = ((location.hash || "#/").split("?")[0]) +
+      (route.name === "job" ? "\n" + (IC.ui.jobTab || "Overview") : "");
+    var navigated = IC.ui.scrollView !== viewKey;
+    IC.ui.scrollView = viewKey;
     var html;
     if (route.name === "sign") {
       html = IC.viewSign(route.token);
@@ -185,7 +189,7 @@ window.IC = window.IC || {};
         } catch (err) { /* not a text field */ }
       }
     }
-    window.scrollTo(0, scrollY);
+    window.scrollTo(0, navigated ? 0 : scrollY);
     var pad = document.getElementById("sig-pad");
     if (pad) {
       IC.mountSigPad(pad, function (url) {
@@ -1269,6 +1273,7 @@ window.IC = window.IC || {};
       IC.baseUrl = "";
     }
     liftPathToHash();
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     IC.loadLocal();
     if (window.__IRONCLAD_PREVIEW__ && (!IC.state.session || IC.state.session.mode === "preview")) {
       IC.state.session = {
