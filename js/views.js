@@ -951,20 +951,37 @@ window.IC = window.IC || {};
   };
 
   IC.viewSettingsCrews = function () {
-    var admin = IC.can(session(), "crews", "write");
-    if (!IC.can(session(), "crews", "read")) {
+    var s = session();
+    var canRead = IC.can(s, "crews", "read") || IC.isAdmin(s);
+    var canWrite = IC.can(s, "crews", "write");
+    if (!canRead) {
       return IC.settingsPage("Crews", '<div class="card"><p class="muted">You don’t have access to Crews. Ask an admin to turn it on under Manage permissions.</p></div>');
     }
-    var body = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2>Crew roster</h2>' +
-      IC.btn("Add crew", { size: "sm", variant: "outline", data: 'data-act="add-crew"' }) + "</div>" +
-      IC.state.crews.map(function (c) {
-        return '<div class="form-grid two" style="background:var(--paper);border-radius:16px;padding:12px;margin-bottom:8px">' +
-          IC.field("Crew name", IC.input({ value: c.name, "data-crew": "name", "data-id": c.id })) +
-          IC.field("Foreman", IC.input({ value: c.foreman, "data-crew": "foreman", "data-id": c.id })) +
-          IC.field("Phone", IC.input({ value: c.phone, "data-crew": "phone", "data-id": c.id })) +
-          IC.field("Notes", IC.input({ value: c.notes, "data-crew": "notes", "data-id": c.id })) + "</div>";
-      }).join("") + "</div>";
-    return IC.settingsPage("Crews", body, IC.btn("Add crew", { variant: "outline", data: 'data-act="add-crew"' }));
+    var roles = (IC.CREW_ROLES || []).map(function (r) { return { value: r.id, label: r.label }; });
+    var crews = (IC.state.crews || []).map(IC.normalizeCrew);
+    var cards = crews.map(function (c) {
+      return '<div class="team-card"><div class="form-grid two">' +
+        IC.field("Crew name", IC.input({ value: c.name, "data-crew": "name", "data-id": c.id, disabled: !canWrite })) +
+        IC.field("Role", IC.select({ "data-crew": "role", "data-id": c.id, value: c.role || "roofing", disabled: !canWrite }, roles)) +
+        IC.field("Foreman", IC.input({ value: c.foreman, "data-crew": "foreman", "data-id": c.id, disabled: !canWrite })) +
+        IC.field("Phone", IC.input({ value: c.phone, "data-crew": "phone", "data-id": c.id, disabled: !canWrite })) +
+        IC.field("Notes", IC.input({ value: c.notes, "data-crew": "notes", "data-id": c.id, disabled: !canWrite })) +
+        "</div>" +
+        (canWrite
+          ? '<div style="display:flex;justify-content:flex-end;margin-top:8px">' + IC.btn("Remove", { variant: "danger", size: "sm", data: 'data-act="remove-crew" data-id="' + c.id + '"' }) + "</div>"
+          : "") +
+        "</div>";
+    }).join("");
+    var body = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap"><h2>Crews</h2>' +
+      (canWrite ? IC.btn("Add crew", { size: "sm", variant: "outline", data: 'data-act="add-crew"' }) : "") +
+      '</div><p class="muted" style="margin-bottom:12px">' +
+      (canWrite
+        ? "Each card is one crew. Role is the division they work — Roofing, Gutters, or Siding. Removing a crew clears it from jobs and leaves the schedule date."
+        : "View only. Someone with edit access can add, edit, or remove crews.") +
+      "</p>" +
+      (cards || '<p class="muted">No crews yet.</p>') +
+      "</div>";
+    return IC.settingsPage("Crews", body);
   };
 
   IC.viewSettingsPermissions = function () {
@@ -972,7 +989,7 @@ window.IC = window.IC || {};
       return IC.settingsPage("Manage permissions", '<div class="card"><p class="muted">You don’t have access to Manage permissions.</p></div>');
     }
     var me = session();
-    var canWrite = IC.isAdmin(me);
+    var canWrite = IC.isAdmin(me) || IC.can(me, "permissions", "write");
     var people = (IC.state.team || []).filter(function (m) {
       return m.status !== "pending" && m.role !== "pending" && m.status !== "disabled";
     }).slice().sort(function (a, b) {
@@ -1129,6 +1146,7 @@ window.IC = window.IC || {};
       '<div class="mat-toolbar"><div><h2 style="margin:0">' + IC.esc(IC.crewLabel(crew)) + '</h2><p class="tiny">' + (canWrite ? "Edit a number and the table updates." : "View only.") + "</p></div></div>" +
       '<div class="form-grid two" style="margin-bottom:16px">' +
       IC.field("Crew name", IC.input({ value: crew.name, "data-crew": "name", "data-id": crew.id, disabled: !canWrite })) +
+      IC.field("Role", IC.select({ "data-crew": "role", "data-id": crew.id, value: crew.role || "roofing", disabled: !canWrite }, (IC.CREW_ROLES || []).map(function (r) { return { value: r.id, label: r.label }; }))) +
       IC.field("Foreman", IC.input({ value: crew.foreman, "data-crew": "foreman", "data-id": crew.id, placeholder: "Alejandro", disabled: !canWrite })) +
       "</div>" +
       schedule +

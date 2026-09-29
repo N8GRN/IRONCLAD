@@ -648,7 +648,7 @@ window.IC = window.IC || {};
     }
     if (act === "add-crew") {
       if (!IC.can(s, "crews", "write") && !IC.can(s, "labor", "write")) return;
-      var crew = IC.normalizeCrew({ id: IC.uid(), name: "Crew " + (IC.state.crews.length + 1), foreman: "", phone: "", notes: "", active: true });
+      var crew = IC.normalizeCrew({ id: IC.uid(), name: "Crew " + (IC.state.crews.length + 1), role: "roofing", foreman: "", phone: "", notes: "", active: true });
       IC.upsertCrew(crew);
       IC.ui.laborCrew = crew.id;
       return;

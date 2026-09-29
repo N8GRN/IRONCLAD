@@ -48,9 +48,22 @@ IC.GHOST_SEED_IDS = { nate: true, matt: true, jon: true, jesse: true, ethan: tru
 IC.TEAM = [];
 
 IC.CREWS = [
-  { id: "crew-1", name: "Crew 1", foreman: "", phone: "", notes: "Rename in Settings", active: true },
-  { id: "crew-2", name: "Crew 2", foreman: "", phone: "", notes: "", active: true },
+  { id: "crew-1", name: "Crew 1", role: "roofing", foreman: "", phone: "", notes: "Rename in Settings", active: true },
+  { id: "crew-2", name: "Crew 2", role: "roofing", foreman: "", phone: "", notes: "", active: true },
 ];
+
+/* Division a crew works. Stored only — roofing screens will filter on this later. */
+IC.CREW_ROLES = [
+  { id: "roofing", label: "Roofing" },
+  { id: "gutters", label: "Gutters" },
+  { id: "siding", label: "Siding" },
+];
+
+IC.normalizeCrewRole = function (role) {
+  var id = String(role || "").trim().toLowerCase();
+  var hit = (IC.CREW_ROLES || []).filter(function (r) { return r.id === id; })[0];
+  return hit ? hit.id : "roofing";
+};
 
 IC.PITCHES = ["Flat Roof", "2/12 - 3.9/12", "4/12 - 7/12", "8/12 - 9/12", "10/12 - 11/12", "12/12 - 13/12"];
 
@@ -175,6 +188,7 @@ IC.normalizeCrew = function (c) {
   return Object.assign({}, c, {
     id: c.id,
     name: c.name || "Crew",
+    role: IC.normalizeCrewRole(c.role),
     foreman: c.foreman || "",
     phone: c.phone || "",
     notes: c.notes || "",
